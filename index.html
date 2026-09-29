@@ -52,8 +52,34 @@
     .scary-font {
       font-family: 'Creepster', cursive;
     }
-    .eerie-glow {
-      box-shadow: 0 0 25px -5px rgba(220, 38, 38, 0.25);
+
+    /* --- ANIMATED SPOOKY FLOATING GHOST --- */
+    @keyframes floatGhost {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-12px) rotate(3deg);
+      }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% {
+        opacity: 0.4;
+        filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.4));
+      }
+      50% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 25px rgba(220, 38, 38, 0.8));
+      }
+    }
+
+    .animated-ghost {
+      animation: floatGhost 3.5s ease-in-out infinite;
+    }
+
+    .animated-glow {
+      animation: pulseGlow 2.5s ease-in-out infinite;
     }
   </style>
 </head>
@@ -76,14 +102,23 @@
   </header>
 
   <!-- MAIN CONTAINER -->
-  <main class="max-w-4xl mx-auto px-4 py-10 flex-1 w-full">
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
 
-    <!-- SEARCH HEADER -->
+    <!-- HERO SECTION WITH ANIMATION -->
     <section class="text-center mb-10">
+      
+      <!-- GHOST / SKULL ANIMATION TOP -->
+      <div class="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+        <div class="absolute inset-0 bg-blood-600/20 rounded-full blur-xl animated-glow"></div>
+        <div class="animated-ghost text-6xl relative z-10 select-none">
+          👻
+        </div>
+      </div>
+
       <div class="inline-block bg-blood-500/10 border border-blood-500/30 text-blood-500 text-xs font-mono font-bold px-3 py-1 rounded-full mb-4">
         ⚰️ EVM TOKENOMICS READY
       </div>
-      <h2 class="scary-font text-4xl sm:text-5xl text-white mb-3">WHERE SIDE PROJECTS GO TO DIE</h2>
+      <h2 class="scary-font text-4xl sm:text-5xl text-white mb-3 tracking-wide">WHERE SIDE PROJECTS GO TO DIE</h2>
       <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-mono">
         Enter a GitHub username to exhume abandoned repositories, measure mortality scores, and claim $GRAVEYARD tokens.
       </p>
@@ -128,9 +163,6 @@
         <div class="text-[10px] text-slate-500 uppercase mt-1">Mortality Score</div>
       </div>
     </section>
-
-    <!-- EMBARRASSING HERO BANNER -->
-    <section id="embarrassing-hero-container" class="hidden mb-10"></section>
 
     <!-- REPOSITORY LIST SECTION -->
     <section id="graveyard-header" class="hidden mb-6">
@@ -214,11 +246,7 @@
         </div>
 
         <div class="font-mono text-[11px] text-slate-400 bg-grave-900 p-2.5 rounded-lg border border-grave-800 text-left">
-          <div><span class="text-slate-500">Buried By:</span> <span id="cert-wallet-addr" class="text-white font-bold">0x000...0000</span></div>
-          <div id="cert-tx-container" class="mt-1 hidden">
-            <span class="text-slate-500">Transaction:</span> 
-            <a id="cert-tx-link" href="#" target="_blank" class="text-blood-500 underline hover:text-blood-400">View on Etherscan</a>
-          </div>
+          <div><span class="text-slate-500">Buried By:</span> <span id="cert-wallet-addr" class="text-white font-bold">@username</span></div>
         </div>
       </div>
 
@@ -226,9 +254,6 @@
       <div class="flex gap-2 font-mono text-xs mt-4">
         <button id="download-cert-img-btn" class="flex-1 bg-slime-500 hover:bg-slime-400 text-grave-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow">
           <i class="fa-solid fa-download"></i> Download Pass
-        </button>
-        <button id="share-cert-x-btn" class="flex-1 bg-grave-800 hover:bg-grave-700 text-white py-2.5 rounded-xl border border-grave-700 transition flex items-center justify-center gap-1.5">
-          <i class="fa-brands fa-x-twitter"></i> Share on X
         </button>
       </div>
     </div>
