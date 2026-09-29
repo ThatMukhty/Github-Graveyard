@@ -53,39 +53,23 @@
       font-family: 'Creepster', cursive;
     }
 
-    /* --- ANIMATED SPOOKY FLOATING GHOST --- */
     @keyframes floatGhost {
-      0%, 100% {
-        transform: translateY(0px) rotate(0deg);
-      }
-      50% {
-        transform: translateY(-12px) rotate(3deg);
-      }
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(3deg); }
     }
 
     @keyframes pulseGlow {
-      0%, 100% {
-        opacity: 0.4;
-        filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.4));
-      }
-      50% {
-        opacity: 0.8;
-        filter: drop-shadow(0 0 25px rgba(220, 38, 38, 0.8));
-      }
+      0%, 100% { opacity: 0.4; filter: drop-shadow(0 0 15px rgba(220, 38, 38, 0.4)); }
+      50% { opacity: 0.8; filter: drop-shadow(0 0 25px rgba(220, 38, 38, 0.8)); }
     }
 
-    .animated-ghost {
-      animation: floatGhost 3.5s ease-in-out infinite;
-    }
-
-    .animated-glow {
-      animation: pulseGlow 2.5s ease-in-out infinite;
-    }
+    .animated-ghost { animation: floatGhost 3.5s ease-in-out infinite; }
+    .animated-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-blood-600 selection:text-white">
 
-  <!-- TOP NAV BAR -->
+  <!-- TOP NAV BAR WITH WALLET CONNECT -->
   <header class="border-b border-grave-800 bg-grave-900/80 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -95,28 +79,27 @@
           <p class="text-[10px] text-slate-400 font-mono">Bury Dead Code & Mint $GRAVEYARD</p>
         </div>
       </div>
-      <button id="copy-site-btn" class="bg-grave-800 hover:bg-grave-700 text-slate-300 font-mono text-xs px-3.5 py-2 rounded-xl border border-grave-700 transition flex items-center gap-2">
-        <i class="fa-solid fa-share-nodes"></i> Share Platform
-      </button>
+      
+      <div class="flex items-center gap-2">
+        <button id="connect-wallet-nav-btn" class="bg-blood-600 hover:bg-blood-500 text-white font-mono text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-blood-600/20 transition flex items-center gap-2">
+          <i class="fa-solid fa-wallet"></i> <span id="connect-wallet-label">Connect Wallet</span>
+        </button>
+      </div>
     </div>
   </header>
 
   <!-- MAIN CONTAINER -->
   <main class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full">
 
-    <!-- HERO SECTION WITH ANIMATION -->
+    <!-- HERO SECTION -->
     <section class="text-center mb-10">
-      
-      <!-- GHOST / SKULL ANIMATION TOP -->
       <div class="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center">
         <div class="absolute inset-0 bg-blood-600/20 rounded-full blur-xl animated-glow"></div>
-        <div class="animated-ghost text-6xl relative z-10 select-none">
-          👻
-        </div>
+        <div class="animated-ghost text-6xl relative z-10 select-none">👻</div>
       </div>
 
       <div class="inline-block bg-blood-500/10 border border-blood-500/30 text-blood-500 text-xs font-mono font-bold px-3 py-1 rounded-full mb-4">
-        ⚰️ EVM TOKENOMICS READY
+        ⚰️ EVM / ETHEREUM READY
       </div>
       <h2 class="scary-font text-4xl sm:text-5xl text-white mb-3 tracking-wide">WHERE SIDE PROJECTS GO TO DIE</h2>
       <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-mono">
@@ -178,6 +161,57 @@
     <p>GitHub Graveyard &copy; 2026 — EVM On-Chain Burial Protocol</p>
   </footer>
 
+  <!-- WALLET SELECTION MODAL -->
+  <div id="wallet-select-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-grave-900 border border-grave-700 rounded-2xl max-w-sm w-full p-6 text-center relative shadow-2xl">
+      <button id="close-wallet-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="text-3xl mb-2">🦊</div>
+      <h3 class="scary-font text-2xl text-white">CONNECT ETHEREUM WALLET</h3>
+      <p class="text-xs font-mono text-slate-400 mt-1 mb-5">Select your preferred EVM wallet to claim $GRAVEYARD rewards.</p>
+
+      <div class="space-y-2.5 font-mono text-xs text-left">
+        <!-- METAMASK -->
+        <button onclick="connectSelectedWallet('metamask')" class="w-full bg-grave-950 hover:bg-grave-800 border border-grave-800 rounded-xl p-3.5 flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">🦊</span>
+            <span class="font-bold text-white group-hover:text-blood-500">MetaMask</span>
+          </div>
+          <span class="text-[10px] text-slate-500 uppercase">Extension / App</span>
+        </button>
+
+        <!-- ROBINHOOD WALLET -->
+        <button onclick="connectSelectedWallet('robinhood')" class="w-full bg-grave-950 hover:bg-grave-800 border border-grave-800 rounded-xl p-3.5 flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">🏹</span>
+            <span class="font-bold text-white group-hover:text-blood-500">Robinhood Wallet</span>
+          </div>
+          <span class="text-[10px] text-slate-500 uppercase">EVM Wallet</span>
+        </button>
+
+        <!-- COINBASE WALLET -->
+        <button onclick="connectSelectedWallet('coinbase')" class="w-full bg-grave-950 hover:bg-grave-800 border border-grave-800 rounded-xl p-3.5 flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">🔵</span>
+            <span class="font-bold text-white group-hover:text-blood-500">Coinbase / Trust</span>
+          </div>
+          <span class="text-[10px] text-slate-500 uppercase">Web3 App</span>
+        </button>
+
+        <!-- PHANTOM (TEMP TEST) -->
+        <button onclick="connectSelectedWallet('phantom')" class="w-full bg-grave-950 hover:bg-grave-800 border border-grave-800 rounded-xl p-3.5 flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">👻</span>
+            <span class="font-bold text-purple-400 group-hover:text-purple-300">Phantom (Test EVM)</span>
+          </div>
+          <span class="text-[10px] text-slate-500 uppercase">Temporary</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- BIO CODE VERIFICATION MODAL -->
   <div id="bio-verify-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
     <div class="bg-grave-900 border border-grave-700 rounded-2xl max-w-md w-full p-6 text-center relative shadow-2xl">
@@ -207,7 +241,7 @@
     </div>
   </div>
 
-  <!-- ON-CHAIN CERTIFICATE / GRAVE PASS MODAL -->
+  <!-- ON-CHAIN CERTIFICATE MODAL -->
   <div id="certificate-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
     <div class="bg-grave-900 border border-grave-700 rounded-2xl max-w-lg w-full p-6 relative shadow-2xl my-8">
       
@@ -245,8 +279,11 @@
           </div>
         </div>
 
-        <div class="font-mono text-[11px] text-slate-400 bg-grave-900 p-2.5 rounded-lg border border-grave-800 text-left">
-          <div><span class="text-slate-500">Buried By:</span> <span id="cert-wallet-addr" class="text-white font-bold">@username</span></div>
+        <div class="font-mono text-[11px] bg-grave-900 p-2.5 rounded-lg border border-grave-800 text-left">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Buried By:</span>
+            <span id="cert-wallet-addr" class="text-slime-400 font-bold font-mono">0x0000...0000</span>
+          </div>
         </div>
       </div>
 
@@ -259,7 +296,6 @@
     </div>
   </div>
 
-  <!-- APPLICATION SCRIPT -->
   <script src="app.js"></script>
 </body>
 </html>

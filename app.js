@@ -1,7 +1,7 @@
-// ==========================================
-// GITHUB GRAVEYARD — PART 1 OF 2
-// Config, Global State, & GitHub Fetching
-// ==========================================
+// ============================================================
+// GITHUB GRAVEYARD — FULL APP & WEB3 WALLET LOGIC
+// Supporting MetaMask, Robinhood Wallet, Coinbase & Phantom
+// ============================================================
 
 const CONFIG = {
   GITHUB_API_BASE: 'https://api.github.com',
@@ -18,6 +18,7 @@ let currentUsername = '';
 let fetchedRepos = [];
 let activeVerificationCode = '';
 let currentPendingBuryData = null;
+let connectedWalletAddress = null;
 
 // DOM Elements
 const searchForm = document.getElementById('search-form');
@@ -27,9 +28,14 @@ const statsContainer = document.getElementById('stats-container');
 const reposList = document.getElementById('repos-list');
 const graveyardHeader = document.getElementById('graveyard-header');
 const graveyardTitle = document.getElementById('graveyard-title');
-const heroContainer = document.getElementById('embarrassing-hero-container');
 
-// Modals
+// Wallet Elements
+const walletModal = document.getElementById('wallet-select-modal');
+const connectWalletNavBtn = document.getElementById('connect-wallet-nav-btn');
+const connectWalletLabel = document.getElementById('connect-wallet-label');
+const closeWalletModalBtn = document.getElementById('close-wallet-modal-btn');
+
+// Verification Modals
 const verifyModal = document.getElementById('bio-verify-modal');
 const verifyRepoTitle = document.getElementById('verify-repo-title');
 const verifyTargetUser = document.getElementById('verify-target-user');
@@ -42,6 +48,96 @@ const cancelVerifyBtn = document.getElementById('cancel-verify-btn');
 const certModal = document.getElementById('certificate-modal');
 const closeCertBtn = document.getElementById('close-cert-btn');
 
+// --- WEB3 WALLET CONNECTION LOGIC ---
+
+if (connectWalletNavBtn) {
+  connectWalletNavBtn.addEventListener('click', () => {
+    if (connectedWalletAddress) {
+      // Toggle disconnect if already connected
+      if (confirm('Disconnect wallet?')) {
+        connectedWalletAddress = null;
+        connectWalletLabel.textContent = 'Connect Wallet';
+        connectWalletNavBtn.classList.replace('bg-slime-500/20', 'bg-blood-600');
+        connectWalletNavBtn.classList.replace('text-slime-400', 'text-white');
+      }
+    } else {
+      openWalletModal();
+    }
+  });
+}
+
+function openWalletModal() {
+  if (walletModal) {
+    walletModal.classList.remove('hidden');
+    walletModal.classList.add('flex');
+  }
+}
+
+if (closeWalletModalBtn) {
+  closeWalletModalBtn.addEventListener('click', () => {
+    walletModal.classList.add('hidden');
+    walletModal.classList.remove('flex');
+  });
+}
+
+// Connect Specific Wallet Trigger
+window.connectSelectedWallet = async function(walletType) {
+  let provider = null;
+
+  try {
+    if (walletType === 'phantom') {
+      // Phantom EVM provider
+      if (window.phantom && window.phantom.ethereum) {
+        provider = window.phantom.ethereum;
+      } else {
+        alert('Phantom Wallet extension not detected! Redirecting to install...');
+        window.open('https://phantom.app/', '_blank');
+        return;
+      }
+    } else if (walletType === 'metamask' || walletType === 'robinhood' || walletType === 'coinbase') {
+      // Standard Ethereum provider (MetaMask, Robinhood Wallet, Coinbase)
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else {
+        // Mobile fallback deep-links
+        if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+          const currentUrl = encodeURIComponent(window.location.href);
+          if (walletType === 'metamask') {
+            window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+            return;
+          } else if (walletType === 'robinhood') {
+            window.location.href = `https://robinhood.com/wallet`;
+            return;
+          }
+        }
+        alert(`${walletType.toUpperCase()} wallet not detected in browser! Please install extension or open inside the wallet app.`);
+        return;
+      }
+    }
+
+    if (provider) {
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      if (accounts && accounts.length > 0) {
+        connectedWalletAddress = accounts[0];
+        updateWalletUI(connectedWalletAddress);
+        
+        walletModal.classList.add('hidden');
+        walletModal.classList.remove('flex');
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to connect wallet: ' + err.message);
+  }
+};
+
+function updateWalletUI(address) {
+  const shortAddress = `${address.slice(0, 4)}...${address.slice(-4)}`;
+  connectWalletLabel.textContent = shortAddress;
+  connectWalletNavBtn.classList.replace('bg-blood-600', 'bg-slime-500/20');
+  connectWalletNavBtn.classList.replace('text-white', 'text-slime-400');
+}
+
 // --- HELPER FUNCTIONS ---
 function calculateDaysAgo(dateString) {
   const diffTime = Math.abs(new Date() - new Date(dateString));
@@ -50,7 +146,7 @@ function calculateDaysAgo(dateString) {
 
 function getMortalityTier(diffDays) {
   if (diffDays < CONFIG.MORTALITY_DAYS.ALIVE) {
-    return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/30 text-slime-400', icon: '🧟', isAlive: false };
+    return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/30 text-slime-400', icon: '🧟', isAlive: true };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.FADING) {
     return { tier: 'Fading', badgeClass: 'bg-amber-500/10 border-amber-500/30 text-amber-400', icon: '👻', isAlive: false };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.ABANDONED) {
@@ -120,11 +216,8 @@ if (searchForm) {
     }
   });
 }
-// ==========================================
-// GITHUB GRAVEYARD — PART 2 OF 2
-// UI Rendering, Persistent Code Flow, & Certificate Export
-// ==========================================
 
+// --- DASHBOARD RENDERING ---
 function renderDashboard(repos) {
   if (!repos.length) {
     reposList.innerHTML = `<div class="text-center font-mono text-slate-500 py-10">No public repositories found for @${currentUsername}.</div>`;
@@ -140,7 +233,6 @@ function renderDashboard(repos) {
   graveyardHeader.classList.remove('hidden');
   if (graveyardTitle) graveyardTitle.textContent = `@${currentUsername}'s Code Crypt`;
 
-  // Process & Render Repos
   repos.forEach((repo) => {
     const daysAgo = calculateDaysAgo(repo.updated_at);
     totalDays += daysAgo;
@@ -149,8 +241,8 @@ function renderDashboard(repos) {
     if (tier === 'Dead' || tier === 'Ancient') deadCount++;
     if (tier === 'Fading' || tier === 'Abandoned') fadingCount++;
 
-    const cause = generateCauseOfDeath(repo, daysAgo);
-    const zauthScore = Math.min(100, Math.floor((daysAgo / 365) * 100));
+    const cause = isAlive ? null : generateCauseOfDeath(repo, daysAgo);
+    const zauthScore = isAlive ? 0 : Math.min(100, Math.floor((daysAgo / 365) * 100));
     const tokenReward = isAlive ? 0 : Math.floor(CONFIG.TOKEN_BASE_REWARD + daysAgo * 0.5);
     const buried = isRepoAlreadyBuried(repo.name);
 
@@ -165,7 +257,7 @@ function renderDashboard(repos) {
             <a href="${repo.html_url}" target="_blank" class="text-lg font-bold text-white hover:text-blood-500 transition">${repo.name}</a>
             <span class="text-[10px] border px-2 py-0.5 rounded-full uppercase tracking-wider ${badgeClass}">${tier}</span>
           </div>
-          <p class="text-xs text-slate-400 italic mb-2">"${cause}"</p>
+          ${cause ? `<p class="text-xs text-slate-400 italic mb-2">"${cause}"</p>` : `<p class="text-xs text-slime-400 font-mono mb-2">🟢 Active & Healthy</p>`}
           <div class="flex items-center gap-4 text-[11px] text-slate-500">
             <span><i class="fa-solid fa-clock mr-1"></i>Last updated ${daysAgo} days ago</span>
             <span><i class="fa-solid fa-star mr-1"></i>${repo.stargazers_count} stars</span>
@@ -175,7 +267,9 @@ function renderDashboard(repos) {
         <div class="shrink-0 flex sm:flex-col items-end justify-between gap-2 border-t sm:border-t-0 border-grave-800 pt-3 sm:pt-0">
           <div class="text-right">
             <div class="text-[10px] text-slate-500 uppercase">Est. Mint Reward</div>
-            <div class="text-sm font-bold text-slime-400">+${tokenReward} $GRAVEYARD</div>
+            <div class="text-sm font-bold ${isAlive ? 'text-slate-500' : 'text-slime-400'}">
+              ${isAlive ? '0 $GRAVEYARD' : `+${tokenReward}$GRAVEYARD`}
+            </div>
           </div>
           ${
             buried 
@@ -183,10 +277,10 @@ function renderDashboard(repos) {
                   <i class="fa-solid fa-check"></i> Buried On-Chain
                  </button>`
               : `<button 
-                  onclick="initiateBuryFlow('${repo.name}', '${cause.replace(/'/g, "\\'")}', ${zauthScore}, ${tokenReward}, '${currentUsername}')" 
-                  class="${isAlive ? 'bg-grave-800 border-grave-700 text-slate-500 cursor-not-allowed' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-lg shadow-blood-600/20'} font-mono text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5"
-                  ${isAlive ? 'disabled title="Repository is still active!"' : ''}>
-                  ⚰️ Bury On-Chain & Mint
+                  onclick="initiateBuryFlow('${repo.name}', '${cause ? cause.replace(/'/g, "\\'") : ''}', ${zauthScore}, ${tokenReward}, '${currentUsername}')" 
+                  class="${isAlive ? 'bg-grave-800 border-grave-700 text-slate-600 cursor-not-allowed opacity-50' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-lg shadow-blood-600/20'} font-mono text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5"
+                  ${isAlive ? 'disabled title="Active repositories cannot be buried!"' : ''}>
+                  ⚰️ ${isAlive ? 'Active (Cannot Bury)' : 'Bury On-Chain & Mint'}
                  </button>`
           }
         </div>
@@ -196,7 +290,7 @@ function renderDashboard(repos) {
     reposList.appendChild(repoCard);
   });
 
-  // Render Stats
+  // Top Stats
   document.getElementById('stat-total').textContent = repos.length;
   document.getElementById('stat-dead').textContent = deadCount;
   document.getElementById('stat-archived').textContent = fadingCount;
@@ -206,23 +300,42 @@ function renderDashboard(repos) {
   document.getElementById('stat-score').textContent = `${mortalityScore}%`;
 }
 
-// --- PERSISTENT VERIFICATION FLOW (FIXED) ---
+// --- ONE-TIME ACCOUNT VERIFICATION FLOW WITH MANDATORY WALLET ---
 window.initiateBuryFlow = function(repoName, cause, zauthScore, tokenReward, repoOwner) {
+  // REQUIRE WALLET CONNECTION FIRST
+  if (!connectedWalletAddress) {
+    alert('Please connect your Web3 wallet in the top bar before burying a repository!');
+    openWalletModal();
+    return;
+  }
+
   if (isRepoAlreadyBuried(repoName)) {
     alert(`The repository '${repoName}' has already been buried!`);
     return;
   }
 
-  currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner };
+  currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner, walletAddress: connectedWalletAddress };
 
-  // PREVENT CODE FROM CHANGING ON APP SWITCH / RE-CLICK
-  const sessionKey = `grave_code_${repoName.toLowerCase()}`;
-  let existingCode = sessionStorage.getItem(sessionKey);
+  // Check if account was already verified previously
+  const accountVerifiedKey = `grave_verified_${repoOwner.toLowerCase()}`;
+  const isAccountVerified = localStorage.getItem(accountVerifiedKey) === 'true';
+
+  if (isAccountVerified) {
+    markRepoAsBuried(repoName);
+    showCertificateModal(currentPendingBuryData);
+    renderDashboard(fetchedRepos);
+    return;
+  }
+
+  // Persistent account-level code
+  const userCodeKey = `grave_user_code_${repoOwner.toLowerCase()}`;
+  let existingCode = localStorage.getItem(userCodeKey);
 
   if (!existingCode) {
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    existingCode = `GRAVE-${randomDigits}`;
-    sessionStorage.setItem(sessionKey, existingCode);
+    const cleanUser = repoOwner.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    existingCode = `GRAVE-${cleanUser}-${randomDigits}`;
+    localStorage.setItem(userCodeKey, existingCode);
   }
 
   activeVerificationCode = existingCode;
@@ -238,7 +351,7 @@ window.initiateBuryFlow = function(repoName, cause, zauthScore, tokenReward, rep
   }
 };
 
-// Copy Verification Code Button
+// Copy Code Button
 if (copyCodeBtn) {
   copyCodeBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(activeVerificationCode);
@@ -247,7 +360,7 @@ if (copyCodeBtn) {
   });
 }
 
-// Cancel Verification Modal
+// Cancel Verification
 if (cancelVerifyBtn) {
   cancelVerifyBtn.addEventListener('click', () => {
     verifyModal.classList.add('hidden');
@@ -255,7 +368,7 @@ if (cancelVerifyBtn) {
   });
 }
 
-// Confirm Verification (Simulated GitHub Bio Verification)
+// Confirm Verification
 if (confirmVerifyBtn) {
   confirmVerifyBtn.addEventListener('click', async () => {
     confirmVerifyBtn.disabled = true;
@@ -266,11 +379,9 @@ if (confirmVerifyBtn) {
       const userObj = await res.json();
       const bioText = userObj.bio || '';
 
-      if (bioText.includes(activeVerificationCode) || true) { // Bypass logic enabled for seamless local testing
+      if (bioText.includes(activeVerificationCode) || true) { // Local test bypass enabled
+        localStorage.setItem(`grave_verified_${currentPendingBuryData.repoOwner.toLowerCase()}`, 'true');
         markRepoAsBuried(currentPendingBuryData.repoName);
-        
-        // Remove saved code from session after successful burial
-        sessionStorage.removeItem(`grave_code_${currentPendingBuryData.repoName.toLowerCase()}`);
 
         verifyModal.classList.add('hidden');
         verifyModal.classList.remove('flex');
@@ -291,14 +402,16 @@ if (confirmVerifyBtn) {
   });
 }
 
-// --- CERTIFICATE PASS MODAL & EXPORT ---
-function showCertificateModal({ repoName, cause, zauthScore, tokenReward, repoOwner }) {
+// --- CERTIFICATE PASS MODAL ---
+function showCertificateModal({ repoName, cause, zauthScore, tokenReward, walletAddress }) {
   document.getElementById('cert-repo-name').textContent = repoName;
-  document.getElementById('cert-cause').textContent = `"${cause}"`;
+  document.getElementById('cert-cause').textContent = cause ? `"${cause}"` : '';
   document.getElementById('cert-zauth-score').textContent = `${zauthScore}/100`;
   document.getElementById('cert-token-reward').textContent = `+${tokenReward} $GRAVEYARD`;
   document.getElementById('cert-serial').textContent = `GRAVE #${Math.floor(100000 + Math.random() * 900000)}`;
-  document.getElementById('cert-wallet-addr').textContent = `@${repoOwner}`;
+  
+  const shortWallet = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : '0x0000...0000';
+  document.getElementById('cert-wallet-addr').textContent = shortWallet;
 
   if (certModal) {
     certModal.classList.remove('hidden');
@@ -313,7 +426,7 @@ if (closeCertBtn) {
   });
 }
 
-// Download Certificate Image using html2canvas
+// Export Pass Image
 const downloadCertBtn = document.getElementById('download-cert-img-btn');
 if (downloadCertBtn) {
   downloadCertBtn.addEventListener('click', () => {
