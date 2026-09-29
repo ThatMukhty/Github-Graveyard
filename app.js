@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const diffDays = Math.floor((now - new Date(pushedAtDate)) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 30) {
-      return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/40 text-slime-400', icon: '🧟', isAlive: true };
+      return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/40 text-slime-400', icon: '🧟', isAlive: false };
     } else if (diffDays <= 90) {
       return { tier: 'Fading', badgeClass: 'bg-purple-500/10 border-purple-500/40 text-purple-400', icon: '👻', isAlive: false };
     } else if (diffDays <= 180) {
