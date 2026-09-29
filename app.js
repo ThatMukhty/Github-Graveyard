@@ -1,26 +1,21 @@
 // ============================================================
 // GITHUB GRAVEYARD — PRODUCTION DAPP LOGIC
-// Supporting MetaMask, Robinhood Wallet, Coinbase & Phantom
-// Strict On-Chain Enforcement & Persistent Bio Verification
+// Accurate Commit-Based Mortality & Token Calculation
 // ============================================================
 
 const CONFIG = {
   GITHUB_API_BASE: 'https://api.github.com',
   TOKEN_BASE_REWARD: 100,
-  // ------------------------------------------------------------
-  // INSERT YOUR CONTRACT ADDRESS (CA) HERE
-  // ------------------------------------------------------------
-  CONTRACT_ADDRESS: 'YOUR_LIVE_CA_HERE', // Paste Sepolia or Mainnet CA here
+  CONTRACT_ADDRESS: 'YOUR_LIVE_CA_HERE', // Replace with your Smart Contract Address
   CHAIN_ID: '0xaa36a7', // '0xaa36a7' for Sepolia Testnet | '0x1' for Mainnet
   MORTALITY_DAYS: {
-    ALIVE: 30,
-    FADING: 90,
-    ABANDONED: 180,
-    DEAD: 365
+    ALIVE: 30,       // Commits in last 30 days = Alive
+    FADING: 90,      // No commits for 30-90 days
+    ABANDONED: 180,  // No commits for 90-180 days
+    DEAD: 365        // No commits for 1+ year
   }
 };
 
-// Standard ERC-20 + Mint Function ABI
 const CONTRACT_ABI = [
   "function mintBurialReward(address to, string calldata repoName, uint256 amount) external",
   "function isRepoBuried(string calldata repoName) external view returns (bool)",
@@ -48,7 +43,7 @@ const connectWalletNavBtn = document.getElementById('connect-wallet-nav-btn');
 const connectWalletLabel = document.getElementById('connect-wallet-label');
 const closeWalletModalBtn = document.getElementById('close-wallet-modal-btn');
 
-// Verification Modals
+// Verification Elements
 const verifyModal = document.getElementById('bio-verify-modal');
 const verifyRepoTitle = document.getElementById('verify-repo-title');
 const verifyTargetUser = document.getElementById('verify-target-user');
@@ -58,10 +53,13 @@ const copyCodeBtn = document.getElementById('copy-code-btn');
 const confirmVerifyBtn = document.getElementById('confirm-verify-btn');
 const cancelVerifyBtn = document.getElementById('cancel-verify-btn');
 
+// Certificate Modal Elements
 const certModal = document.getElementById('certificate-modal');
 const closeCertBtn = document.getElementById('close-cert-btn');
+const shareTwitterBtn = document.getElementById('share-twitter-btn');
+const downloadCertBtn = document.getElementById('download-cert-img-btn');
 
-// --- WEB3 WALLET CONNECTION LOGIC ---
+// --- WALLET CONNECTION LOGIC ---
 
 if (connectWalletNavBtn) {
   connectWalletNavBtn.addEventListener('click', () => {
@@ -92,37 +90,17 @@ if (closeWalletModalBtn) {
   });
 }
 
-// Connect Specific Wallet
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
 
   try {
     if (walletType === 'phantom') {
-      if (window.phantom && window.phantom.ethereum) {
-        provider = window.phantom.ethereum;
-      } else if (window.phantom && window.phantom.solana) {
-        provider = window.phantom.solana;
-      }
-    } else if (walletType === 'metamask') {
-      if (window.ethereum && window.ethereum.isMetaMask) {
-        provider = window.ethereum;
-      } else if (window.ethereum) {
-        provider = window.ethereum;
-      }
-    } else if (walletType === 'robinhood') {
-      if (window.robinhood) {
-        provider = window.robinhood;
-      } else if (window.ethereum) {
-        provider = window.ethereum;
-      }
-    } else if (walletType === 'coinbase') {
-      if (window.coinbaseWalletExtension || window.ethereum) {
-        provider = window.coinbaseWalletExtension || window.ethereum;
-      }
+      provider = (window.phantom && window.phantom.ethereum) || (window.phantom && window.phantom.solana);
+    } else if (walletType === 'metamask' || walletType === 'robinhood' || walletType === 'coinbase') {
+      provider = window.ethereum;
     }
 
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
     if (!provider && isMobile) {
       const currentUrl = encodeURIComponent(window.location.href);
       if (walletType === 'metamask') {
@@ -130,12 +108,6 @@ window.connectSelectedWallet = async function(walletType) {
         return;
       } else if (walletType === 'phantom') {
         window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
-        return;
-      } else if (walletType === 'robinhood') {
-        window.location.href = `https://robinhood.com/wallet`;
-        return;
-      } else if (walletType === 'coinbase') {
-        window.location.href = `https://go.cb-w.com/dapp?cb_url=${currentUrl}`;
         return;
       }
     }
@@ -148,26 +120,22 @@ window.connectSelectedWallet = async function(walletType) {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (accounts && accounts.length > 0) {
       connectedWalletAddress = accounts[0];
-
-      // Request network switch if user is on wrong chain
       try {
         await provider.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: CONFIG.CHAIN_ID }],
         });
-      } catch (switchError) {
-        console.warn('Chain switch declined or not configured:', switchError);
+      } catch (e) {
+        console.warn('Chain switch declined:', e);
       }
-
       updateWalletUI(connectedWalletAddress);
       if (walletModal) {
         walletModal.classList.add('hidden');
         walletModal.classList.remove('flex');
       }
     }
-
   } catch (err) {
-    console.error('Wallet connection error:', err);
+    console.error('Wallet error:', err);
     alert('Wallet connection failed: ' + err.message);
   }
 };
@@ -179,24 +147,23 @@ function updateWalletUI(address) {
   connectWalletNavBtn.classList.replace('text-white', 'text-slime-400');
 }
 
-// --- HELPER FUNCTIONS ---
+// --- ACCURATE DATE HELPERS ---
 
 function calculateDaysAgo(dateString) {
+  if (!dateString) return 0;
   const diffTime = Math.abs(new Date() - new Date(dateString));
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function getMortalityTier(diffDays) {
-  if (diffDays < CONFIG.MORTALITY_DAYS.ALIVE) {
+  if (diffDays <= CONFIG.MORTALITY_DAYS.ALIVE) {
     return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/30 text-slime-400', icon: '🧟', isAlive: true };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.FADING) {
     return { tier: 'Fading', badgeClass: 'bg-amber-500/10 border-amber-500/30 text-amber-400', icon: '👻', isAlive: false };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.ABANDONED) {
     return { tier: 'Abandoned', badgeClass: 'bg-orange-500/10 border-orange-500/30 text-orange-400', icon: '🪦', isAlive: false };
-  } else if (diffDays <= CONFIG.MORTALITY_DAYS.DEAD) {
-    return { tier: 'Dead', badgeClass: 'bg-blood-500/10 border-blood-500/30 text-blood-500', icon: '💀', isAlive: false };
   } else {
-    return { tier: 'Ancient', badgeClass: 'bg-purple-500/10 border-purple-500/30 text-purple-400', icon: '⚰️', isAlive: false };
+    return { tier: 'Dead', badgeClass: 'bg-blood-500/10 border-blood-500/30 text-blood-500', icon: '💀', isAlive: false };
   }
 }
 
@@ -207,8 +174,7 @@ function generateCauseOfDeath(repo, daysAgo) {
     `Replaced by an unreleased Vercel template.`,
     `Forgotten after the developer discovered crypto.`,
     `Starved of pull requests for ${daysAgo} days.`,
-    `Killed by 'I'll rewrite this in Rust next week'.`,
-    `Crushed under the weight of 412 unvetted node_modules.`
+    `Killed by 'I'll rewrite this in Rust next week'.`
   ];
   return causes[repo.name.length % causes.length];
 }
@@ -231,7 +197,7 @@ function markRepoAsBuriedLocally(repoName) {
   }
 }
 
-// --- FETCH GITHUB REPOS ---
+// --- FETCH REPOSITORIES (SORTED BY COMMIT ACTIVITY) ---
 
 if (searchForm) {
   searchForm.addEventListener('submit', async (e) => {
@@ -244,8 +210,9 @@ if (searchForm) {
     digBtn.disabled = true;
 
     try {
-      const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${username}/repos?sort=updated&per_page=100`);
-      if (!res.ok) throw new Error('User not found or GitHub API rate limit reached.');
+      // sort=pushed ensures we query git commit activity, not star/fork updates
+      const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${username}/repos?sort=pushed&per_page=100`);
+      if (!res.ok) throw new Error('User not found or GitHub rate limit reached.');
       const repos = await res.json();
       fetchedRepos = repos;
       renderDashboard(repos);
@@ -258,7 +225,7 @@ if (searchForm) {
   });
 }
 
-// --- DASHBOARD RENDERING ---
+// --- RENDER DASHBOARD ---
 
 function renderDashboard(repos) {
   if (!repos.length) {
@@ -276,11 +243,14 @@ function renderDashboard(repos) {
   if (graveyardTitle) graveyardTitle.textContent = `@${currentUsername}'s Code Crypt`;
 
   repos.forEach((repo) => {
-    const daysAgo = calculateDaysAgo(repo.updated_at);
+    // STRICT PUSHED_AT CHECK: Measures actual code commit age
+    const lastCommitDate = repo.pushed_at || repo.updated_at;
+    const daysAgo = calculateDaysAgo(lastCommitDate);
     totalDays += daysAgo;
+    
     const { tier, badgeClass, icon, isAlive } = getMortalityTier(daysAgo);
 
-    if (tier === 'Dead' || tier === 'Ancient') deadCount++;
+    if (tier === 'Dead') deadCount++;
     if (tier === 'Fading' || tier === 'Abandoned') fadingCount++;
 
     const cause = isAlive ? null : generateCauseOfDeath(repo, daysAgo);
@@ -301,7 +271,7 @@ function renderDashboard(repos) {
           </div>
           ${cause ? `<p class="text-xs text-slate-400 italic mb-2">"${cause}"</p>` : `<p class="text-xs text-slime-400 font-mono mb-2">🟢 Active & Healthy</p>`}
           <div class="flex items-center gap-4 text-[11px] text-slate-500">
-            <span><i class="fa-solid fa-clock mr-1"></i>Last updated ${daysAgo} days ago</span>
+            <span><i class="fa-solid fa-code-commit mr-1"></i>Last code push ${daysAgo} days ago</span>
             <span><i class="fa-solid fa-star mr-1"></i>${repo.stargazers_count} stars</span>
           </div>
         </div>
@@ -322,7 +292,7 @@ function renderDashboard(repos) {
                   onclick="initiateBuryFlow('${repo.name}', '${cause ? cause.replace(/'/g, "\\'") : ''}', ${zauthScore}, ${tokenReward}, '${currentUsername}')" 
                   class="${isAlive ? 'bg-grave-800 border-grave-700 text-slate-600 cursor-not-allowed opacity-50' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-lg shadow-blood-600/20'} font-mono text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5"
                   ${isAlive ? 'disabled title="Active repositories cannot be buried!"' : ''}>
-                  ⚰️ ${isAlive ? 'Active (Cannot Bury)' : 'Bury On-Chain & Mint'}
+                  ⚰️️ ${isAlive ? 'Active (Cannot Bury)' : 'Bury On-Chain & Mint'}
                  </button>`
           }
         </div>
@@ -332,7 +302,6 @@ function renderDashboard(repos) {
     reposList.appendChild(repoCard);
   });
 
-  // Top Stats
   document.getElementById('stat-total').textContent = repos.length;
   document.getElementById('stat-dead').textContent = deadCount;
   document.getElementById('stat-archived').textContent = fadingCount;
@@ -342,49 +311,44 @@ function renderDashboard(repos) {
   document.getElementById('stat-score').textContent = `${mortalityScore}%`;
 }
 
-// --- BURY FLOW WITH DOUBLE-CLAIM PREVENTION & PERSISTENT CODE ---
+// --- BURY FLOW & DOUBLE-CLAIM PREVENTION ---
 
 window.initiateBuryFlow = async function(repoName, cause, zauthScore, tokenReward, repoOwner) {
   if (!connectedWalletAddress) {
-    alert('Please connect your Web3 wallet in the top bar before burying a repository!');
+    alert('Please connect your Web3 wallet first!');
     openWalletModal();
     return;
   }
 
-  // 1. Local Check
   if (isRepoAlreadyBuriedLocally(repoName)) {
-    alert(`The repository '${repoName}' has already been buried!`);
+    alert(`The repository '${repoName}' is already buried!`);
     return;
   }
 
-  // 2. ON-CHAIN CHECK: Interrogate smart contract mapping so user cannot double-claim on another device/browser
+  // Contract state check
   if (CONFIG.CONTRACT_ADDRESS && CONFIG.CONTRACT_ADDRESS !== 'YOUR_LIVE_CA_HERE' && window.ethereum) {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const contract = new ethers.Contract(CONFIG.CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-      const fullRepoKey = `${repoOwner}/${repoName}`;
-      
-      const isAlreadyBuriedOnChain = await contract.isRepoBuried(fullRepoKey);
-      if (isAlreadyBuriedOnChain) {
+      const isBuriedOnChain = await contract.isRepoBuried(`${repoOwner}/${repoName}`);
+      if (isBuriedOnChain) {
         markRepoAsBuriedLocally(repoName);
-        alert(`This repository (${fullRepoKey}) has ALREADY been buried on-chain! Double claiming is disabled.`);
+        alert(`Repository '${repoOwner}/${repoName}' is already buried on-chain!`);
         renderDashboard(fetchedRepos);
         return;
       }
     } catch (err) {
-      console.warn("Could not query contract for on-chain state, proceeding...", err);
+      console.warn("Could not query contract status:", err);
     }
   }
 
   currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner, walletAddress: connectedWalletAddress };
 
-  // 3. PERSISTENT CODE GENERATION FOR MOBILE & DESKTOP:
-  // Uses a deterministic seed from the username so the user ALWAYS gets the exact same GRAVE- code
+  // Stable Code for Bio Verification
   const userCodeKey = `grave_user_code_${repoOwner.toLowerCase()}`;
   let existingCode = localStorage.getItem(userCodeKey);
 
   if (!existingCode) {
-    // Generate deterministic 4-digit hash based on username string
     let hash = 0;
     for (let i = 0; i < repoOwner.length; i++) {
       hash = (hash << 5) - hash + repoOwner.charCodeAt(i);
@@ -409,7 +373,6 @@ window.initiateBuryFlow = async function(repoName, cause, zauthScore, tokenRewar
   }
 };
 
-// Copy Code Button
 if (copyCodeBtn) {
   copyCodeBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(activeVerificationCode);
@@ -418,7 +381,6 @@ if (copyCodeBtn) {
   });
 }
 
-// Cancel Verification
 if (cancelVerifyBtn) {
   cancelVerifyBtn.addEventListener('click', () => {
     verifyModal.classList.add('hidden');
@@ -426,35 +388,27 @@ if (cancelVerifyBtn) {
   });
 }
 
-// Confirm Verification (STRICT BIO CHECK)
 if (confirmVerifyBtn) {
   confirmVerifyBtn.addEventListener('click', async () => {
     confirmVerifyBtn.disabled = true;
     confirmVerifyBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking Bio...`;
 
     try {
-      // Fetch fresh bio directly from GitHub API (no cache)
       const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${currentPendingBuryData.repoOwner}?t=${Date.now()}`);
-      if (!res.ok) throw new Error("Unable to fetch GitHub profile.");
-      
+      if (!res.ok) throw new Error("Could not fetch profile.");
       const userObj = await res.json();
       const bioText = userObj.bio || '';
 
-      // PRODUCTION STRICT CHECK: Must explicitly contain activeVerificationCode
       if (bioText.includes(activeVerificationCode)) {
-        
         verifyModal.classList.add('hidden');
         verifyModal.classList.remove('flex');
-
-        // Trigger real Web3 transaction
         await executeOnChainMint(currentPendingBuryData);
-
       } else {
-        verifyStatusMsg.textContent = `Verification failed! Code '${activeVerificationCode}' was not found in your GitHub bio. Please update your bio and click verify again.`;
+        verifyStatusMsg.textContent = `Code '${activeVerificationCode}' not found in GitHub bio. Please update your bio and try again.`;
         verifyStatusMsg.classList.remove('hidden');
       }
     } catch (err) {
-      verifyStatusMsg.textContent = 'Error verifying bio: ' + err.message;
+      verifyStatusMsg.textContent = 'Bio check error: ' + err.message;
       verifyStatusMsg.classList.remove('hidden');
     } finally {
       confirmVerifyBtn.disabled = false;
@@ -463,20 +417,19 @@ if (confirmVerifyBtn) {
   });
 }
 
-// --- EXECUTE ON-CHAIN MINT TRANSACTION ---
+// --- ON-CHAIN MINT EXECUTION ---
 
 async function executeOnChainMint(buryData) {
-  const { repoName, cause, zauthScore, tokenReward, walletAddress, repoOwner } = buryData;
+  const { repoName, tokenReward, walletAddress, repoOwner } = buryData;
 
-  // BLOCK IF NO CONTRACT ADDRESS IS CONFIGURED
   if (!CONFIG.CONTRACT_ADDRESS || CONFIG.CONTRACT_ADDRESS === 'YOUR_LIVE_CA_HERE') {
-    alert("Production Error: No Smart Contract Address (CA) configured in app.js!");
+    alert("Production Error: No Smart Contract Address configured!");
     return;
   }
 
   try {
     if (!window.ethereum) {
-      alert("No Web3 Provider detected. Please open this site inside MetaMask, Phantom, or Coinbase Wallet app browser.");
+      alert("No Web3 provider detected.");
       return;
     }
 
@@ -487,23 +440,21 @@ async function executeOnChainMint(buryData) {
     const rewardWei = ethers.parseUnits(tokenReward.toString(), 18);
     const fullRepoKey = `${repoOwner}/${repoName}`;
 
-    // Trigger Wallet Transaction Popup
     const tx = await contract.mintBurialReward(walletAddress, fullRepoKey, rewardWei);
-    
-    alert(`Transaction submitted! Hash: ${tx.hash}\nWaiting for network confirmation...`);
-    await tx.wait(); // Wait for block confirmation
-// Mark as permanently buried only AFTER on-chain confirmation
+    alert(`Transaction submitted! Hash: ${tx.hash}\nWaiting for block confirmation...`);
+    await tx.wait();
+
     markRepoAsBuriedLocally(repoName);
     showCertificateModal(buryData);
     renderDashboard(fetchedRepos);
 
   } catch (err) {
-    console.error('On-chain minting failed:', err);
-    alert('Minting failed or transaction rejected in wallet: ' + (err.reason || err.message));
+    console.error('Minting error:', err);
+    alert('Minting failed: ' + (err.reason || err.message));
   }
 }
 
-// --- CERTIFICATE PASS MODAL ---
+// --- CERTIFICATE PASS MODAL & ACTIONS ---
 
 function showCertificateModal({ repoName, cause, zauthScore, tokenReward, walletAddress }) {
   document.getElementById('cert-repo-name').textContent = repoName;
@@ -527,14 +478,27 @@ if (closeCertBtn) {
   });
 }
 
-// Export Pass Image
-const downloadCertBtn = document.getElementById('download-cert-img-btn');
+// Share on X (Twitter)
+if (shareTwitterBtn) {
+  shareTwitterBtn.addEventListener('click', () => {
+    if (!currentPendingBuryData) return;
+    const tweetText = encodeURIComponent(
+      `I just buried my abandoned project "${currentPendingBuryData.repoName}" on-chain and claimed +${currentPendingBuryData.tokenReward} $GRAVEYARD tokens! ⚰️\n\nCheck your repo graveyard:`
+    );
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(tweetUrl, '_blank');
+  });
+}
+
+// Download Certificate Pass Image
 if (downloadCertBtn) {
   downloadCertBtn.addEventListener('click', () => {
     const targetCard = document.getElementById('certificate-card-render');
+    if (!targetCard) return;
+
     html2canvas(targetCard, { backgroundColor: '#06070a', scale: 2 }).then((canvas) => {
       const link = document.createElement('a');
-      link.download = `GRAVEYARD-PASS-${currentPendingBuryData.repoName}.png`;
+      link.download = `GRAVEYARD-PASS-${currentPendingBuryData ? currentPendingBuryData.repoName : 'CERT'}.png`;
       link.href = canvas.toDataURL();
       link.click();
     });
