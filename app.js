@@ -157,7 +157,7 @@ function calculateDaysAgo(dateString) {
 
 function getMortalityTier(diffDays) {
   if (diffDays <= CONFIG.MORTALITY_DAYS.ALIVE) {
-    return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/30 text-slime-400', icon: '🧟', isAlive: true };
+    return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/30 text-slime-400', icon: '🧟', isAlive: false };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.FADING) {
     return { tier: 'Fading', badgeClass: 'bg-amber-500/10 border-amber-500/30 text-amber-400', icon: '👻', isAlive: false };
   } else if (diffDays <= CONFIG.MORTALITY_DAYS.ABANDONED) {
