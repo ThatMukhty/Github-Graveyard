@@ -1,64 +1,32 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Graveyard 💀 | Bury Your Dead Repos</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Graveyard — Exhume & Bury Abandoned Repos</title>
+  <meta name="description" content="Exhume your dead side projects, bury them on-chain, and mint $GRAVEYARD tokens." />
 
-  <!-- OpenGraph / X Metadata for gitgraveyard.xyz -->
-  <meta property="og:title" content="GitHub Graveyard 💀">
-  <meta property="og:description" content="Give your abandoned code a proper funeral and earn $GRAVEYARD tokens based on repo score.">
-  <meta property="og:url" content="https://gitgraveyard.xyz">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="GitHub Graveyard 💀">
-  <meta name="twitter:description" content="Lay stale repositories to rest, earn tokens, and track protocol backing.">
-
-  <!-- Scary Horror Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <!-- HTML2Canvas (Client-side Image Rendering for Download) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-  <!-- Solana Web3 JS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
-
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            creepster: ['Creepster', 'cursive'],
-            mono: ['Fira Code', 'monospace']
-          },
           colors: {
             grave: {
-              950: '#07080c',
-              900: '#0f111a',
-              800: '#181b29',
-              700: '#262a3d',
+              950: '#06070a',
+              900: '#090a0f',
+              800: '#12151e',
+              700: '#1e2330',
             },
             blood: {
               500: '#ff3b3b',
               600: '#dc2626',
             },
             slime: {
-              400: '#4ade80',
-              500: '#22c55e',
-            },
-            gold: {
-              400: '#fbbf24',
-              500: '#f59e0b',
+              400: '#22c55e',
+              500: '#10b981',
             }
           }
         }
@@ -66,278 +34,207 @@
     }
   </script>
 
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- HTML2Canvas Export Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
     body {
-      background-color: #07080c;
-      background-image: radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.05), transparent 70%);
-    }
-    .scary-title {
-      font-family: 'Creepster', cursive;
-      letter-spacing: 2px;
-      text-shadow: 0 0 15px rgba(255, 59, 59, 0.5), 0 0 30px rgba(34, 197, 94, 0.2);
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #06070a;
+      color: #f1f5f9;
     }
     .scary-font {
       font-family: 'Creepster', cursive;
     }
-
-    /* PvZ Style Animations */
-    @keyframes pvz-rise {
-      0% { transform: translateY(30px) scale(0.9); opacity: 0; }
-      50% { transform: translateY(-5px) rotate(-1deg); opacity: 1; }
-      100% { transform: translateY(0) rotate(0deg); }
-    }
-    @keyframes float-wobble {
-      0%, 100% { transform: translateY(0px) rotate(-2deg); }
-      50% { transform: translateY(-10px) rotate(3deg); }
-    }
-    @keyframes march-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    @keyframes eerie-flicker {
-      0%, 100% { opacity: 0.9; }
-      50% { opacity: 0.4; }
-    }
-
-    .animate-pvz-rise {
-      animation: pvz-rise 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-    .floating-ghost {
-      animation: float-wobble 3.5s ease-in-out infinite;
-    }
-    .funeral-procession {
-      display: flex;
-      white-space: nowrap;
-      animation: march-left 24s linear infinite;
-    }
     .eerie-glow {
-      animation: eerie-flicker 4s ease-in-out infinite;
+      box-shadow: 0 0 25px -5px rgba(220, 38, 38, 0.25);
     }
   </style>
 </head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blood-600 selection:text-white">
 
-<body class="bg-grave-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between overflow-x-hidden">
-
-<!-- Main Container -->
-<main class="max-w-4xl mx-auto px-4 py-8 sm:py-12 w-full">
-
-  <!-- Scary Funeral Procession Banner Animation -->
-  <div class="relative w-full overflow-hidden bg-grave-900/80 border border-blood-600/30 rounded-2xl p-4 mb-8 shadow-2xl backdrop-blur-sm">
-    <div class="funeral-procession text-xl sm:text-2xl font-mono text-slate-400 gap-12 items-center">
-      <span>⚰️ <span class="text-xs font-mono text-blood-500">RIP main.rs</span></span>
-      <span class="floating-ghost">🧟 <span class="text-xs font-mono text-slime-400">Walking Codebase</span></span>
-      <span>🪦 <span class="text-xs font-mono text-amber-400">Abandoned v0.0.1</span></span>
-      <span class="floating-ghost">👻 <span class="text-xs font-mono text-purple-400">Fading Repos</span></span>
-      <span>💀 <span class="text-xs font-mono text-blood-500">CORS Error Flatline</span></span>
-      <span>⚰️ <span class="text-xs font-mono text-slate-400">RIP index.js</span></span>
-      <span class="floating-ghost">🧠 <span class="text-xs font-mono text-slime-400">Skill Issue</span></span>
+  <!-- TOP NAV BAR -->
+  <header class="border-b border-grave-800 bg-grave-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">💀</span>
+        <div>
+          <h1 class="scary-font text-2xl text-white tracking-widest leading-none">GITHUB GRAVEYARD</h1>
+          <p class="text-[10px] text-slate-400 font-mono">Bury Dead Code & Mint $GRAVEYARD</p>
+        </div>
+      </div>
+      <button id="copy-site-btn" class="bg-grave-800 hover:bg-grave-700 text-slate-300 font-mono text-xs px-3.5 py-2 rounded-xl border border-grave-700 transition flex items-center gap-2">
+        <i class="fa-solid fa-share-nodes"></i> Share Platform
+      </button>
     </div>
-  </div>
-
-  <!-- Header -->
-  <header class="text-center mb-6">
-    <div class="inline-flex items-center justify-center p-4 bg-grave-900 border border-grave-800 rounded-2xl mb-4 shadow-xl floating-ghost border-blood-500/20">
-      <span class="text-6xl">🪦</span>
-    </div>
-    <h1 class="scary-title text-5xl sm:text-7xl font-extrabold text-white mb-3">
-      GitHub <span class="text-blood-500">Graveyard</span>
-    </h1>
-    <p class="text-sm sm:text-lg text-slate-300 max-w-lg mx-auto font-mono font-medium leading-relaxed">
-      Give your abandoned code a proper funeral. Exhume flatlined side projects, earn <span class="text-slime-400 font-bold">$GRAVEYARD</span> based on repo score, and support protocol burns.
-    </p>
   </header>
 
-  <!-- Cultpad-Style Protocol & Fee Dashboard -->
-  <section class="mb-8">
-    <div class="w-full bg-grave-900/90 border border-grave-800 rounded-2xl p-4 sm:p-5 shadow-xl backdrop-blur-md">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-        
-        <!-- Total Protocol Revenue -->
-        <div class="flex flex-col text-center md:text-left">
-          <span class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
-            Total Protocol Revenue
-          </span>
-          <div class="text-xl font-bold text-slime-400 font-mono mt-1">
-            2.45 ETH <span class="text-xs text-slate-500 font-normal">(100% Backing Ecosystem)</span>
-          </div>
-        </div>
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-4xl mx-auto px-4 py-10 flex-1 w-full">
 
-        <!-- Revenue Split Rules -->
-        <div class="flex justify-around bg-grave-950 p-2.5 rounded-xl border border-grave-800/80 text-xs font-mono">
-          <div class="text-center">
-            <span class="block text-slate-400">Holders Share</span>
-            <span class="font-bold text-amber-400">80% Yield</span>
-          </div>
-          <div class="border-r border-grave-800"></div>
-          <div class="text-center">
-            <span class="block text-slate-400">Auto Buyback</span>
-            <span class="font-bold text-blood-500">20% Burn</span>
-          </div>
-        </div>
+    <!-- SEARCH HEADER -->
+    <section class="text-center mb-10">
+      <div class="inline-block bg-blood-500/10 border border-blood-500/30 text-blood-500 text-xs font-mono font-bold px-3 py-1 rounded-full mb-4">
+        ⚰️ EVM TOKENOMICS READY
+      </div>
+      <h2 class="scary-font text-4xl sm:text-5xl text-white mb-3">WHERE SIDE PROJECTS GO TO DIE</h2>
+      <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-mono">
+        Enter a GitHub username to exhume abandoned repositories, measure mortality scores, and claim $GRAVEYARD tokens.
+      </p>
 
-        <!-- Token Contract Address & Explorer Verification -->
-        <div class="flex flex-col items-center md:items-end gap-1.5">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 font-mono">CA:</span>
-            <code id="token-ca" class="text-xs bg-grave-800 px-2 py-1 rounded text-slate-200 font-mono border border-grave-700">
-              TBA (Launching Soon)
-            </code>
-          </div>
-          
-          <a 
-            id="treasury-explorer-link"
-            href="https://etherscan.io/" 
-            target="_blank" 
-            rel="noreferrer"
-            class="text-xs text-slate-400 hover:text-slime-400 underline transition-colors flex items-center gap-1 font-mono"
-          >
-            🔍 Verify Treasury On-Chain
-          </a>
+      <!-- SEARCH FORM -->
+      <form id="search-form" class="mt-6 max-w-lg mx-auto flex flex-col sm:flex-row gap-2">
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-mono text-sm">@</span>
+          <input 
+            type="text" 
+            id="username-input" 
+            placeholder="github_username" 
+            required
+            class="w-full bg-grave-900 border border-grave-700 rounded-xl py-3 pl-8 pr-4 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blood-500 transition"
+          />
         </div>
+        <button 
+          type="submit" 
+          id="dig-btn" 
+          class="bg-blood-600 hover:bg-blood-500 text-white font-mono font-bold text-xs px-6 py-3 rounded-xl shadow-lg shadow-blood-600/20 transition flex items-center justify-center gap-2 shrink-0">
+          <i class="fa-solid fa-skull"></i> Exhume Graveyard
+        </button>
+      </form>
+    </section>
 
+    <!-- STATS OVERVIEW CONTAINER -->
+    <section id="stats-container" class="hidden mb-8 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center font-mono">
+      <div class="bg-grave-900 border border-grave-800 p-4 rounded-xl">
+        <div id="stat-total" class="text-2xl font-bold text-white">0</div>
+        <div class="text-[10px] text-slate-500 uppercase mt-1">Total Repos</div>
+      </div>
+      <div class="bg-grave-900 border border-grave-800 p-4 rounded-xl">
+        <div id="stat-dead" class="text-2xl font-bold text-blood-500">0</div>
+        <div class="text-[10px] text-slate-500 uppercase mt-1">Dead / Ancient</div>
+      </div>
+      <div class="bg-grave-900 border border-grave-800 p-4 rounded-xl">
+        <div id="stat-archived" class="text-2xl font-bold text-amber-400">0</div>
+        <div class="text-[10px] text-slate-500 uppercase mt-1">Fading / Abandoned</div>
+      </div>
+      <div class="bg-grave-900 border border-grave-800 p-4 rounded-xl">
+        <div id="stat-score" class="text-2xl font-bold text-purple-400">0%</div>
+        <div class="text-[10px] text-slate-500 uppercase mt-1">Mortality Score</div>
+      </div>
+    </section>
+
+    <!-- EMBARRASSING HERO BANNER -->
+    <section id="embarrassing-hero-container" class="hidden mb-10"></section>
+
+    <!-- REPOSITORY LIST SECTION -->
+    <section id="graveyard-header" class="hidden mb-6">
+      <h3 id="graveyard-title" class="scary-font text-2xl text-white tracking-wide">Developer Graveyard</h3>
+    </section>
+
+    <div id="repos-list" class="space-y-4"></div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-grave-800 py-6 bg-grave-950 text-center font-mono text-xs text-slate-500 mt-12">
+    <p>GitHub Graveyard &copy; 2026 — EVM On-Chain Burial Protocol</p>
+  </footer>
+
+  <!-- BIO CODE VERIFICATION MODAL -->
+  <div id="bio-verify-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-grave-900 border border-grave-700 rounded-2xl max-w-md w-full p-6 text-center relative shadow-2xl">
+      <div class="text-3xl mb-2">🔐</div>
+      <h3 class="scary-font text-2xl text-white">VERIFY REPO OWNERSHIP</h3>
+      <p class="text-xs font-mono text-slate-400 mt-2 leading-relaxed">
+        To bury <span id="verify-repo-title" class="text-blood-500 font-bold"></span>, prove you own <span id="verify-target-user" class="text-white font-bold"></span> by temporarily adding this code to your GitHub bio:
+      </p>
+
+      <div class="my-5 bg-grave-950 p-3.5 rounded-xl border border-grave-800 flex items-center justify-between gap-2">
+        <input id="verify-code-display" readonly type="text" class="bg-transparent text-amber-400 font-mono font-bold text-center w-full focus:outline-none text-sm tracking-wider" value="GRAVE-000000" />
+        <button id="copy-code-btn" class="bg-grave-800 hover:bg-grave-700 text-white font-mono text-xs px-3 py-1.5 rounded-lg border border-grave-700 transition shrink-0">
+          Copy
+        </button>
+      </div>
+
+      <p id="verify-status-msg" class="text-xs font-mono text-blood-500 mb-4 hidden bg-blood-500/10 p-2.5 rounded-lg border border-blood-500/20"></p>
+
+      <div class="flex gap-2 font-mono text-xs">
+        <button id="cancel-verify-btn" class="flex-1 bg-grave-800 hover:bg-grave-700 text-slate-300 py-2.5 rounded-lg transition">
+          Cancel
+        </button>
+        <button id="confirm-verify-btn" class="flex-1 bg-blood-600 hover:bg-blood-500 text-white font-bold py-2.5 rounded-lg shadow-blood-600/30 transition">
+          Verify & Mint Tokens
+        </button>
       </div>
     </div>
-  </section>
-
-  <!-- Search Form -->
-  <section class="mb-10">
-    <form id="search-form" class="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
-      <div class="relative flex-1">
-        <i class="fa-solid fa-user text-slate-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
-        <input 
-          type="text" 
-          id="username-input" 
-          placeholder="Enter GitHub username..." 
-          required
-          class="w-full bg-grave-900 border border-grave-700 rounded-xl py-3.5 pl-11 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-blood-500 focus:ring-1 focus:ring-blood-500 transition font-mono text-sm shadow-inner"
-        />
-      </div>
-      <button 
-        type="submit" 
-        id="dig-btn"
-        class="bg-blood-600 hover:bg-blood-500 text-white font-creepster tracking-wider text-xl px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-blood-600/30 hover:scale-105 transform">
-        <i class="fa-solid fa-skull"></i> Exhume Dead Repos
-      </button>
-    </form>
-  </section>
-
-  <!-- Global Stats Dashboard -->
-  <section id="stats-container" class="hidden mb-8">
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-grave-900/80 border border-grave-800 rounded-2xl p-4 text-center backdrop-blur">
-      <div>
-        <div class="text-[10px] font-mono text-slate-500 tracking-wider">TOTAL REPOS</div>
-        <div id="stat-total" class="text-xl sm:text-2xl font-mono font-bold text-white mt-0.5">0</div>
-      </div>
-      <div>
-        <div class="text-[10px] font-mono text-slate-500 tracking-wider">DEAD & ANCIENT</div>
-        <div id="stat-dead" class="text-xl sm:text-2xl font-mono font-bold text-blood-500 mt-0.5">0</div>
-      </div>
-      <div>
-        <div class="text-[10px] font-mono text-slate-500 tracking-wider">FADING / ABANDONED</div>
-        <div id="stat-archived" class="text-xl sm:text-2xl font-mono font-bold text-amber-400 mt-0.5">0</div>
-      </div>
-      <div>
-        <div class="text-[10px] font-mono text-slate-500 tracking-wider">MORTALITY RATE</div>
-        <div id="stat-score" class="text-xl sm:text-2xl font-mono font-bold text-slate-300 mt-0.5">0%</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Hero Feature: Most Embarrassing Death Highlight -->
-  <section id="embarrassing-hero-container" class="hidden mb-10"></section>
-
-  <!-- Graveyard Header -->
-  <div id="graveyard-header" class="hidden flex items-center justify-between mb-6">
-    <h2 id="graveyard-title" class="scary-font text-2xl sm:text-3xl font-bold text-blood-500 flex items-center gap-2 tracking-wide">
-      Repositories
-    </h2>
-    <button 
-      id="copy-site-btn" 
-      class="text-xs font-mono text-slate-400 hover:text-white bg-grave-900 border border-grave-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow">
-      <i class="fa-solid fa-share-nodes"></i> Share Graveyard
-    </button>
   </div>
 
-  <!-- Repository Cards Container -->
-  <section id="repos-list" class="space-y-4"></section>
-
-</main>
-
-<!-- On-Chain Grave Certificate Modal -->
-<div id="certificate-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 z-50 overflow-y-auto">
-  <div class="bg-grave-900 border border-blood-500/50 w-full max-w-lg rounded-2xl p-6 relative shadow-2xl animate-pvz-rise">
-    <button id="close-cert-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <!-- Certificate Content Box to Capture as Image -->
-    <div id="certificate-card-render" class="bg-grave-950 border-2 border-blood-600 rounded-xl p-6 text-center relative overflow-hidden my-2 shadow-inner">
-      <div id="cert-tier-badge" class="absolute top-2 right-3 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase tracking-widest bg-blood-600/20 text-blood-500 border border-blood-500">
-        STANDARD GRAVE
-      </div>
-
-      <div class="absolute top-2 left-3 text-[10px] font-mono text-slate-600 tracking-widest">ON-CHAIN MEMORIAL</div>
-      <div class="text-4xl mb-2 mt-3">⚰️</div>
-      <div id="cert-serial" class="font-mono text-xs text-blood-500 font-bold tracking-widest uppercase">GRAVE #000000</div>
-      <h3 id="cert-repo-name" class="scary-font text-3xl text-white my-2 tracking-wide">repo-name</h3>
+  <!-- ON-CHAIN CERTIFICATE / GRAVE PASS MODAL -->
+  <div id="certificate-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-grave-900 border border-grave-700 rounded-2xl max-w-lg w-full p-6 relative shadow-2xl my-8">
       
-      <!-- Zauth Score & Token Reward Display -->
-      <div id="cert-zauth-box" class="bg-grave-900 border border-grave-800 rounded-lg p-2.5 my-3 flex justify-around text-xs font-mono">
-        <div>
-          <span class="block text-slate-500 text-[10px]">ZAUTH SCORE</span>
-          <span id="cert-zauth-score" class="text-amber-400 font-bold">82/100</span>
+      <button id="close-cert-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-mono">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- CARD CAPTURE TARGET -->
+      <div id="certificate-card-render" class="bg-grave-950 border-2 border-blood-600/80 rounded-xl p-6 text-center relative overflow-hidden my-2">
+        <div id="cert-tier-badge" class="inline-block bg-blood-600/20 border border-blood-600/40 text-blood-500 font-mono text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider mb-2">
+          STANDARD GRAVE PASS
         </div>
-        <div class="border-r border-grave-800"></div>
-        <div>
-          <span class="block text-slate-500 text-[10px]">REWARD EARNED</span>
-          <span id="cert-token-reward" class="text-slime-400 font-bold">+820 $GRAVEYARD</span>
+
+        <h3 class="scary-font text-3xl text-white tracking-widest mt-1">OFFICIAL BURIAL PASS</h3>
+        <p id="cert-serial" class="text-[10px] font-mono text-slate-500 mt-0.5">GRAVE #000000</p>
+
+        <div class="my-5 py-4 border-y border-grave-800 font-mono">
+          <div class="text-[11px] text-slate-400 uppercase tracking-widest">Buried Repository</div>
+          <div id="cert-repo-name" class="scary-font text-3xl text-blood-500 mt-1">repo-name</div>
+          <div id="cert-cause" class="text-xs text-slate-300 italic mt-1">"Cause of Death"</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 font-mono text-xs mb-4">
+          <div class="bg-grave-900 p-2 rounded-lg border border-grave-800">
+            <div class="text-[9px] text-slate-500">ZAUTH SCORE</div>
+            <div id="cert-zauth-score" class="text-amber-400 font-bold mt-0.5">0/100</div>
+          </div>
+          <div class="bg-grave-900 p-2 rounded-lg border border-grave-800">
+            <div class="text-[9px] text-slate-500">REWARD</div>
+            <div id="cert-token-reward" class="text-slime-400 font-bold mt-0.5">+0 $GRAVEYARD</div>
+          </div>
+          <div class="bg-grave-900 p-2 rounded-lg border border-grave-800">
+            <div class="text-[9px] text-slate-500">DATE</div>
+            <div id="cert-date" class="text-slate-300 font-bold mt-0.5">Sep 2026</div>
+          </div>
+        </div>
+
+        <div class="font-mono text-[11px] text-slate-400 bg-grave-900 p-2.5 rounded-lg border border-grave-800 text-left">
+          <div><span class="text-slate-500">Buried By:</span> <span id="cert-wallet-addr" class="text-white font-bold">0x000...0000</span></div>
+          <div id="cert-tx-container" class="mt-1 hidden">
+            <span class="text-slate-500">Transaction:</span> 
+            <a id="cert-tx-link" href="#" target="_blank" class="text-blood-500 underline hover:text-blood-400">View on Etherscan</a>
+          </div>
         </div>
       </div>
 
-      <div class="text-xs font-mono text-slate-400 space-y-1 mb-4">
-        <div>Buried by: <span id="cert-wallet-addr" class="text-slime-400 font-bold">7xK...9Fq</span></div>
-        <div>Date: <span id="cert-date" class="text-slate-300">September 21, 2026</span></div>
-        <div id="cert-tx-container" class="hidden text-[11px] text-amber-400">
-          Tx: <a id="cert-tx-link" href="#" target="_blank" class="underline hover:text-amber-300">View on Explorer</a>
-        </div>
-      </div>
-
-      <div id="cert-cause-box" class="bg-grave-900/90 border border-grave-800 rounded-lg p-3.5 mb-4 text-left">
-        <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-1">Cause of Death:</div>
-        <div id="cert-cause" class="text-xs font-mono text-blood-500 font-bold italic">"Skill issue."</div>
-      </div>
-
-      <div id="cert-status-tag" class="inline-block bg-blood-600/20 border border-blood-500 text-blood-500 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-        PERMANENTLY DECEASED
+      <!-- MODAL ACTION BUTTONS -->
+      <div class="flex gap-2 font-mono text-xs mt-4">
+        <button id="download-cert-img-btn" class="flex-1 bg-slime-500 hover:bg-slime-400 text-grave-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow">
+          <i class="fa-solid fa-download"></i> Download Pass
+        </button>
+        <button id="share-cert-x-btn" class="flex-1 bg-grave-800 hover:bg-grave-700 text-white py-2.5 rounded-xl border border-grave-700 transition flex items-center justify-center gap-1.5">
+          <i class="fa-brands fa-x-twitter"></i> Share on X
+        </button>
       </div>
     </div>
-
-    <!-- Action Buttons -->
-    <div class="flex flex-col sm:flex-row gap-2 mt-4">
-      <button 
-        id="download-cert-img-btn"
-        class="flex-1 bg-slime-500 hover:bg-slime-400 text-grave-950 font-mono font-bold text-xs py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow">
-        <i class="fa-solid fa-download"></i> Download PNG Image
-      </button>
-      <button 
-        id="share-cert-x-btn"
-        class="flex-1 bg-grave-800 hover:bg-grave-700 text-white border border-grave-700 font-mono text-xs py-3 px-4 rounded-xl transition flex items-center justify-center gap-2">
-        <i class="fa-brands fa-x-twitter"></i> Share Mint on X
-      </button>
-    </div>
-
-    <p class="text-[10px] font-mono text-slate-500 text-center mt-3">
-      No wallet? No problem. The normal card above is 100% free for everyone.
-    </p>
-
   </div>
-</div>
 
-<!-- Footer -->
-<footer class="text-center py-6 border-t border-grave-900 text-slate-500 text-xs font-mono">
-  GitHub Graveyard &copy; 2026 — Giving abandoned codebases a proper funeral across the globe.
-</footer>
-
-<script src="app.js"></script>
+  <!-- APPLICATION SCRIPT -->
+  <script src="app.js"></script>
 </body>
 </html>
