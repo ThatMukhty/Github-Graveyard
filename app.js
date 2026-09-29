@@ -1,5 +1,5 @@
 /**
- * GitHub Graveyard - Full Production Script
+ * GitHub Graveyard - Full Production Script (EVM / Ethereum)
  * Domain: https://gitgraveyard.xyz
  */
 
@@ -9,10 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Config for Token Launch & Treasury
   const TOKEN_CONFIG = {
     symbol: "$GRAVEYARD",
-    contractAddress: null, // Replace with actual CA when launched
-    treasuryWallet: "0x0000000000000000000000000000000000000000",
-    baseRewardPerBurial: 1000 // Tokens for score 100
+    treasuryWallet: "0x0000000000000000000000000000000000000000", // Replace with real treasury/contract address
+    baseRewardPerBurial: 1000
   };
+
+  // Session & Authentication State
+  let authenticatedGithubUser = null;
+  let currentWalletAddress = null;
+  let currentGraveyardStats = { total: 0, deadCount: 0, mortalityRate: 0 };
 
   // DOM Elements
   const searchForm = document.getElementById('search-form');
@@ -27,10 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const statArchived = document.getElementById('stat-archived');
   const statScore = document.getElementById('stat-score');
 
-  // Hero Section
+  // Hero & Graveyard Container
   const heroContainer = document.getElementById('embarrassing-hero-container');
-
-  // Graveyard List Elements
   const graveyardHeader = document.getElementById('graveyard-header');
   const graveyardTitle = document.getElementById('graveyard-title');
   const reposList = document.getElementById('repos-list');
@@ -52,8 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const certTokenReward = document.getElementById('cert-token-reward');
   const downloadCertImgBtn = document.getElementById('download-cert-img-btn');
   const shareCertXBtn = document.getElementById('share-cert-x-btn');
-
-  let currentGraveyardStats = { total: 0, deadCount: 0, mortalityRate: 0 };
 
   // Dev Causes of Death
   const deathCausesList = [
@@ -93,24 +93,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return deathCausesList[Math.abs(repoId) % deathCausesList.length];
   }
 
-  // Zauth / Rick Style Score Calculation Engine (0 - 100)
+  // Calculate Zauth Score & Reward
   function calculateZauthScore(repo) {
     let score = 0;
     const stars = repo.stargazers_count || 0;
     const forks = repo.forks_count || 0;
     
-    // Inactivity months calculation
     const now = new Date();
     const lastPushed = new Date(repo.pushed_at);
     const monthsInactive = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24 * 30)));
 
-    // Stars & Forks (max 40 pts)
     score += Math.min(stars * 2 + forks * 3, 40);
-
-    // Baseline size/presence (max 30 pts)
     score += Math.min(repo.size ? Math.floor(repo.size / 100) : 10, 30);
-
-    // Graveyard bonus: longer inactivity = deeper dead legend status (max 30 pts)
     score += Math.min(monthsInactive * 2.5, 30);
 
     const finalScore = Math.min(Math.round(score), 100);
@@ -119,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return { score: finalScore, reward: reward };
   }
 
-  // 5-Tier Recency Calculator
+  // Recency Tier Calculator
   function getRecencyTier(pushedAtDate) {
     const now = new Date();
     const diffDays = Math.floor((now - new Date(pushedAtDate)) / (1000 * 60 * 60 * 24));
@@ -137,6 +131,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- OAUTH & LOCAL STORAGE HELPERS ---
+  function checkOAuthSession() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ghUser = urlParams.get('gh_user');
+    const token = urlParams.get('session_token');
+
+    if (ghUser && token) {
+      authenticatedGithubUser = ghUser.toLowerCase();
+      localStorage.setItem('gh_user', authenticatedGithubUser);
+      localStorage.setItem('gh_session', token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      authenticatedGithubUser = (localStorage.getItem('gh_user') || '').toLowerCase();
+    }
+  }
+
+  function redirectToGitHubOAuth(repoName) {
+    sessionStorage.setItem('pending_bury_repo', repoName);
+    const REDIRECT_URI = window.location.origin + '/api/auth/github';
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=YOUR_GITHUB_CLIENT_ID&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=read:user`;
+  }
+
+  function getBuriedRegistry() {
+    return JSON.parse(localStorage.getItem('gitgraveyard_buried_repos') || '{}');
+  }
+
+  function markRepoAsBuried(repoName, walletAddr) {
+    const registry = getBuriedRegistry();
+    registry[repoName.toLowerCase()] = { wallet: walletAddr, timestamp: new Date().toISOString() };
+    localStorage.setItem('gitgraveyard_buried_repos', JSON.stringify(registry));
+  }
+
+  function isRepoAlreadyBuried(repoName) {
+    const registry = getBuriedRegistry();
+    return !!registry[repoName.toLowerCase()];
+  }
+
+  // Initialize Session
+  checkOAuthSession();
+
   // URL Query Handler
   const urlParams = new URLSearchParams(window.location.search);
   const initialUser = urlParams.get('user');
@@ -145,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchGithubData(initialUser);
   }
 
-  // Copy Graveyard Share Link
+  // Copy Graveyard Link
   if (copySiteBtn) {
     copySiteBtn.addEventListener('click', () => {
       const shareUrl = `${TARGET_DOMAIN}?user=${encodeURIComponent(usernameInput.value || '')}`;
@@ -178,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed&direction=desc`);
       if (!response.ok) {
         if (response.status === 404) throw new Error('User not found on GitHub.');
-        if (response.status === 403) throw new Error('API rate limit exceeded. Try again in a few minutes.');
+        if (response.status === 403) throw new Error('API rate limit exceeded. Try again later.');
         throw new Error('Failed to fetch repositories.');
       }
       const repos = await response.json();
@@ -210,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         id: repo.id,
         name: repo.name,
+        owner: username,
         description: repo.description || 'No description provided for this codebase.',
         html_url: repo.html_url,
         created_at: new Date(repo.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
@@ -289,75 +324,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     heroContainer.classList.remove('hidden');
   }
+  // Render Individual Tombstone Cards
   function renderTombstones(username, repos) {
     if (!reposList) return;
     reposList.innerHTML = '';
-    const highlightedRepo = urlParams.get('repo');
 
     repos.forEach((repo) => {
-      const cardGraveyardUrl = `${TARGET_DOMAIN}?user=${encodeURIComponent(username)}&repo=${encodeURIComponent(repo.name)}`;
-      const shareMsg = repo.statusInfo.isAlive 
-        ? `Checked out '${repo.name}' on GitHub Graveyard 🧟\nStatus: Alive & Active\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN}`
-        : `I exhumed '${repo.name}' on GitHub Graveyard 💀\nStatus: ${repo.statusInfo.tier} ${repo.statusInfo.icon}\nCause: "${repo.cause}"\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN}`;
-      
-      const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}`;
-      const cardId = `repo-card-${repo.name}`;
-
+      const isBuried = isRepoAlreadyBuried(repo.name);
       const card = document.createElement('div');
-      card.id = cardId;
-      const isTargeted = highlightedRepo && highlightedRepo.toLowerCase() === repo.name.toLowerCase();
-      const baseClasses = 'tombstone-card bg-grave-900 border border-grave-800 rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 animate-pvz-rise';
-      card.className = isTargeted ? `${baseClasses} ring-2 ring-blood-500` : baseClasses;
+      card.className = 'tombstone-card bg-grave-900 border border-grave-800 hover:border-grave-700 rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 shadow-xl';
 
       card.innerHTML = `
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div class="flex items-start gap-3.5">
-            <div class="text-3xl sm:text-4xl shrink-0 floating-ghost">${repo.statusInfo.icon}</div>
+            <div class="text-3xl sm:text-4xl shrink-0">${repo.statusInfo.icon}</div>
             <div>
               <div class="flex items-center gap-2 flex-wrap">
-                <a href="${repo.html_url}" target="_blank" class="scary-font text-xl sm:text-2xl text-white hover:text-blood-500 transition tracking-wide">
-                  ${repo.name}
-                </a>
-                <span class="border text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase ${repo.statusInfo.badgeClass}">
-                  ${repo.statusInfo.tier}
-                </span>
-                ${repo.archived ? `<span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-mono px-2 py-0.5 rounded">Archived</span>` : ''}
+                <a href="${repo.html_url}" target="_blank" class="scary-font text-xl text-white hover:text-blood-500 transition">${escapeHtml(repo.name)}</a>
+                <span class="border text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase ${repo.statusInfo.badgeClass}">${repo.statusInfo.tier}</span>
               </div>
-              <p class="text-xs text-slate-400 mt-1 line-clamp-2">${escapeHtml(repo.description)}</p>
+              <p class="text-xs font-mono text-slate-400 mt-1 line-clamp-2">${escapeHtml(repo.description)}</p>
             </div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0 self-end md:self-start">
-            <button 
-              onclick="downloadCardImage('${cardId}', '${repo.name}-Tombstone.png')"
-              class="bg-grave-800 hover:bg-grave-700 text-slate-300 font-mono text-xs px-3 py-2 rounded-lg border border-grave-700 transition flex items-center gap-1.5">
-              <i class="fa-solid fa-download"></i> Card
-            </button>
-            <a 
-              href="${xShareUrl}" 
-              target="_blank"
-              class="bg-grave-800 hover:bg-grave-700 text-white font-mono text-xs px-3 py-2 rounded-lg border border-grave-700 transition flex items-center gap-1.5">
-              <i class="fa-brands fa-x-twitter"></i> Share
-            </a>
-            <button 
-              onclick="copyCardLink('${escapeHtml(cardGraveyardUrl)}', this)"
-              class="bg-grave-800 hover:bg-grave-700 text-slate-300 font-mono text-xs px-3 py-2 rounded-lg border border-grave-700 transition flex items-center gap-1.5">
-              <i class="fa-solid fa-copy"></i> Copy Link
-            </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-5 pt-3.5 border-t border-grave-800 text-xs font-mono items-center">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-5 pt-3.5 border-t border-grave-800 text-xs font-mono items-center">
           <div><span class="text-slate-500">Created:</span> <span class="text-slate-300">${repo.created_at}</span></div>
           <div><span class="text-slate-500">Last Commit:</span> <span class="text-slate-300">${repo.pushed_at}</span></div>
           ${repo.statusInfo.isAlive ? `
-            <div><span class="text-slate-500">Status:</span> <span class="text-slime-400 font-bold">Currently Breathing 🧟</span></div>
+            <div><span class="text-slate-500">Status:</span> <span class="text-slime-400 font-bold">Alive 🧟</span></div>
           ` : `
-            <div class="col-span-1 sm:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2 pt-2 border-t border-grave-800/60">
-              <div><span class="text-slate-500">Cause of Death:</span> <span class="text-blood-500 font-bold">"${repo.cause}"</span></div>
+            <div class="col-span-1 sm:col-span-3 flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 pt-2 border-t border-grave-800/60">
+              <div><span class="text-slate-500">Cause:</span> <span class="text-blood-500 font-bold">"${escapeHtml(repo.cause)}"</span></div>
               <button 
-                onclick="buryOnChain('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}', ${repo.zauthScore},${repo.tokenReward})"
-                class="bg-blood-600 hover:bg-blood-500 text-white font-mono font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shadow shadow-blood-600/30 shrink-0">
-                ⚰️ Bury On-Chain & Mint
+                id="bury-btn-${repo.name}"
+                ${isBuried ? 'disabled' : ''}
+                onclick="buryOnChain('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}',${repo.zauthScore}, ${repo.tokenReward}, '${escapeHtml(repo.owner)}')"
+                class="${isBuried ? 'bg-grave-800 text-slate-500 cursor-not-allowed' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-blood-600/30'} font-mono font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shrink-0">
+                ${isBuried ? '⚰️ Already Buried' : '⚰️ Bury On-Chain & Mint'}
               </button>
             </div>
           `}
@@ -366,137 +370,176 @@ document.addEventListener('DOMContentLoaded', () => {
 
       reposList.appendChild(card);
     });
+  }
 
-    if (highlightedRepo) {
-      const el = document.getElementById(`repo-card-${highlightedRepo}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // --- EVM WALLET CONNECT ---
+  async function connectEthereumWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        currentWalletAddress = accounts[0];
+        return currentWalletAddress;
+      } catch (err) {
+        console.error("User denied account access", err);
+        return null;
+      }
+    } else {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        const currentUrl = encodeURIComponent(window.location.href);
+        window.location.href = `https://metamask.app.link/dapp/${currentUrl.replace(/^https?:\/\//, '')}`;
+      } else {
+        alert("Please install MetaMask, Rabby, Phantom or an EVM-compatible Web3 wallet!");
+      }
+      return null;
     }
   }
 
-  // SOLANA ON-CHAIN BURY & REWARD MINTING
-  window.buryOnChain = async function(repoName, cause, zauthScore = 75, tokenReward = 750) {
-    try {
-      let provider = window.solana || window.solflare;
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // --- ON-CHAIN MINT & SECURITY GUARD ---
+  window.buryOnChain = async function(repoName, cause, zauthScore, tokenReward, repoOwner) {
+    const targetOwner = repoOwner.toLowerCase();
 
-      if (!provider) {
-        if (isMobile) {
-          const currentUrl = encodeURIComponent(window.location.href);
-          const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`;
-          window.location.href = phantomDeepLink;
-          return;
-        } else {
-          alert("Please install Phantom or Solflare wallet extension to mint on-chain!");
-          return;
-        }
+    // 1. OAuth Security Guard Check
+    if (!authenticatedGithubUser) {
+      const confirmLogin = confirm(`To claim $GRAVEYARD tokens for '${repoName}', you must verify ownership by signing in with GitHub (@${targetOwner}). Proceed?`);
+      if (confirmLogin) {
+        redirectToGitHubOAuth(repoName);
       }
+      return;
+    }
 
-      const resp = await provider.connect();
-      const pubKey = resp.publicKey;
-      const fullAddr = pubKey.toString();
-      const walletAddressTruncated = `${fullAddr.slice(0, 4)}...${fullAddr.slice(-4)}`;
+    // 2. Strict Ownership Match
+    if (authenticatedGithubUser !== targetOwner) {
+      alert(`Security Verification Failed!\n\nYou are logged in as @${authenticatedGithubUser}, but this repository belongs to @${targetOwner}.\n\nYou can only mint $GRAVEYARD tokens for your own repositories!`);
+      return;
+    }
 
+    // 3. Local Duplicate Guard
+    if (isRepoAlreadyBuried(repoName)) {
+      alert(`The repository '${repoName}' has already been buried and claimed!`);
+      return;
+    }
+
+    // 4. EVM Wallet Connection
+    const wallet = await connectEthereumWallet();
+    if (!wallet) return;
+
+    const formattedWallet = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+
+    try {
+      // Encode memo payload into Hex for Ethereum transaction data
+      const memoPayload = JSON.stringify({
+        protocol: "GitHubGraveyard",
+        repo: repoName,
+        owner: authenticatedGithubUser,
+        score: zauthScore,
+        reward: tokenReward
+      });
+      const hexData = '0x' + Array.from(new TextEncoder().encode(memoPayload))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Send 0 ETH transaction to treasury with embedded payload
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: wallet,
+          to: TOKEN_CONFIG.treasuryWallet,
+          value: '0x0',
+          data: hexData
+        }]
+      });
+
+      // Mark as claimed locally
+      markRepoAsBuried(repoName, wallet);
+
+      // Render Modal
       const isWhale = currentGraveyardStats.mortalityRate >= 50 || currentGraveyardStats.deadCount >= 10;
-      const tierTitle = isWhale ? "LEGENDARY WHALE GRAVE" : "STANDARD GRAVE";
-
+      
       if (certCardRender) {
         if (isWhale) {
-          certCardRender.className = "bg-grave-950 border-2 border-gold-500 rounded-xl p-6 text-center relative overflow-hidden my-2 shadow-2xl shadow-gold-500/10";
-          if (certTierBadge) {
-            certTierBadge.className = "absolute top-2 right-3 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase tracking-widest bg-gold-500/20 text-gold-400 border border-gold-500";
-            certTierBadge.textContent = "👑 LEGENDARY WHALE PASS";
-          }
+          certCardRender.className = "bg-grave-950 border-2 border-amber-500/80 rounded-xl p-6 text-center relative overflow-hidden my-2 shadow-2xl";
+          if (certTierBadge) certTierBadge.textContent = "👑 LEGENDARY WHALE PASS";
         } else {
-          certCardRender.className = "bg-grave-950 border-2 border-blood-600 rounded-xl p-6 text-center relative overflow-hidden my-2 shadow-inner";
-          if (certTierBadge) {
-            certTierBadge.className = "absolute top-2 right-3 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase tracking-widest bg-blood-600/20 text-blood-500 border border-blood-500";
-            certTierBadge.textContent = "STANDARD GRAVE PASS";
-          }
+          certCardRender.className = "bg-grave-950 border-2 border-blood-600/80 rounded-xl p-6 text-center relative overflow-hidden my-2 shadow-inner";
+          if (certTierBadge) certTierBadge.textContent = "STANDARD GRAVE PASS";
         }
       }
 
-      const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
-      const memoProgramId = new solanaWeb3.PublicKey('MemoS25555555555555555555555555555555555555');
-      const payload = JSON.stringify({
-        protocol: "GitHubGraveyard",
-        tier: tierTitle,
-        repo: repoName,
-        cause: cause,
-        zauthScore: zauthScore,
-        rewardEarned: tokenReward,
-        date: new Date().toISOString().split('T')[0]
-      });
-
-      const instruction = new solanaWeb3.TransactionInstruction({
-        keys: [{ pubkey: pubKey, isSigner: true, isWritable: true }],
-        programId: memoProgramId,
-        data: new TextEncoder().encode(payload)
-      });
-
-      const transaction = new solanaWeb3.Transaction().add(instruction);
-      transaction.feePayer = pubKey;
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-
-      const signedTransaction = await provider.signTransaction(transaction);
-      const txid = await connection.sendRawTransaction(signedTransaction.serialize());
-
-      const serialNum = `#${Math.floor(100000 + Math.random() * 900000)}`;
-      if (certSerial) certSerial.textContent = `GRAVE ${serialNum}`;
+      if (certSerial) certSerial.textContent = `GRAVE #${Math.floor(100000 + Math.random() * 900000)}`;
       if (certRepoName) certRepoName.textContent = repoName;
-      if (certWalletAddr) certWalletAddr.textContent = walletAddressTruncated;
+      if (certWalletAddr) certWalletAddr.textContent = formattedWallet;
       if (certDate) certDate.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       if (certCause) certCause.textContent = `"${cause}"`;
       if (certZauthScore) certZauthScore.textContent = `${zauthScore}/100`;
       if (certTokenReward) certTokenReward.textContent = `+${tokenReward} ${TOKEN_CONFIG.symbol}`;
 
-      if (certTxLink) certTxLink.href = `https://solscan.io/tx/${txid}`;
+      if (certTxLink) certTxLink.href = `https://etherscan.io/tx/${txHash}`;
       if (certTxContainer) certTxContainer.classList.remove('hidden');
-      if (certStatusTag) {
-        certStatusTag.textContent = "MINTED ON-CHAIN ⚰️";
-        certStatusTag.className = "inline-block bg-slime-500/20 border border-slime-500 text-slime-400 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase tracking-widest";
-      }
 
       if (certificateModal) {
         certificateModal.classList.remove('hidden');
         certificateModal.classList.add('flex');
       }
 
-    } catch (err) {
-      console.error("On-Chain Mint Error/Cancellation:", err);
-      if (err.message && err.message.includes("User rejected")) {
-        alert("Transaction cancelled.");
-      } else {
-        if (certSerial) certSerial.textContent = `#${Math.floor(100000 + Math.random() * 900000)}`;
-        if (certRepoName) certRepoName.textContent = repoName;
-        if (certWalletAddr) certWalletAddr.textContent = "Web3 Dev";
-        if (certDate) certDate.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        if (certCause) certCause.textContent = `"${cause}"`;
-        if (certZauthScore) certZauthScore.textContent = `${zauthScore}/100`;
-        if (certTokenReward) certTokenReward.textContent = `+${tokenReward} ${TOKEN_CONFIG.symbol}`;
-        if (certTxContainer) certTxContainer.classList.add('hidden');
-
-        if (certificateModal) {
-          certificateModal.classList.remove('hidden');
-          certificateModal.classList.add('flex');
-        }
+      // Update button UI state
+      const btn = document.getElementById(`bury-btn-${repoName}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.className = "bg-grave-800 text-slate-500 font-mono font-bold text-xs px-3.5 py-2 rounded-lg cursor-not-allowed";
+        btn.textContent = "⚰️ Already Buried";
       }
+
+    } catch (err) {
+      console.error("Mint Tx Cancelled or Failed:", err);
     }
   };
 
-  // Generic Card Download Engine
+  // --- HTML2CANVAS & IMAGE DOWNLOAD ---
   window.downloadCardImage = function(elementId, filename) {
     const element = document.getElementById(elementId);
-    if (!element) return;
-    html2canvas(element, { backgroundColor: '#0f111a', scale: 2 }).then(canvas => {
+    if (!element || typeof html2canvas === 'undefined') {
+      alert("Image generator library loading... please try again in a moment.");
+      return;
+    }
+
+    html2canvas(element, {
+      backgroundColor: '#090a0f',
+      scale: 2,
+      useCORS: true
+    }).then(canvas => {
       const link = document.createElement('a');
-      link.download = filename || 'GitHub-Graveyard-Card.png';
+      link.download = filename;
       link.href = canvas.toDataURL('image/png');
       link.click();
+    }).catch(err => {
+      console.error("Canvas export failed:", err);
     });
   };
 
-  // Close Modal
+  // --- SOCIAL SHARING ---
+  window.shareHeroToX = function(username, repoName, cause) {
+    const text = `I just checked my GitHub Graveyard 💀\n\nMy most embarrassing dead project is '${repoName}'\nCause of Death: "${cause}"\n\nBury your dead repos and check your mortality score on @gitgraveyard:`;
+    const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${TARGET_DOMAIN}?user=${username}`)}`;
+    window.open(shareUrl, '_blank');
+  };
+
+  if (shareCertXBtn) {
+    shareCertXBtn.addEventListener('click', () => {
+      const repoName = certRepoName ? certRepoName.textContent : 'my project';
+      const text = `I officially buried '${repoName}' on-chain on @gitgraveyard ⚰️\n\nClaimed my $GRAVEYARD tokens! Check your GitHub mortality score:`;
+      const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(TARGET_DOMAIN)}`;
+      window.open(shareUrl, '_blank');
+    });
+  }
+
+  if (downloadCertImgBtn) {
+    downloadCertImgBtn.addEventListener('click', () => {
+      const repoName = certRepoName ? certRepoName.textContent : 'GravePass';
+      downloadCardImage('certificate-card-render', `${repoName}-GravePass.png`);
+    });
+  }
+
   if (closeCertBtn) {
     closeCertBtn.addEventListener('click', () => {
       if (certificateModal) {
@@ -506,94 +549,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Download Certificate Image
-  if (downloadCertImgBtn) {
-    downloadCertImgBtn.addEventListener('click', () => {
-      const repoNameText = certRepoName ? certRepoName.textContent : 'Memorial';
-      downloadCardImage('certificate-card-render', `${repoNameText}-OnChain-Memorial.png`);
-    });
-  }
-
-  // Share Hero Card on X
-  window.shareHeroToX = function(username, repoName, cause) {
-    const text = `💀 GITHUB GRAVEYARD SUMMARY for @${username}\n\nMost Embarrassing Death: '${repoName}'\nCause: "${cause}"\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN} 🪦`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  // Share Mint Certificate on X
-  if (shareCertXBtn) {
-    shareCertXBtn.addEventListener('click', () => {
-      const repoNameText = certRepoName ? certRepoName.textContent : '';
-      const serialText = certSerial ? certSerial.textContent : '';
-      const causeText = certCause ? certCause.textContent : '';
-      const rewardText = certTokenReward ? certTokenReward.textContent : '';
-      const text = `⚰️ OFFICIAL ON-CHAIN GRAVE CERTIFICATE\n\nRepo: '${repoNameText}'\n${serialText}\nReward: ${rewardText}\nCause of Death: ${causeText}\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN} 💀`;
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-    });
-  }
-
-  // Helper Utilities
+  // UI State Helpers
   function showLoadingState() {
     if (digBtn) {
       digBtn.disabled = true;
-      digBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Exhuming...`;
-    }
-    if (reposList) {
-      reposList.innerHTML = `
-        <div class="text-center py-12 bg-grave-900/50 border border-grave-800 rounded-2xl">
-          <div class="text-5xl mb-3 floating-ghost">🧟</div>
-          <div class="text-xs font-mono text-slate-400">Digging through GitHub archives...</div>
-        </div>
-      `;
+      digBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Exhuming...`;
     }
   }
 
   function resetButtonState() {
     if (digBtn) {
       digBtn.disabled = false;
-      digBtn.innerHTML = `<i class="fa-solid fa-skull"></i> Exhuming Dead Repos`;
+      digBtn.innerHTML = `<i class="fa-solid fa-skull"></i> Exhume Graveyard`;
     }
   }
 
   function showEmptyState(username) {
-    if (statsContainer) statsContainer.classList.add('hidden');
-    if (heroContainer) heroContainer.classList.add('hidden');
-    if (graveyardHeader) graveyardHeader.classList.add('hidden');
     if (reposList) {
       reposList.innerHTML = `
         <div class="text-center py-12 bg-grave-900/50 border border-grave-800 rounded-2xl">
-          <div class="text-4xl mb-3">👻</div>
-          <div class="text-sm font-mono font-bold text-white">No original repositories found</div>
-          <div class="text-xs font-mono text-slate-500 mt-1">${username} has no public non-fork repositories.</div>
+          <div class="text-4xl mb-3">🧟</div>
+          <h3 class="scary-font text-xl text-white">NO ORIGINAL REPOSITORIES FOUND</h3>
+          <p class="text-xs font-mono text-slate-400 mt-1">@${username} has no non-forked repositories in their public profile.</p>
         </div>
       `;
     }
+    if (graveyardHeader) graveyardHeader.classList.remove('hidden');
+    if (heroContainer) heroContainer.classList.add('hidden');
+    if (statsContainer) statsContainer.classList.add('hidden');
   }
 
   function showErrorState(message) {
-    if (statsContainer) statsContainer.classList.add('hidden');
-    if (heroContainer) heroContainer.classList.add('hidden');
-    if (graveyardHeader) graveyardHeader.classList.add('hidden');
     if (reposList) {
       reposList.innerHTML = `
         <div class="text-center py-12 bg-grave-900/50 border border-blood-500/30 rounded-2xl">
           <div class="text-4xl mb-3">⚠️</div>
-          <div class="text-sm font-mono font-bold text-blood-500">${message}</div>
+          <h3 class="scary-font text-xl text-blood-500">EXHUMATION FAILED</h3>
+          <p class="text-xs font-mono text-slate-400 mt-1">${escapeHtml(message)}</p>
         </div>
       `;
     }
+    if (graveyardHeader) graveyardHeader.classList.remove('hidden');
+    if (heroContainer) heroContainer.classList.add('hidden');
+    if (statsContainer) statsContainer.classList.add('hidden');
   }
 
   function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
-
-  window.copyCardLink = function(url, btn) {
-    navigator.clipboard.writeText(url).then(() => {
-      const originalHTML = btn.innerHTML;
-      btn.innerHTML = `<i class="fa-solid fa-check text-slime-400"></i> Copied!`;
-      setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
-    });
-  };
 });
