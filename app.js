@@ -1,16 +1,17 @@
 // ============================================================
-// GITHUB GRAVEYARD — FULL APP & WEB3 WALLET LOGIC
+// GITHUB GRAVEYARD — PRODUCTION DAPP LOGIC
 // Supporting MetaMask, Robinhood Wallet, Coinbase & Phantom
+// Strict On-Chain Enforcement & Persistent Bio Verification
 // ============================================================
 
 const CONFIG = {
   GITHUB_API_BASE: 'https://api.github.com',
   TOKEN_BASE_REWARD: 100,
   // ------------------------------------------------------------
-  // CONTRACT ADDRESS & CHAIN CONFIGURATION
+  // INSERT YOUR CONTRACT ADDRESS (CA) HERE
   // ------------------------------------------------------------
   CONTRACT_ADDRESS: 'YOUR_LIVE_CA_HERE', // Paste Sepolia or Mainnet CA here
-  CHAIN_ID: '0xaa36a7', // Sepolia Testnet Hex ('0x1' for Mainnet)
+  CHAIN_ID: '0xaa36a7', // '0xaa36a7' for Sepolia Testnet | '0x1' for Mainnet
   MORTALITY_DAYS: {
     ALIVE: 30,
     FADING: 90,
@@ -19,7 +20,7 @@ const CONFIG = {
   }
 };
 
-// Standard ERC-20 + Mint Function ABI for Ethers.js
+// Standard ERC-20 + Mint Function ABI
 const CONTRACT_ABI = [
   "function mintBurialReward(address to, string calldata repoName, uint256 amount) external",
   "function isRepoBuried(string calldata repoName) external view returns (bool)",
@@ -91,7 +92,7 @@ if (closeWalletModalBtn) {
   });
 }
 
-// Connect Specific Wallet Trigger
+// Connect Specific Wallet
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
 
@@ -140,20 +141,24 @@ window.connectSelectedWallet = async function(walletType) {
     }
 
     if (!provider) {
-      console.warn(`${walletType} extension not found. Using local test connection...`);
-      const mockAddress = `0x71C${Math.floor(1000 + Math.random() * 9000)}...${Math.floor(1000 + Math.random() * 9000)}EVM`;
-      connectedWalletAddress = mockAddress;
-      updateWalletUI(connectedWalletAddress);
-      if (walletModal) {
-        walletModal.classList.add('hidden');
-        walletModal.classList.remove('flex');
-      }
+      alert(`Please install or open ${walletType.toUpperCase()} browser extension or app.`);
       return;
     }
 
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (accounts && accounts.length > 0) {
       connectedWalletAddress = accounts[0];
+
+      // Request network switch if user is on wrong chain
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: CONFIG.CHAIN_ID }],
+        });
+      } catch (switchError) {
+        console.warn('Chain switch declined or not configured:', switchError);
+      }
+
       updateWalletUI(connectedWalletAddress);
       if (walletModal) {
         walletModal.classList.add('hidden');
@@ -163,13 +168,7 @@ window.connectSelectedWallet = async function(walletType) {
 
   } catch (err) {
     console.error('Wallet connection error:', err);
-    alert('Wallet connection prompt opened or failed. Falling back to test address.');
-    connectedWalletAddress = '0x71C3...9F1E';
-    updateWalletUI(connectedWalletAddress);
-    if (walletModal) {
-      walletModal.classList.add('hidden');
-      walletModal.classList.remove('flex');
-    }
+    alert('Wallet connection failed: ' + err.message);
   }
 };
 
@@ -218,12 +217,12 @@ function getBuriedStorageKey(username) {
   return `grave_buried_${username.toLowerCase()}`;
 }
 
-function isRepoAlreadyBuried(repoName) {
+function isRepoAlreadyBuriedLocally(repoName) {
   const buried = JSON.parse(localStorage.getItem(getBuriedStorageKey(currentUsername)) || '[]');
   return buried.includes(repoName.toLowerCase());
 }
 
-function markRepoAsBuried(repoName) {
+function markRepoAsBuriedLocally(repoName) {
   const key = getBuriedStorageKey(currentUsername);
   const buried = JSON.parse(localStorage.getItem(key) || '[]');
   if (!buried.includes(repoName.toLowerCase())) {
@@ -246,7 +245,7 @@ if (searchForm) {
 
     try {
       const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${username}/repos?sort=updated&per_page=100`);
-      if (!res.ok) throw new Error('User not found or GitHub API limit exceeded.');
+      if (!res.ok) throw new Error('User not found or GitHub API rate limit reached.');
       const repos = await res.json();
       fetchedRepos = repos;
       renderDashboard(repos);
@@ -287,7 +286,7 @@ function renderDashboard(repos) {
     const cause = isAlive ? null : generateCauseOfDeath(repo, daysAgo);
     const zauthScore = isAlive ? 0 : Math.min(100, Math.floor((daysAgo / 365) * 100));
     const tokenReward = isAlive ? 0 : Math.floor(CONFIG.TOKEN_BASE_REWARD + daysAgo * 0.5);
-    const buried = isRepoAlreadyBuried(repo.name);
+    const buried = isRepoAlreadyBuriedLocally(repo.name);
 
     const repoCard = document.createElement('div');
     repoCard.className = `bg-grave-900 border ${buried ? 'border-slime-500/40' : 'border-grave-800'} rounded-2xl p-5 transition hover:border-grave-700`;
@@ -323,7 +322,7 @@ function renderDashboard(repos) {
                   onclick="initiateBuryFlow('${repo.name}', '${cause ? cause.replace(/'/g, "\\'") : ''}', ${zauthScore}, ${tokenReward}, '${currentUsername}')" 
                   class="${isAlive ? 'bg-grave-800 border-grave-700 text-slate-600 cursor-not-allowed opacity-50' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-lg shadow-blood-600/20'} font-mono text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5"
                   ${isAlive ? 'disabled title="Active repositories cannot be buried!"' : ''}>
-                  ⚰️️ ${isAlive ? 'Active (Cannot Bury)' : 'Bury On-Chain & Mint'}
+                  ⚰️ ${isAlive ? 'Active (Cannot Bury)' : 'Bury On-Chain & Mint'}
                  </button>`
           }
         </div>
@@ -343,37 +342,57 @@ function renderDashboard(repos) {
   document.getElementById('stat-score').textContent = `${mortalityScore}%`;
 }
 
-// --- ONE-TIME ACCOUNT VERIFICATION FLOW WITH MANDATORY WALLET ---
+// --- BURY FLOW WITH DOUBLE-CLAIM PREVENTION & PERSISTENT CODE ---
 
-window.initiateBuryFlow = function(repoName, cause, zauthScore, tokenReward, repoOwner) {
+window.initiateBuryFlow = async function(repoName, cause, zauthScore, tokenReward, repoOwner) {
   if (!connectedWalletAddress) {
     alert('Please connect your Web3 wallet in the top bar before burying a repository!');
     openWalletModal();
     return;
   }
 
-  if (isRepoAlreadyBuried(repoName)) {
+  // 1. Local Check
+  if (isRepoAlreadyBuriedLocally(repoName)) {
     alert(`The repository '${repoName}' has already been buried!`);
     return;
   }
 
-  currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner, walletAddress: connectedWalletAddress };
-
-  const accountVerifiedKey = `grave_verified_${repoOwner.toLowerCase()}`;
-  const isAccountVerified = localStorage.getItem(accountVerifiedKey) === 'true';
-
-  if (isAccountVerified) {
-    executeOnChainMint(currentPendingBuryData);
-    return;
+  // 2. ON-CHAIN CHECK: Interrogate smart contract mapping so user cannot double-claim on another device/browser
+  if (CONFIG.CONTRACT_ADDRESS && CONFIG.CONTRACT_ADDRESS !== 'YOUR_LIVE_CA_HERE' && window.ethereum) {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contract = new ethers.Contract(CONFIG.CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      const fullRepoKey = `${repoOwner}/${repoName}`;
+      
+      const isAlreadyBuriedOnChain = await contract.isRepoBuried(fullRepoKey);
+      if (isAlreadyBuriedOnChain) {
+        markRepoAsBuriedLocally(repoName);
+        alert(`This repository (${fullRepoKey}) has ALREADY been buried on-chain! Double claiming is disabled.`);
+        renderDashboard(fetchedRepos);
+        return;
+      }
+    } catch (err) {
+      console.warn("Could not query contract for on-chain state, proceeding...", err);
+    }
   }
 
+  currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner, walletAddress: connectedWalletAddress };
+
+  // 3. PERSISTENT CODE GENERATION FOR MOBILE & DESKTOP:
+  // Uses a deterministic seed from the username so the user ALWAYS gets the exact same GRAVE- code
   const userCodeKey = `grave_user_code_${repoOwner.toLowerCase()}`;
   let existingCode = localStorage.getItem(userCodeKey);
 
   if (!existingCode) {
+    // Generate deterministic 4-digit hash based on username string
+    let hash = 0;
+    for (let i = 0; i < repoOwner.length; i++) {
+      hash = (hash << 5) - hash + repoOwner.charCodeAt(i);
+      hash |= 0;
+    }
+    const stableDigits = Math.abs(hash % 9000) + 1000;
     const cleanUser = repoOwner.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    existingCode = `GRAVE-${cleanUser}-${randomDigits}`;
+    existingCode = `GRAVE-${cleanUser}-${stableDigits}`;
     localStorage.setItem(userCodeKey, existingCode);
   }
 
@@ -407,31 +426,35 @@ if (cancelVerifyBtn) {
   });
 }
 
-// Confirm Verification
+// Confirm Verification (STRICT BIO CHECK)
 if (confirmVerifyBtn) {
   confirmVerifyBtn.addEventListener('click', async () => {
     confirmVerifyBtn.disabled = true;
     confirmVerifyBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking Bio...`;
 
     try {
-      const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${currentPendingBuryData.repoOwner}`);
+      // Fetch fresh bio directly from GitHub API (no cache)
+      const res = await fetch(`${CONFIG.GITHUB_API_BASE}/users/${currentPendingBuryData.repoOwner}?t=${Date.now()}`);
+      if (!res.ok) throw new Error("Unable to fetch GitHub profile.");
+      
       const userObj = await res.json();
       const bioText = userObj.bio || '';
 
-      if (bioText.includes(activeVerificationCode) || true) { // Local test bypass active
-        localStorage.setItem(`grave_verified_${currentPendingBuryData.repoOwner.toLowerCase()}`, 'true');
-
+      // PRODUCTION STRICT CHECK: Must explicitly contain activeVerificationCode
+      if (bioText.includes(activeVerificationCode)) {
+        
         verifyModal.classList.add('hidden');
         verifyModal.classList.remove('flex');
 
-        // Call the smart contract transaction function
+        // Trigger real Web3 transaction
         await executeOnChainMint(currentPendingBuryData);
+
       } else {
-        verifyStatusMsg.textContent = `Verification failed! Code '${activeVerificationCode}' not found in GitHub bio.`;
+        verifyStatusMsg.textContent = `Verification failed! Code '${activeVerificationCode}' was not found in your GitHub bio. Please update your bio and click verify again.`;
         verifyStatusMsg.classList.remove('hidden');
       }
     } catch (err) {
-      verifyStatusMsg.textContent = 'Error connecting to GitHub. Try again.';
+      verifyStatusMsg.textContent = 'Error verifying bio: ' + err.message;
       verifyStatusMsg.classList.remove('hidden');
     } finally {
       confirmVerifyBtn.disabled = false;
@@ -441,21 +464,19 @@ if (confirmVerifyBtn) {
 }
 
 // --- EXECUTE ON-CHAIN MINT TRANSACTION ---
-async function executeOnChainMint(buryData) {
-  const { repoName, cause, zauthScore, tokenReward, walletAddress } = buryData;
 
-  // If no CA is set, fallback to local UI certificate modal for testing
+async function executeOnChainMint(buryData) {
+  const { repoName, cause, zauthScore, tokenReward, walletAddress, repoOwner } = buryData;
+
+  // BLOCK IF NO CONTRACT ADDRESS IS CONFIGURED
   if (!CONFIG.CONTRACT_ADDRESS || CONFIG.CONTRACT_ADDRESS === 'YOUR_LIVE_CA_HERE') {
-    markRepoAsBuried(repoName);
-    showCertificateModal(buryData);
-    renderDashboard(fetchedRepos);
+    alert("Production Error: No Smart Contract Address (CA) configured in app.js!");
     return;
   }
 
-  // Real On-Chain Wallet Transaction
   try {
     if (!window.ethereum) {
-      alert("No Ethereum Web3 provider detected in your browser!");
+      alert("No Web3 Provider detected. Please open this site inside MetaMask, Phantom, or Coinbase Wallet app browser.");
       return;
     }
 
@@ -464,20 +485,21 @@ async function executeOnChainMint(buryData) {
     const contract = new ethers.Contract(CONFIG.CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
     const rewardWei = ethers.parseUnits(tokenReward.toString(), 18);
+    const fullRepoKey = `${repoOwner}/${repoName}`;
 
-    // Triggers actual wallet popup for user approval
-    const tx = await contract.mintBurialReward(walletAddress, repoName, rewardWei);
+    // Trigger Wallet Transaction Popup
+    const tx = await contract.mintBurialReward(walletAddress, fullRepoKey, rewardWei);
     
-    alert(`Transaction submitted on-chain! Tx Hash: ${tx.hash}\nWaiting for block confirmation...`);
-    await tx.wait();
-
-    markRepoAsBuried(repoName);
+    alert(`Transaction submitted! Hash: ${tx.hash}\nWaiting for network confirmation...`);
+    await tx.wait(); // Wait for block confirmation
+// Mark as permanently buried only AFTER on-chain confirmation
+    markRepoAsBuriedLocally(repoName);
     showCertificateModal(buryData);
     renderDashboard(fetchedRepos);
 
   } catch (err) {
     console.error('On-chain minting failed:', err);
-    alert('Minting failed or was canceled in wallet: ' + (err.reason || err.message));
+    alert('Minting failed or transaction rejected in wallet: ' + (err.reason || err.message));
   }
 }
 
