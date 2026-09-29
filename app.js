@@ -1,5 +1,6 @@
 /**
  * GitHub Graveyard - Full Production Script (EVM / Ethereum)
+ * Verification Method: Dynamic GitHub Bio Code (Zero-Backend Anti-Abuse)
  * Domain: https://gitgraveyard.xyz
  */
 
@@ -9,13 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Config for Token Launch & Treasury
   const TOKEN_CONFIG = {
     symbol: "$GRAVEYARD",
-    treasuryWallet: "0x0000000000000000000000000000000000000000", // Replace with real treasury/contract address
+    treasuryWallet: "0x0000000000000000000000000000000000000000", // Replace with real contract/treasury address
     baseRewardPerBurial: 1000
   };
 
-  // Session & Authentication State
-  let authenticatedGithubUser = null;
+  // State Management
   let currentWalletAddress = null;
+  let activeVerificationCode = null;
+  let currentPendingBuryData = null;
   let currentGraveyardStats = { total: 0, deadCount: 0, mortalityRate: 0 };
 
   // DOM Elements
@@ -37,6 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const graveyardTitle = document.getElementById('graveyard-title');
   const reposList = document.getElementById('repos-list');
 
+  // Bio Verification Modal Elements
+  const verifyModal = document.getElementById('bio-verify-modal');
+  const verifyRepoTitle = document.getElementById('verify-repo-title');
+  const verifyTargetUser = document.getElementById('verify-target-user');
+  const verifyCodeDisplay = document.getElementById('verify-code-display');
+  const copyCodeBtn = document.getElementById('copy-code-btn');
+  const confirmVerifyBtn = document.getElementById('confirm-verify-btn');
+  const cancelVerifyBtn = document.getElementById('cancel-verify-btn');
+  const verifyStatusMsg = document.getElementById('verify-status-msg');
+
   // Certificate Modal Elements
   const certificateModal = document.getElementById('certificate-modal');
   const closeCertBtn = document.getElementById('close-cert-btn');
@@ -49,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const certTxContainer = document.getElementById('cert-tx-container');
   const certTxLink = document.getElementById('cert-tx-link');
   const certCause = document.getElementById('cert-cause');
-  const certStatusTag = document.getElementById('cert-status-tag');
   const certZauthScore = document.getElementById('cert-zauth-score');
   const certTokenReward = document.getElementById('cert-token-reward');
   const downloadCertImgBtn = document.getElementById('download-cert-img-btn');
@@ -119,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const diffDays = Math.floor((now - new Date(pushedAtDate)) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 30) {
-      return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/40 text-slime-400', icon: '🧟', isAlive: false };
+      return { tier: 'Alive', badgeClass: 'bg-slime-500/10 border-slime-500/40 text-slime-400', icon: '🧟', isAlive: true };
     } else if (diffDays <= 90) {
       return { tier: 'Fading', badgeClass: 'bg-purple-500/10 border-purple-500/40 text-purple-400', icon: '👻', isAlive: false };
     } else if (diffDays <= 180) {
@@ -131,28 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- OAUTH & LOCAL STORAGE HELPERS ---
-  function checkOAuthSession() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const ghUser = urlParams.get('gh_user');
-    const token = urlParams.get('session_token');
-
-    if (ghUser && token) {
-      authenticatedGithubUser = ghUser.toLowerCase();
-      localStorage.setItem('gh_user', authenticatedGithubUser);
-      localStorage.setItem('gh_session', token);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      authenticatedGithubUser = (localStorage.getItem('gh_user') || '').toLowerCase();
-    }
-  }
-
-  function redirectToGitHubOAuth(repoName) {
-    sessionStorage.setItem('pending_bury_repo', repoName);
-    const REDIRECT_URI = window.location.origin + '/api/auth/github';
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=YOUR_GITHUB_CLIENT_ID&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=read:user`;
-  }
-
+  // --- LOCAL REGISTRY HELPERS ---
   function getBuriedRegistry() {
     return JSON.parse(localStorage.getItem('gitgraveyard_buried_repos') || '{}');
   }
@@ -168,10 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return !!registry[repoName.toLowerCase()];
   }
 
-  // Initialize Session
-  checkOAuthSession();
-
-  // URL Query Handler
+  // --- URL & SEARCH HANDLING ---
   const urlParams = new URLSearchParams(window.location.search);
   const initialUser = urlParams.get('user');
   if (initialUser) {
@@ -179,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchGithubData(initialUser);
   }
 
-  // Copy Graveyard Link
   if (copySiteBtn) {
     copySiteBtn.addEventListener('click', () => {
       const shareUrl = `${TARGET_DOMAIN}?user=${encodeURIComponent(usernameInput.value || '')}`;
@@ -191,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Search Submission
   if (searchForm) {
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -359,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <button 
                 id="bury-btn-${repo.name}"
                 ${isBuried ? 'disabled' : ''}
-                onclick="buryOnChain('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}',${repo.zauthScore}, ${repo.tokenReward}, '${escapeHtml(repo.owner)}')"
+                onclick="initiateBuryFlow('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}',${repo.zauthScore}, ${repo.tokenReward}, '${escapeHtml(repo.owner)}')"
                 class="${isBuried ? 'bg-grave-800 text-slate-500 cursor-not-allowed' : 'bg-blood-600 hover:bg-blood-500 text-white shadow-blood-600/30'} font-mono font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shrink-0">
                 ${isBuried ? '⚰️ Already Buried' : '⚰️ Bury On-Chain & Mint'}
               </button>
@@ -369,6 +354,103 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       reposList.appendChild(card);
+    });
+  }
+
+  // --- BIO CODE VERIFICATION FLOW ---
+  window.initiateBuryFlow = function(repoName, cause, zauthScore, tokenReward, repoOwner) {
+    if (isRepoAlreadyBuried(repoName)) {
+      alert(`The repository '${repoName}' has already been buried and claimed!`);
+      return;
+    }
+
+    // Store target data for active session
+    currentPendingBuryData = { repoName, cause, zauthScore, tokenReward, repoOwner };
+
+    // Generate unique random verification code
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    activeVerificationCode = `GRAVE-${randomDigits}`;
+
+    // Update Bio Verification Modal UI
+    if (verifyRepoTitle) verifyRepoTitle.textContent = repoName;
+    if (verifyTargetUser) verifyTargetUser.textContent = `@${repoOwner}`;
+    if (verifyCodeDisplay) verifyCodeDisplay.value = activeVerificationCode;
+    if (verifyStatusMsg) verifyStatusMsg.classList.add('hidden');
+
+    if (verifyModal) {
+      verifyModal.classList.remove('hidden');
+      verifyModal.classList.add('flex');
+    }
+  };
+
+  // Copy Code Button
+  if (copyCodeBtn) {
+    copyCodeBtn.addEventListener('click', () => {
+      if (verifyCodeDisplay) {
+        navigator.clipboard.writeText(verifyCodeDisplay.value).then(() => {
+          const orig = copyCodeBtn.textContent;
+          copyCodeBtn.textContent = 'Copied!';
+          setTimeout(() => { copyCodeBtn.textContent = orig; }, 2000);
+        });
+      }
+    });
+  }
+
+  // Cancel Verification Modal
+  if (cancelVerifyBtn) {
+    cancelVerifyBtn.addEventListener('click', () => {
+      if (verifyModal) {
+        verifyModal.classList.add('hidden');
+        verifyModal.classList.remove('flex');
+      }
+      activeVerificationCode = null;
+      currentPendingBuryData = null;
+    });
+  }
+
+  // Confirm Verification & Verify via GitHub API
+  if (confirmVerifyBtn) {
+    confirmVerifyBtn.addEventListener('click', async () => {
+      if (!currentPendingBuryData || !activeVerificationCode) return;
+
+      const { repoOwner } = currentPendingBuryData;
+      confirmVerifyBtn.disabled = true;
+      confirmVerifyBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Checking Bio...`;
+      if (verifyStatusMsg) verifyStatusMsg.classList.add('hidden');
+
+      try {
+        const response = await fetch(`https://api.github.com/users/${repoOwner}`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+
+        if (!response.ok) throw new Error("Could not fetch user profile from GitHub.");
+
+        const userData = await response.json();
+        const userBio = (userData.bio || '').trim();
+
+        if (userBio.includes(activeVerificationCode)) {
+          // OWNERSHIP VERIFIED!
+          if (verifyModal) {
+            verifyModal.classList.add('hidden');
+            verifyModal.classList.remove('flex');
+          }
+          await executeOnChainMint(currentPendingBuryData);
+        } else {
+          // VERIFICATION FAILED
+          if (verifyStatusMsg) {
+            verifyStatusMsg.textContent = `Verification failed! Code '${activeVerificationCode}' was not found in @${repoOwner}'s bio. Please update your bio and click verify again.`;
+            verifyStatusMsg.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (verifyStatusMsg) {
+          verifyStatusMsg.textContent = err.message || "Error verifying GitHub bio. Please try again.";
+          verifyStatusMsg.classList.remove('hidden');
+        }
+      } finally {
+        confirmVerifyBtn.disabled = false;
+        confirmVerifyBtn.innerHTML = `Verify & Mint Tokens`;
+      }
     });
   }
 
@@ -395,32 +477,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- ON-CHAIN MINT & SECURITY GUARD ---
-  window.buryOnChain = async function(repoName, cause, zauthScore, tokenReward, repoOwner) {
-    const targetOwner = repoOwner.toLowerCase();
+  // --- EXECUTE ON-CHAIN MINT ---
+  async function executeOnChainMint(data) {
+    const { repoName, cause, zauthScore, tokenReward, repoOwner } = data;
 
-    // 1. OAuth Security Guard Check
-    if (!authenticatedGithubUser) {
-      const confirmLogin = confirm(`To claim $GRAVEYARD tokens for '${repoName}', you must verify ownership by signing in with GitHub (@${targetOwner}). Proceed?`);
-      if (confirmLogin) {
-        redirectToGitHubOAuth(repoName);
-      }
-      return;
-    }
-
-    // 2. Strict Ownership Match
-    if (authenticatedGithubUser !== targetOwner) {
-      alert(`Security Verification Failed!\n\nYou are logged in as @${authenticatedGithubUser}, but this repository belongs to @${targetOwner}.\n\nYou can only mint $GRAVEYARD tokens for your own repositories!`);
-      return;
-    }
-
-    // 3. Local Duplicate Guard
-    if (isRepoAlreadyBuried(repoName)) {
-      alert(`The repository '${repoName}' has already been buried and claimed!`);
-      return;
-    }
-
-    // 4. EVM Wallet Connection
+    // Connect EVM Wallet
     const wallet = await connectEthereumWallet();
     if (!wallet) return;
 
@@ -431,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const memoPayload = JSON.stringify({
         protocol: "GitHubGraveyard",
         repo: repoName,
-        owner: authenticatedGithubUser,
+        owner: repoOwner,
         score: zauthScore,
         reward: tokenReward
       });
@@ -453,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mark as claimed locally
       markRepoAsBuried(repoName, wallet);
 
-      // Render Modal
+      // Render Grave Pass Modal
       const isWhale = currentGraveyardStats.mortalityRate >= 50 || currentGraveyardStats.deadCount >= 10;
       
       if (certCardRender) {
@@ -468,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (certSerial) certSerial.textContent = `GRAVE #${Math.floor(100000 + Math.random() * 900000)}`;
       if (certRepoName) certRepoName.textContent = repoName;
-      if (certWalletAddr) certWalletAddr.textContent = formattedWallet;
+      if (certWalletAddr) certWalletAddr.textContent = formattedWallet; // Formatted Wallet Address
       if (certDate) certDate.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       if (certCause) certCause.textContent = `"${cause}"`;
       if (certZauthScore) certZauthScore.textContent = `${zauthScore}/100`;
@@ -493,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error("Mint Tx Cancelled or Failed:", err);
     }
-  };
+  }
 
   // --- HTML2CANVAS & IMAGE DOWNLOAD ---
   window.downloadCardImage = function(elementId, filename) {
