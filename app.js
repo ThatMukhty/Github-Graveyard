@@ -1,10 +1,18 @@
 /**
- * GitHub Graveyard - Full Production Script (Part 1)
- * Domain: https://github-graveyard.vercel.app
+ * GitHub Graveyard - Full Production Script
+ * Domain: https://gitgraveyard.xyz
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const TARGET_DOMAIN = 'https://github-graveyard.vercel.app';
+  const TARGET_DOMAIN = 'https://gitgraveyard.xyz';
+
+  // Config for Token Launch & Treasury
+  const TOKEN_CONFIG = {
+    symbol: "$GRAVEYARD",
+    contractAddress: null, // Replace with actual CA when launched
+    treasuryWallet: "0x0000000000000000000000000000000000000000",
+    baseRewardPerBurial: 1000 // Tokens for score 100
+  };
 
   // DOM Elements
   const searchForm = document.getElementById('search-form');
@@ -40,6 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const certTxLink = document.getElementById('cert-tx-link');
   const certCause = document.getElementById('cert-cause');
   const certStatusTag = document.getElementById('cert-status-tag');
+  const certZauthScore = document.getElementById('cert-zauth-score');
+  const certTokenReward = document.getElementById('cert-token-reward');
   const downloadCertImgBtn = document.getElementById('download-cert-img-btn');
   const shareCertXBtn = document.getElementById('share-cert-x-btn');
 
@@ -81,6 +91,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getHilariousCause(repoId) {
     return deathCausesList[Math.abs(repoId) % deathCausesList.length];
+  }
+
+  // Zauth / Rick Style Score Calculation Engine (0 - 100)
+  function calculateZauthScore(repo) {
+    let score = 0;
+    const stars = repo.stargazers_count || 0;
+    const forks = repo.forks_count || 0;
+    
+    // Inactivity months calculation
+    const now = new Date();
+    const lastPushed = new Date(repo.pushed_at);
+    const monthsInactive = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24 * 30)));
+
+    // Stars & Forks (max 40 pts)
+    score += Math.min(stars * 2 + forks * 3, 40);
+
+    // Baseline size/presence (max 30 pts)
+    score += Math.min(repo.size ? Math.floor(repo.size / 100) : 10, 30);
+
+    // Graveyard bonus: longer inactivity = deeper dead legend status (max 30 pts)
+    score += Math.min(monthsInactive * 2.5, 30);
+
+    const finalScore = Math.min(Math.round(score), 100);
+    const reward = Math.floor(TOKEN_CONFIG.baseRewardPerBurial * (finalScore / 100));
+
+    return { score: finalScore, reward: reward };
   }
 
   // 5-Tier Recency Calculator
@@ -166,6 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const processedRepos = repos.map(repo => {
       const statusInfo = getRecencyTier(repo.pushed_at);
+      const zauthMetrics = calculateZauthScore(repo);
+
       if (statusInfo.tier === 'Dead' || statusInfo.tier === 'Ancient') deadOrAncientCount++;
       if (statusInfo.tier === 'Fading' || statusInfo.tier === 'Abandoned') fadingOrAbandonedCount++;
 
@@ -178,6 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pushed_at: new Date(repo.pushed_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
         archived: repo.archived,
         statusInfo: statusInfo,
+        zauthScore: zauthMetrics.score,
+        tokenReward: zauthMetrics.reward,
         cause: statusInfo.isAlive ? null : getHilariousCause(repo.id)
       };
     });
@@ -199,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderEmbarrassingHero(username, processedRepos, totalRepos, totalDead);
     renderTombstones(username, processedRepos);
   }
+
   function renderEmbarrassingHero(username, repos, total, abandonedCount) {
     if (!heroContainer) return;
     const deadRepos = repos.filter(r => !r.statusInfo.isAlive);
@@ -225,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 text-center font-mono text-xs">
             <div class="bg-grave-950 p-2.5 rounded-xl border border-grave-800"><span class="text-white font-bold">${total}</span> <span class="text-slate-500">Repos</span></div>
             <div class="bg-grave-950 p-2.5 rounded-xl border border-grave-800"><span class="text-blood-500 font-bold">${abandonedCount}</span> <span class="text-slate-500">Abandoned</span></div>
-            <div class="col-span-2 sm:col-span-1 bg-grave-950 p-2.5 rounded-xl border border-grave-800"><span class="text-amber-400 font-bold">github-graveyard.vercel.app</span></div>
+            <div class="col-span-2 sm:col-span-1 bg-grave-950 p-2.5 rounded-xl border border-grave-800"><span class="text-amber-400 font-bold">gitgraveyard.xyz</span></div>
           </div>
 
           <div class="bg-grave-950/80 border border-blood-500/30 rounded-xl p-4 mb-5">
@@ -248,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     heroContainer.classList.remove('hidden');
   }
-
   function renderTombstones(username, repos) {
     if (!reposList) return;
     reposList.innerHTML = '';
@@ -256,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     repos.forEach((repo) => {
       const cardGraveyardUrl = `${TARGET_DOMAIN}?user=${encodeURIComponent(username)}&repo=${encodeURIComponent(repo.name)}`;
-      
       const shareMsg = repo.statusInfo.isAlive 
         ? `Checked out '${repo.name}' on GitHub Graveyard 🧟\nStatus: Alive & Active\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN}`
         : `I exhumed '${repo.name}' on GitHub Graveyard 💀\nStatus: ${repo.statusInfo.tier} ${repo.statusInfo.icon}\nCause: "${repo.cause}"\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN}`;
@@ -266,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const card = document.createElement('div');
       card.id = cardId;
-      
       const isTargeted = highlightedRepo && highlightedRepo.toLowerCase() === repo.name.toLowerCase();
       const baseClasses = 'tombstone-card bg-grave-900 border border-grave-800 rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 animate-pvz-rise';
       card.className = isTargeted ? `${baseClasses} ring-2 ring-blood-500` : baseClasses;
@@ -288,7 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
               <p class="text-xs text-slate-400 mt-1 line-clamp-2">${escapeHtml(repo.description)}</p>
             </div>
           </div>
-          
           <div class="flex items-center gap-2 shrink-0 self-end md:self-start">
             <button 
               onclick="downloadCardImage('${cardId}', '${repo.name}-Tombstone.png')"
@@ -312,14 +349,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-5 pt-3.5 border-t border-grave-800 text-xs font-mono items-center">
           <div><span class="text-slate-500">Created:</span> <span class="text-slate-300">${repo.created_at}</span></div>
           <div><span class="text-slate-500">Last Commit:</span> <span class="text-slate-300">${repo.pushed_at}</span></div>
-          
           ${repo.statusInfo.isAlive ? `
             <div><span class="text-slate-500">Status:</span> <span class="text-slime-400 font-bold">Currently Breathing 🧟</span></div>
           ` : `
             <div class="col-span-1 sm:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-2 pt-2 border-t border-grave-800/60">
               <div><span class="text-slate-500">Cause of Death:</span> <span class="text-blood-500 font-bold">"${repo.cause}"</span></div>
               <button 
-                onclick="buryOnChain('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}')"
+                onclick="buryOnChain('${escapeHtml(repo.name)}', '${escapeHtml(repo.cause)}', ${repo.zauthScore},${repo.tokenReward})"
                 class="bg-blood-600 hover:bg-blood-500 text-white font-mono font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shadow shadow-blood-600/30 shrink-0">
                 ⚰️ Bury On-Chain & Mint
               </button>
@@ -337,8 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // SOLANA ON-CHAIN BURY & MOBILE PHANTOM DEEP-LINK
-  window.buryOnChain = async function(repoName, cause) {
+  // SOLANA ON-CHAIN BURY & REWARD MINTING
+  window.buryOnChain = async function(repoName, cause, zauthScore = 75, tokenReward = 750) {
     try {
       let provider = window.solana || window.solflare;
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -381,12 +417,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
       const memoProgramId = new solanaWeb3.PublicKey('MemoS25555555555555555555555555555555555555');
-      
       const payload = JSON.stringify({
         protocol: "GitHubGraveyard",
         tier: tierTitle,
         repo: repoName,
         cause: cause,
+        zauthScore: zauthScore,
+        rewardEarned: tokenReward,
         date: new Date().toISOString().split('T')[0]
       });
 
@@ -410,6 +447,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (certWalletAddr) certWalletAddr.textContent = walletAddressTruncated;
       if (certDate) certDate.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       if (certCause) certCause.textContent = `"${cause}"`;
+      if (certZauthScore) certZauthScore.textContent = `${zauthScore}/100`;
+      if (certTokenReward) certTokenReward.textContent = `+${tokenReward} ${TOKEN_CONFIG.symbol}`;
 
       if (certTxLink) certTxLink.href = `https://solscan.io/tx/${txid}`;
       if (certTxContainer) certTxContainer.classList.remove('hidden');
@@ -433,6 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (certWalletAddr) certWalletAddr.textContent = "Web3 Dev";
         if (certDate) certDate.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         if (certCause) certCause.textContent = `"${cause}"`;
+        if (certZauthScore) certZauthScore.textContent = `${zauthScore}/100`;
+        if (certTokenReward) certTokenReward.textContent = `+${tokenReward} ${TOKEN_CONFIG.symbol}`;
         if (certTxContainer) certTxContainer.classList.add('hidden');
 
         if (certificateModal) {
@@ -485,7 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const repoNameText = certRepoName ? certRepoName.textContent : '';
       const serialText = certSerial ? certSerial.textContent : '';
       const causeText = certCause ? certCause.textContent : '';
-      const text = `⚰️ OFFICIAL ON-CHAIN GRAVE CERTIFICATE\n\nRepo: '${repoNameText}'\n${serialText}\nCause of Death: ${causeText}\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN} 💀`;
+      const rewardText = certTokenReward ? certTokenReward.textContent : '';
+      const text = `⚰️ OFFICIAL ON-CHAIN GRAVE CERTIFICATE\n\nRepo: '${repoNameText}'\n${serialText}\nReward: ${rewardText}\nCause of Death: ${causeText}\n\nGive your GitHub a proper funeral at ${TARGET_DOMAIN} 💀`;
       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
     });
   }
@@ -546,7 +588,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!str) return '';
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
-  
 
   window.copyCardLink = function(url, btn) {
     navigator.clipboard.writeText(url).then(() => {
