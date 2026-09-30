@@ -1,19 +1,16 @@
 /**
  * GITHUB GRAVEYARD — REPOSITORY SCANNER & METRICS ENGINE
- * Handles API requests, commit age calculations, mortality tiers, and capped token math.
  */
 
 window.GraveyardScanner = (function () {
-    // API Proxy Endpoint (Python Backend)
-    const API_BASE_URL = 'http://localhost:8000/api';
+    // Configurable API Proxy (falls back gracefully)
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8000/api' 
+        : null;
 
-    /**
-     * Parse raw repository input string into { owner, repo }
-     * Handles inputs like: "owner/repo", "https://github.com/owner/repo"
-     */
     function parseRepoInput(input) {
         if (!input) return null;
-        let cleaned = input.trim().replace(/^https?:\/\/github\.com\//, '');
+        let cleaned = input.trim().replace(/^https?:\/\/(www\.)?github\.com\//, '');
         cleaned = cleaned.replace(/\/$/, '');
         const parts = cleaned.split('/');
         
@@ -23,9 +20,6 @@ window.GraveyardScanner = (function () {
         return null;
     }
 
-    /**
-     * Calculate days elapsed since the last commit (`pushed_at`)
-     */
     function calculateDaysInactive(pushedAt) {
         const lastPush = new Date(pushedAt);
         const now = new Date();
@@ -34,13 +28,14 @@ window.GraveyardScanner = (function () {
     }
 
     /**
-     * Compute Mortality Tier, Badge Style, and Classification
+     * Compute Mortality Tier
+     * Fixed: Repos > 30 days inactive can now be buried.
      */
     function getMortalityTier(days) {
         if (days <= 30) {
             return { name: 'Alive', class: 'tier-alive', badgeClass: 'badge-alive', canBury: false };
         } else if (days <= 90) {
-            return { name: 'Fading', class: 'tier-fading', badgeClass: 'badge-fading', canBury: false };
+            return { name: 'Fading', class: 'tier-fading', badgeClass: 'badge-fading', canBury: true };
         } else if (days <= 180) {
             return { name: 'Abandoned', class: 'tier-abandoned', badgeClass: 'badge-abandoned', canBury: true };
         } else {
@@ -48,75 +43,86 @@ window.GraveyardScanner = (function () {
         }
     }
 
-    /**
-     * Compute Mortality Score (0 - 100)
-     */
     function calculateMortalityScore(days) {
         if (days <= 30) return 0;
         const score = Math.floor((days / 365) * 100);
         return Math.min(100, score);
     }
 
-    /**
-     * Calculate $GRAVEYARD Token Emission Reward with 500 Token Cap
-     */
     function calculateTokenReward(days, canBury) {
         if (!canBury) return 0;
         const rawReward = 100 + (days * 0.5);
-        // Cap token emission at a maximum of 500 $GRAVEYARD tokens per repository
         return Math.min(500, Math.floor(rawReward));
     }
 
     /**
-     * Fetch Repository Details via Backend Proxy
+     * Cause of Death Generator
      */
-    async function scanRepository(owner, repo) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/scan/${owner}/${repo}`);
-            if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('Repository not found on GitHub.');
-                }
-                throw new Error(`Scanner Error (${response.status})`);
-            }
-            return await response.json();
-        } catch (err) {
-            // Fallback: If proxy is down, attempt direct client fetch (Subject to IP limits)
-            console.warn('Proxy unreachable, attempting direct GitHub API fallback...');
-            const fallbackRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-            if (!fallbackRes.ok) {
-                throw new Error('Repository not found or GitHub API limit reached.');
-            }
-            const data = await fallbackRes.json();
-            return {
-                name: data.name,
-                full_name: data.full_name,
-                owner: data.owner.login,
-                pushed_at: data.pushed_at,
-                created_at: data.created_at,
-                stargazers_count: data.stargazers_count,
-                forks_count: data.forks_count,
-                open_issues_count: data.open_issues_count,
-                html_url: data.html_url,
-                description: data.description || ''
-            };
-        }
+    function generateCauseOfDeath(data, days) {
+        const causes = [
+            `Maintainer left for a 5-minute coffee break ${days} days ago and never returned.`,
+            `Crushed under the weight of ${data.open_issues_count || 42} unaddressed GitHub issues.`,
+            `Died of sheer boredom after zero commits since ${new Date(data.pushed_at).getFullYear()}.`,
+            `Abandoned after the lead dev discovered sunlight and going outside.`,
+            `Fatal error: Replaced by a 10-line AI prompt that does the same thing.`,
+            `Drowned in a sea of broken dependencies and deprecated node modules.`
+        ];
+        const index = Math.abs(data.name.length + days) % causes.length;
+        return causes[index];
     }
 
-    /**
-     * Render Repository Card HTML in DOM
-     */
+    async function scanRepository(owner, repo) {
+        if (API_BASE_URL) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/scan/${owner}/${repo}`);
+                if (response.ok) return await response.json();
+            } catch (err) {
+                console.info('Proxy offline, using direct GitHub API call...');
+            }
+        }
+
+        const fallbackRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        if (!fallbackRes.ok) {
+            throw new Error('Repository not found or GitHub API limit reached.');
+        }
+        const data = await fallbackRes.json();
+        return {
+            name: data.name,
+            full_name: data.full_name,
+            owner: data.owner.login,
+            pushed_at: data.pushed_at,
+            created_at: data.created_at,
+            stargazers_count: data.stargazers_count,
+            forks_count: data.forks_count,
+            open_issues_count: data.open_issues_count,
+            html_url: data.html_url,
+            description: data.description || ''
+        };
+    }
+
     function renderRepoCard(data, metrics) {
         const container = document.getElementById('repo-card-anchor');
         const resultsSection = document.getElementById('results-section');
         
         if (!container || !resultsSection) return;
 
-        const buryButtonHtml = metrics.tier.canBury
-            ? `<button id="bury-repo-btn" class="btn btn-primary" data-repo="${data.full_name}" data-tokens="${metrics.reward}">
+        const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
+        const causeOfDeath = generateCauseOfDeath(data, metrics.daysInactive);
+
+        let buryActionHtml = '';
+        if (!metrics.tier.canBury) {
+            buryActionHtml = `<button class="btn btn-secondary" disabled>Active & Healthy (Cannot Bury)</button>`;
+        } else if (!walletState.address) {
+            buryActionHtml = `<button id="connect-wallet-trigger-btn" class="btn btn-primary">Connect Wallet to Bury</button>`;
+        } else {
+            buryActionHtml = `<button id="bury-repo-btn" class="btn btn-primary" data-repo="${data.full_name}" data-tokens="${metrics.reward}">
                     <span>Bury Repo & Claim ${metrics.reward} $GRAVEYARD</span>
-               </button>`
-            : `<button class="btn btn-secondary" disabled>Active & Healthy (Cannot Bury)</button>`;
+               </button>`;
+        }
+
+        // Twitter Share Text
+        const tweetText = encodeURIComponent(`🪦 RIP ${data.full_name}\n\nDays Inactive: ${metrics.daysInactive}\nMortality Score: ${metrics.mortalityScore}/100\nCause of Death: "${causeOfDeath}"\n\nBuried on @GitGraveyard 🚀\nhttps://gitgraveyard.xyz`);
+        const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
 
         container.innerHTML = `
             <div class="glass-card repo-card ${metrics.tier.class}">
@@ -128,6 +134,11 @@ window.GraveyardScanner = (function () {
                         </p>
                     </div>
                     <span class="mortality-badge ${metrics.tier.badgeClass}">${metrics.tier.name}</span>
+                </div>
+
+                <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--blood-red); padding: 0.75rem; border-radius: 4px; margin: 0.5rem 0;">
+                    <span style="font-size: 0.75rem; color: var(--blood-red); font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Cause of Death:</span>
+                    <p style="font-size: 0.9rem; font-style: italic; color: var(--text-primary); margin-top: 0.2rem;">"${causeOfDeath}"</p>
                 </div>
 
                 <div class="repo-metrics-grid">
@@ -149,8 +160,11 @@ window.GraveyardScanner = (function () {
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
-                    ${buryButtonHtml}
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <a href="${tweetUrl}" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
+                        <span>Share on 𝕏</span>
+                    </a>
+                    ${buryActionHtml}
                 </div>
             </div>
         `;
@@ -164,6 +178,7 @@ window.GraveyardScanner = (function () {
         getMortalityTier,
         calculateMortalityScore,
         calculateTokenReward,
+        generateCauseOfDeath,
         scanRepository,
         renderRepoCard
     };
