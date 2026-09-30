@@ -1,0 +1,586 @@
+/* ==========================================================================
+   GITHUB GRAVEYARD — MAIN STYLESHEET (GRAVEYARD THEME)
+   ========================================================================== */
+
+:root {
+    /* Graveyard Palette */
+    --bg-dark: #070a0f; /* Deep crypt dark */
+    --bg-card: rgba(15, 23, 36, 0.88);
+    --bg-card-border: rgba(45, 55, 72, 0.8);
+    
+    /* Spectral & Eerie Accent Colors */
+    --ghost-green: #22c55e;
+    --ghost-green-glow: rgba(34, 197, 94, 0.4);
+    --blood-red: #ef4444;
+    --blood-red-glow: rgba(239, 68, 68, 0.4);
+    --decay-yellow: #eab308;
+    --tombstone-gray: #4b5563;
+
+    /* High-Contrast Typography Colors */
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+
+    /* Typography */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: "Courier New", Courier, monospace;
+
+    /* Transition Speeds */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+}
+
+/* Reset & Base Setup */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    line-height: 1.5;
+}
+
+/* Background Canvas Layer (Eerie Mist & Ash) */
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Hidden Utility Class */
+.hidden {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   NAVBAR & BRAND LOGO
+   -------------------------------------------------------------------------- */
+.navbar {
+    width: 100%;
+    padding: 0.85rem 2rem;
+    border-bottom: 1px solid var(--bg-card-border);
+    background: rgba(7, 10, 15, 0.85);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* Resized Tombstone / Logo */
+.logo-svg {
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 0 6px var(--ghost-green-glow));
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.title-primary {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+}
+
+.title-secondary {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--ghost-green);
+    text-shadow: 0 0 8px var(--ghost-green-glow);
+}
+
+/* --------------------------------------------------------------------------
+   BUTTONS & UI CONTROLS
+   -------------------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: all var(--transition-normal);
+}
+
+.btn-primary {
+    background: var(--ghost-green);
+    color: #000;
+    box-shadow: 0 0 12px var(--ghost-green-glow);
+}
+
+.btn-primary:hover {
+    background: #16a34a;
+    box-shadow: 0 0 22px var(--ghost-green-glow);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #111827;
+    color: var(--text-primary);
+    border: 1px solid var(--bg-card-border);
+}
+
+.btn-secondary:hover {
+    background: #1f2937;
+    border-color: var(--text-secondary);
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    background: #1f2937;
+    color: var(--text-primary);
+    border: 1px solid var(--bg-card-border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-sm:hover {
+    background: #374151;
+}
+
+/* --------------------------------------------------------------------------
+   HERO & SEARCH BOX
+   -------------------------------------------------------------------------- */
+.main-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.hero-section {
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text-primary) 60%, var(--ghost-green));
+    -webkit-background-clip: text;
+    background-clip: text; /* Corrected: Standard property included to resolve linter warning */
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.search-box-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.search-input-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 650px;
+    background: rgba(15, 23, 36, 0.95);
+    border: 1px solid var(--bg-card-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    transition: border-color var(--transition-fast);
+}
+
+.search-input-group:focus-within {
+    border-color: var(--ghost-green);
+    box-shadow: 0 0 18px var(--ghost-green-glow);
+}
+
+.input-prefix {
+    padding-left: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+}
+
+.search-input-group input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    padding: 0.5rem;
+}
+
+.search-hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.search-hint code {
+    color: var(--ghost-green);
+}
+
+/* --------------------------------------------------------------------------
+   SCAN RADAR SWEEP OVERLAY
+   -------------------------------------------------------------------------- */
+.radar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 2rem 0;
+    position: relative;
+}
+
+.radar-sweep {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 2px solid var(--ghost-green);
+    position: relative;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.08) 0%, rgba(7, 10, 15, 0.9) 75%);
+    box-shadow: 0 0 20px var(--ghost-green-glow);
+    overflow: hidden;
+}
+
+.radar-sweep::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 50%;
+    background: linear-gradient(45deg, var(--ghost-green) 0%, transparent 70%);
+    transform-origin: 0% 0%;
+    animation: radar-spin 2s linear infinite;
+}
+
+.radar-grid {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    pointer-events: none;
+}
+
+.radar-status-text {
+    margin-top: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    color: var(--ghost-green);
+    animation: pulse-text 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes radar-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-text {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   GLASS CARDS & REPOSITORY RESULTS (CRYPT STYLE)
+   -------------------------------------------------------------------------- */
+.glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-border);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 1.75rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.repo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: transform var(--transition-normal);
+}
+
+.repo-card:hover {
+    transform: translateY(-2px);
+}
+
+.repo-card.tier-alive { border-left: 5px solid var(--ghost-green); }
+.repo-card.tier-fading { border-left: 5px solid var(--decay-yellow); }
+.repo-card.tier-abandoned { border-left: 5px solid #f97316; }
+.repo-card.tier-dead { border-left: 5px solid var(--blood-red); }
+
+.repo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.repo-title-link {
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.repo-title-link:hover {
+    color: var(--ghost-green);
+}
+
+.mortality-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: var(--font-mono);
+}
+
+.badge-alive { background: rgba(34, 197, 94, 0.15); color: var(--ghost-green); border: 1px solid var(--ghost-green); }
+.badge-fading { background: rgba(234, 179, 8, 0.15); color: var(--decay-yellow); border: 1px solid var(--decay-yellow); }
+.badge-abandoned { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid #f97316; }
+.badge-dead { background: rgba(239, 68, 68, 0.15); color: var(--blood-red); border: 1px solid var(--blood-red); }
+
+.repo-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+    margin: 0.5rem 0;
+}
+
+.metric-item {
+    background: rgba(7, 10, 15, 0.7);
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.metric-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   VERIFICATION PANEL
+   -------------------------------------------------------------------------- */
+.verification-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.code-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #070a0f;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--bg-card-border);
+}
+
+.code-box code {
+    font-family: var(--font-mono);
+    color: var(--ghost-green);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.verification-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status-indicator {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   BURIAL CERTIFICATE MODAL & TOMBSTONE PASS
+   -------------------------------------------------------------------------- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 550px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.75rem;
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.certificate-pass {
+    background: linear-gradient(145deg, #111827, #070a0f);
+    border: 2px solid var(--ghost-green);
+    box-shadow: 0 0 30px var(--ghost-green-glow);
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.pass-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--bg-card-border);
+    padding-bottom: 0.75rem;
+}
+
+.pass-tag {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--ghost-green);
+}
+
+.pass-serial {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.pass-repo-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.pass-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.pass-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.pass-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--bg-card-border);
+    padding-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE BREAKPOINTS
+   -------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .search-input-group {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.5rem;
+    }
+
+    .input-prefix {
+        padding-left: 0;
+        margin-bottom: 0.25rem;
+    }
+
+    .pass-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+}
