@@ -5,12 +5,13 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Element References
-    const searchForm = document.getElementById('search-form');
-    const searchInput = document.getElementById('repo-search-input');
+    const searchInput = document.getElementById('repo-input');
     const scanBtn = document.getElementById('scan-btn');
     const connectWalletBtn = document.getElementById('connect-wallet-btn');
     const walletModal = document.getElementById('wallet-modal');
     const certificateModal = document.getElementById('certificate-modal');
+    const connectEvmBtn = document.getElementById('connect-evm-btn');
+    const connectSolanaBtn = document.getElementById('connect-solana-btn');
 
     // Global Active State
     let activeRepoData = null;
@@ -19,11 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        1. REPOSITORY SEARCH & SCAN EVENT HANDLERS
        ========================================================================== */
-    if (searchForm) {
-        searchForm.addEventListener('submit', async (e) => {
+    if (scanBtn) {
+        scanBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+            if (!searchInput) return;
+
             const query = searchInput.value;
-            const parsed = window.GraveyardScanner.parseRepoInput(query);
+            const parsed = window.GraveyardScanner ? window.GraveyardScanner.parseRepoInput(query) : null;
 
             if (!parsed) {
                 alert('Please enter a valid GitHub repository in "owner/repo" or URL format.');
@@ -32,8 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // UI State: Reset & Start Scanning Animation
             scanBtn.disabled = true;
+            const originalText = scanBtn.innerText;
             scanBtn.innerText = 'Scanning...';
-            window.GraveyardRadar.show();
+
+            if (window.GraveyardRadar && typeof window.GraveyardRadar.show === 'function') {
+                window.GraveyardRadar.show();
+            }
 
             try {
                 const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
@@ -52,8 +59,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`Scan Failed: ${err.message}`);
             } finally {
                 scanBtn.disabled = false;
-                scanBtn.innerText = 'Scan Repository';
-                window.GraveyardRadar.hide();
+                scanBtn.innerText = originalText;
+                if (window.GraveyardRadar && typeof window.GraveyardRadar.hide === 'function') {
+                    window.GraveyardRadar.hide();
+                }
+            }
+        });
+    }
+
+    // Trigger scan on Enter key press
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && scanBtn) {
+                scanBtn.click();
             }
         });
     }
@@ -64,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', async (e) => {
         // Handle "Bury Repo" Button Click
         if (e.target && e.target.closest('#bury-repo-btn')) {
-            const walletState = window.GraveyardWallet.getState();
+            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
 
             if (!walletState.address) {
                 alert('Please connect a Web3 wallet before burying a repository.');
@@ -89,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target && e.target.classList.contains('modal-close-trigger')) {
             if (certificateModal) certificateModal.classList.add('hidden');
         }
+
+        // Close Wallet Modal
+        if (e.target && e.target.classList.contains('wallet-modal-close')) {
+            if (walletModal) walletModal.classList.add('hidden');
+        }
     });
 
     /* ==========================================================================
@@ -96,7 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================================================================== */
     if (connectWalletBtn) {
         connectWalletBtn.addEventListener('click', () => {
-            const walletState = window.GraveyardWallet.getState();
+            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
+            
             if (walletState.address) {
                 if (confirm('Disconnect active wallet?')) {
                     window.GraveyardWallet.disconnect();
@@ -106,9 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    const connectEvmBtn = document.getElementById('connect-evm-btn');
-    const connectSolanaBtn = document.getElementById('connect-solana-btn');
 
     if (connectEvmBtn) {
         connectEvmBtn.addEventListener('click', async () => {
@@ -151,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (passDaysEl) passDaysEl.innerText = `${metrics.daysInactive} Days`;
         if (passScoreEl) passScoreEl.innerText = `${metrics.mortalityScore}/100`;
         if (passTokensEl) passTokensEl.innerText = `${metrics.reward} $GRAVEYARD`;
-        if (passWalletEl) passWalletEl.innerText = window.GraveyardWallet.formatAddress(walletAddr);
+        if (passWalletEl) passWalletEl.innerText = window.GraveyardWallet ? window.GraveyardWallet.formatAddress(walletAddr) : walletAddr;
 
         certificateModal.classList.remove('hidden');
     }
