@@ -380,15 +380,27 @@ modal.style.display = 'flex';
 }
 
 }
-
 function openBioModal(walletAddress) {
-    const modal = document.getElementById('bio-modal');
-    const codeDisplay = document.getElementById('bio-code-text');
-    if (codeDisplay && walletAddress) {
-        codeDisplay.innerText = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
-    }
 
-    if (modal) modal.style.display = 'flex';
+const modal = document.getElementById('bio-modal');
+
+const codeDisplay = document.getElementById('bio-code-text');
+
+if (codeDisplay && walletAddress) {
+
+codeDisplay.innerText = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+
+}
+
+
+if (modal) {
+
+modal.classList.remove('hidden');
+
+modal.style.display = 'flex';
+
+}
+
 }
 function closeAllModals() {
 
