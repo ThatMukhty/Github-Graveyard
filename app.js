@@ -106,6 +106,7 @@ async function handleScan() {
         state.activeRepoData = repoData; // Save state globally
 
         renderCardFromData(repoData);
+        showToast(`Successfully scanned ${repoData.full_name}`, "success");
     } catch (err) {
         if (container) {
             container.innerHTML = `
@@ -233,7 +234,7 @@ async function executeExhumation(exhumeBtn) {
 
     state.isExhuming = true;
     const originalContent = exhumeBtn.innerHTML;
-    exhumeBtn.innerHTML = `⚡ Scanning GitHub...`;
+    exhumeBtn.innerHTML = `⚡ Verifying GitHub...`;
     exhumeBtn.style.pointerEvents = "none";
     exhumeBtn.style.opacity = "0.7";
 
@@ -309,9 +310,11 @@ async function executeBioVerification() {
         if (res.verified) {
             showToast("GitHub Ownership Verified!", "success");
             closeAllModals();
-            
             const msg = `Confirm Burial of ${state.activeRepoData.full_name} for Wallet: ${walletState.address}`;
-            await window.GraveyardWallet.signMessage(msg);
+            
+            if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
+                await window.GraveyardWallet.signMessage(msg);
+            }
 
             showToast(`Repository ${state.activeRepoData.full_name} successfully buried!`, "success");
         } else {
@@ -332,11 +335,17 @@ async function executeBioVerification() {
  */
 async function connectWalletProvider(walletType) {
     try {
-        const res = await window.GraveyardWallet.connectWallet(walletType);
+        if (!window.GraveyardWallet) {
+            throw new Error("GraveyardWallet module is not loaded.");
+        }
+
+        const connectFn = window.GraveyardWallet.connectWallet || window.GraveyardWallet.connect;
+        const res = await connectFn(walletType);
+
         if (res && res.address) {
-            showToast(`Connected to ${walletType} (${window.GraveyardWallet.formatAddress(res.address)})`, "success");
+            const formatted = window.GraveyardWallet.formatAddress ? window.GraveyardWallet.formatAddress(res.address) : res.address;
+            showToast(`Connected to ${walletType} (${formatted})`, "success");
             closeAllModals();
-            
             if (state.activeRepoData) {
                 renderCardFromData(state.activeRepoData);
             }
@@ -357,7 +366,6 @@ function openWalletModal() {
 function openBioModal(walletAddress) {
     const modal = document.getElementById('bio-modal');
     const codeDisplay = document.getElementById('bio-code-text');
-    
     if (codeDisplay && walletAddress) {
         codeDisplay.innerText = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
     }

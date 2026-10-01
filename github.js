@@ -3,6 +3,7 @@
  */
 
 window.GraveyardScanner = (() => {
+
     /* ==========================================================================
        1. CAUSES OF DEATH ARRAY (500 ENTRIES)
        ========================================================================== */
@@ -37,7 +38,7 @@ window.GraveyardScanner = (() => {
         "Succumbed to an endless loop with no exit condition.",
         "Died when the free tier database reached its storage quota.",
         "Crushed by a 50GB `vendor` folder accidentally committed to git history.",
-        "Bleed to death from 10,000 unit test failures ignored with `--force`.",
+        "Bled to death from 10,000 unit test failures ignored with `--force`.",
         "Abandoned after the maintainer decided to rewrite the entire stack in Rust.",
         "Died of starvation while waiting for `npm install` to finish on hotel Wi-Fi.",
         "Perished when someone typed `git reset --hard HEAD~100` instead of `git status`.",
@@ -99,6 +100,7 @@ window.GraveyardScanner = (() => {
     }
 
     function calculateDaysInactive(pushedAtString) {
+        if (!pushedAtString) return 0;
         const lastPush = new Date(pushedAtString);
         const now = new Date();
         const diffTime = Math.abs(now - lastPush);
@@ -133,25 +135,37 @@ window.GraveyardScanner = (() => {
        3. EXHUME REPOSITORY METHOD
        ========================================================================== */
     async function exhumeRepo(owner, repo) {
+        if (!owner || !repo) {
+            throw new Error("Invalid owner or repository name provided.");
+        }
+
         try {
             const repoData = await scanRepository(owner, repo);
+            
+            if (!repoData || !repoData.pushed_at) {
+                throw new Error("Unable to retrieve valid push history from GitHub API.");
+            }
+
             const daysInactive = calculateDaysInactive(repoData.pushed_at);
 
             if (daysInactive < 30) {
                 return {
                     success: true,
-                    message: `Repository ${owner}/${repo} has been successfully exhumed! Active push detected (${daysInactive} day(s) ago).`,
+                    message: `🎉 EXHUMED! Active commit detected ${daysInactive === 0 ? 'today' : daysInactive + ' day(s) ago'}. Repository resurrected!`,
                     repoData
                 };
             } else {
                 return {
                     success: false,
-                    message: `Cannot exhume ${owner}/${repo}. Last push was ${daysInactive} days ago (must be under 30 days).`,
+                    message: `⚠️️ Exhumation conditions not met. Last push was ${daysInactive} days ago. Push a new commit to GitHub first!`,
                     repoData
                 };
             }
         } catch (err) {
-            throw new Error(`Exhumation failed: ${err.message}`);
+            if (err.message && err.message.includes("403")) {
+                throw new Error("GitHub API rate limit hit. Please wait a moment and try again.");
+            }
+            throw new Error(`Exhumation error: ${err.message}`);
         }
     }
 
@@ -159,12 +173,15 @@ window.GraveyardScanner = (() => {
        4. SECURITY BIO OWNERSHIP VERIFIER
        ========================================================================== */
     async function verifyRepoOwnership(githubUsername, walletAddress) {
+        if (!githubUsername || !walletAddress) {
+            throw new Error("GitHub username and wallet address are required.");
+        }
+
         try {
             const response = await fetch(`https://api.github.com/users/${githubUsername}?t=${Date.now()}`);
             if (!response.ok) {
                 throw new Error(`Could not fetch GitHub profile for '${githubUsername}'.`);
             }
-            
             const userData = await response.json();
             const userBio = userData.bio || '';
             const expectedCode = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
@@ -180,7 +197,7 @@ window.GraveyardScanner = (() => {
     }
 
     /* ==========================================================================
-       5. UI CARD RENDERER (INCLUDES DOWNLOAD & SHARE)
+       5. UI CARD RENDERER
        ========================================================================== */
     function renderRepoCard(repo, metrics) {
         const container = document.getElementById('results-container');
@@ -251,10 +268,10 @@ window.GraveyardScanner = (() => {
                     <div>
                         ${metrics.tier.canBury 
                             ? `<button id="bury-repo-btn" class="btn btn-primary" style="padding: 0.65rem 1.25rem; background: #ff5555; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                                 🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
+                                🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
                                </button>`
                             : `<button id="exhume-repo-btn" class="btn btn-secondary" style="padding: 0.65rem 1.25rem; background: #238636; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                                 ⚡ Attempt Exhumation
+                                ⚡ Attempt Exhumation
                                </button>`
                         }
                     </div>
@@ -279,4 +296,5 @@ window.GraveyardScanner = (() => {
         verifyRepoOwnership,
         renderRepoCard
     };
+
 })();
