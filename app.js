@@ -1,15 +1,70 @@
 /**
  * GITHUB GRAVEYARD — APPLICATION CONTROLLER
+ * Full script handling search, mobile responsiveness fixes, wallet modals, 
+ * certificate pass generation, and image export.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Inject html2canvas dynamically for certificate image download
+    /* ==========================================================================
+       0. MOBILE RESPONSIVE LAYOUT PATCH
+       ========================================================================== */
+    // Inject responsive CSS fixes for mobile devices automatically
+    const styleFix = document.createElement('style');
+    styleFix.innerHTML = `
+        @media (max-width: 640px) {
+            /* Fix search box wrapping & layout on mobile */
+            .search-box-wrapper, .search-input-group {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 0.5rem !important;
+            }
+            .input-prefix {
+                display: none !important; /* Hide prefix on small screens to save space */
+            }
+            #repo-input {
+                width: 100% !important;
+                border-radius: 8px !important;
+                font-size: 0.9rem !important;
+                padding: 0.75rem !important;
+            }
+            #scan-btn {
+                width: 100% !important;
+                border-radius: 8px !important;
+                justify-content: center !important;
+            }
+            /* Fix header wallet controls */
+            header .header-container {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+                align-items: center !important;
+            }
+            .wallet-controls, #connect-wallet-btn {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+            /* Fix modal padding */
+            .modal-content {
+                width: 92% !important;
+                padding: 1.25rem !important;
+            }
+            .repo-metrics-grid, .pass-stats-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.5rem !important;
+            }
+        }
+    `;
+    document.head.appendChild(styleFix);
+
+    // Dynamic html2canvas injection for Certificate Pass image downloads
     if (!window.html2canvas) {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
         document.head.appendChild(script);
     }
 
+    /* ==========================================================================
+       1. GLOBAL STATE & ELEMENT REFERENCES
+       ========================================================================== */
     const searchInput = document.getElementById('repo-input');
     const scanBtn = document.getElementById('scan-btn');
     const connectWalletBtn = document.getElementById('connect-wallet-btn');
@@ -21,7 +76,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeRepoData = null;
     let activeMetrics = null;
 
-    /* 1. REPOSITORY SCAN HANDLER */
+    /* ==========================================================================
+       2. WALLET MODAL TOGGLE HELPER
+       ========================================================================== */
+    function toggleWalletModal(show = true) {
+        if (!walletModal) {
+            console.warn("Element with id='wallet-modal' not found in DOM.");
+            return;
+        }
+
+        if (show) {
+            walletModal.classList.remove('hidden');
+            walletModal.style.display = 'flex';
+        } else {
+            walletModal.classList.add('hidden');
+            walletModal.style.display = 'none';
+        }
+    }
+
+    /* ==========================================================================
+       3. REPOSITORY SCAN HANDLER
+       ========================================================================== */
     if (scanBtn) {
         scanBtn.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -59,19 +134,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* 2. GLOBAL CLICK ROUTING */
+    // Keypress listener for "Enter" key on search input
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && scanBtn) {
+                scanBtn.click();
+            }
+        });
+    }
+
+    /* ==========================================================================
+       4. GLOBAL CLICK ROUTING (BURIAL, MODALS, DOWNLOADS)
+       ========================================================================== */
     document.addEventListener('click', async (e) => {
-        // Trigger Wallet Modal if clicking "Connect Wallet to Bury"
-        if (e.target && e.target.closest('#connect-wallet-trigger-btn')) {
-            if (walletModal) walletModal.classList.remove('hidden');
+        // Trigger Wallet Modal if clicking top nav connect button or card button
+        if (e.target && (e.target.closest('#connect-wallet-btn') || e.target.closest('#connect-wallet-trigger-btn'))) {
+            e.preventDefault();
+            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
+
+            if (walletState.address) {
+                if (confirm(`Connected: ${walletState.address}\n\nDo you want to disconnect?`)) {
+                    if (window.GraveyardWallet) window.GraveyardWallet.disconnect();
+                    if (activeRepoData && activeMetrics) {
+                        window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
+                    }
+                }
+            } else {
+                toggleWalletModal(true);
+            }
         }
 
-        // Handle Bury Button
+        // Handle "Bury Repo" Button
         if (e.target && e.target.closest('#bury-repo-btn')) {
             const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
 
             if (!walletState.address) {
-                if (walletModal) walletModal.classList.remove('hidden');
+                toggleWalletModal(true);
                 return;
             }
 
@@ -87,22 +185,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Close Modals
-        if (e.target && e.target.classList.contains('modal-close-trigger')) {
+        // Modal Close Triggers
+        if (e.target && (e.target.classList.contains('wallet-modal-close') || e.target.classList.contains('modal-close-trigger'))) {
+            toggleWalletModal(false);
             if (certificateModal) certificateModal.classList.add('hidden');
-            if (walletModal) walletModal.classList.add('hidden');
         }
 
-        // Download Certificate Image
+        // Download Certificate Image Trigger
         if (e.target && e.target.closest('#download-cert-btn')) {
             const certElement = document.getElementById('certificate-card-node');
             if (certElement && window.html2canvas) {
                 const downloadBtn = e.target.closest('#download-cert-btn');
-                downloadBtn.innerText = 'Generating Image...';
+                downloadBtn.innerText = 'Generating...';
                 
-                window.html2canvas(certElement, { backgroundColor: '#070a0f' }).then(canvas => {
+                window.html2canvas(certElement, { backgroundColor: '#070a0f', scale: 2 }).then(canvas => {
                     const link = document.createElement('a');
-                    link.download = `${activeRepoData.name}-burial-certificate.png`;
+                    link.download = `${activeRepoData.name}-burial-pass.png`;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     downloadBtn.innerText = 'Download Pass Image';
@@ -111,98 +209,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* 3. WALLET CONTROLS */
-    if (connectWalletBtn) {
-        connectWalletBtn.addEventListener('click', () => {
-            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
-            if (walletState.address) {
-                if (confirm('Disconnect active wallet?')) {
-                    window.GraveyardWallet.disconnect();
-                    if (activeRepoData && activeMetrics) {
-                        window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
-                    }
-                }
-            } else if (walletModal) {
-                walletModal.classList.remove('hidden');
-            }
-        });
-    }
-
+    /* ==========================================================================
+       5. SPECIFIC WALLET CONNECTORS
+       ========================================================================== */
     if (connectEvmBtn) {
         connectEvmBtn.addEventListener('click', async () => {
             try {
-                await window.GraveyardWallet.connectEVM();
-                if (walletModal) walletModal.classList.add('hidden');
+                if (window.GraveyardWallet) await window.GraveyardWallet.connectEVM();
+                toggleWalletModal(false);
                 if (activeRepoData && activeMetrics) {
                     window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
                 }
-            } catch (err) { alert(err.message); }
+            } catch (err) {
+                alert(`EVM Connection Error: ${err.message}`);
+            }
         });
     }
 
     if (connectSolanaBtn) {
         connectSolanaBtn.addEventListener('click', async () => {
             try {
-                await window.GraveyardWallet.connectSolana();
-                if (walletModal) walletModal.classList.add('hidden');
+                if (window.GraveyardWallet) await window.GraveyardWallet.connectSolana();
+                toggleWalletModal(false);
                 if (activeRepoData && activeMetrics) {
                     window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
                 }
-            } catch (err) { alert(err.message); }
+            } catch (err) {
+                alert(`Solana Connection Error: ${err.message}`);
+            }
         });
     }
 
-    /* 4. CERTIFICATE MODAL RENDER */
+    /* ==========================================================================
+       6. CERTIFICATE PASS MODAL RENDER FUNCTION
+       ========================================================================== */
     function showCertificateModal(repo, metrics, walletAddr) {
         if (!certificateModal) return;
 
         const passSerial = `GRAVE-${Math.floor(100000 + Math.random() * 900000)}`;
-        const causeOfDeath = window.GraveyardScanner.generateCauseOfDeath(repo, metrics.daysInactive);
+        const causeOfDeath = window.GraveyardScanner ? window.GraveyardScanner.generateCauseOfDeath(repo, metrics.daysInactive) : "Abandoned by maintainer";
         const tweetText = encodeURIComponent(`I just buried ${repo.full_name} on @GitGraveyard!\n\nCause of Death: "${causeOfDeath}"\nClaimed ${metrics.reward} $GRAVEYARD tokens 🪦\n\nhttps://gitgraveyard.xyz`);
 
         certificateModal.innerHTML = `
-            <div class="modal-backdrop modal-close-trigger">
+            <div class="modal-backdrop modal-close-trigger" style="display: flex;">
                 <div class="modal-content glass-card" onclick="event.stopPropagation()">
                     <button class="modal-close modal-close-trigger">&times;</button>
                     
-                    <div id="certificate-card-node" class="certificate-pass">
-                        <div class="pass-header">
-                            <span class="pass-tag">OFFICIAL BURIAL CERTIFICATE</span>
+                    <div id="certificate-card-node" class="certificate-pass" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); padding: 1.25rem; border-radius: 8px;">
+                        <div class="pass-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #8b949e; margin-bottom: 0.75rem;">
+                            <span class="pass-tag" style="color: var(--blood-red, #ff5555); font-weight: bold;">OFFICIAL BURIAL CERTIFICATE</span>
                             <span class="pass-serial">${passSerial}</span>
                         </div>
                         
-                        <div class="pass-repo-name">${repo.full_name}</div>
+                        <div class="pass-repo-name" style="font-size: 1.25rem; font-weight: bold; color: #f0f6fc; margin-bottom: 0.5rem;">${repo.full_name}</div>
                         
-                        <p style="font-size: 0.85rem; font-style: italic; color: var(--blood-red);">
+                        <p style="font-size: 0.85rem; font-style: italic; color: #ff6e6e; margin-bottom: 1rem;">
                             Cause of Death: "${causeOfDeath}"
                         </p>
 
-                        <div class="pass-stats-grid">
+                        <div class="pass-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px;">
                             <div class="pass-stat">
-                                <span class="metric-label">Days Inactive</span>
-                                <span class="metric-value">${metrics.daysInactive}</span>
+                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Days Inactive</span>
+                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.daysInactive}</span>
                             </div>
                             <div class="pass-stat">
-                                <span class="metric-label">Mortality Score</span>
-                                <span class="metric-value">${metrics.mortalityScore}/100</span>
+                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Mortality Score</span>
+                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.mortalityScore}/100</span>
                             </div>
                             <div class="pass-stat">
-                                <span class="metric-label">Tokens Minted</span>
-                                <span class="metric-value">${metrics.reward} $GRAVEYARD</span>
+                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Tokens Minted</span>
+                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.reward} $GRAVEYARD</span>
                             </div>
                             <div class="pass-stat">
-                                <span class="metric-label">Buried By</span>
-                                <span class="metric-value">${window.GraveyardWallet ? window.GraveyardWallet.formatAddress(walletAddr) : walletAddr}</span>
+                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Buried By</span>
+                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${window.GraveyardWallet ? window.GraveyardWallet.formatAddress(walletAddr) : walletAddr}</span>
                             </div>
                         </div>
 
-                        <div class="pass-footer">
+                        <div class="pass-footer" style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #8b949e; margin-top: 1rem;">
                             <span>GITGRAVEYARD.XYZ</span>
                             <span>${new Date().toISOString().split('T')[0]}</span>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; flex-wrap: wrap;">
                         <a href="https://twitter.com/intent/tweet?text=${tweetText}" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
                             Share Certificate on 𝕏
                         </a>
