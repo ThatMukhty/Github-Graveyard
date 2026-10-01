@@ -82,8 +82,35 @@ await connectWalletProvider(walletType);
 
 });
 
-    // 5. Global Event Delegation
-    document.addEventListener('click', handleGlobalClickEvents);
+   // 5. Global Event Delegation
+
+document.addEventListener('click', handleGlobalClickEvents);
+
+
+// 6. Auto-reopen verification modal if returning from editing GitHub bio on mobile
+
+const pending = localStorage.getItem('pending_verification');
+
+if (pending) {
+
+try {
+
+const data = JSON.parse(pending);
+
+if (data.walletAddress) {
+
+openBioModal(data.walletAddress);
+
+}
+
+} catch (e) {
+
+localStorage.removeItem('pending_verification');
+
+}
+
+}
+
 }
 
 /**
@@ -380,15 +407,30 @@ modal.style.display = 'flex';
 }
 
 }
+
 function openBioModal(walletAddress) {
 
 const modal = document.getElementById('bio-modal');
 
 const codeDisplay = document.getElementById('bio-code-text');
 
-if (codeDisplay && walletAddress) {
 
-codeDisplay.innerText = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+if (walletAddress) {
+
+const code = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+
+if (codeDisplay) codeDisplay.innerText = code;
+
+
+// Save pending verification state so mobile tab-switching doesn't lose progress
+
+localStorage.setItem('pending_verification', JSON.stringify({
+
+walletAddress,
+
+repo: state.activeRepoData?.full_name || ''
+
+}));
 
 }
 
@@ -404,7 +446,9 @@ modal.style.display = 'flex';
 }
 function closeAllModals() {
 
-document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal').forEach(modal => {
+localStorage.removeItem('pending_verification');
+
+document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal, #bio-modal').forEach(modal => {
 
 modal.style.display = 'none';
 
