@@ -118,11 +118,13 @@ window.GraveyardScanner = (() => {
         const score = Math.min(100, Math.floor((days / 365) * 100));
         return Math.max(1, score);
     }
+function calculateTokenReward(days, canBury) {
 
-    function calculateTokenReward(days, canBury) {
-        if (!canBury) return 0;
-        return Math.min(10000, Math.floor(days * 10.5));
-    }
+if (!canBury) return 0;
+
+return Math.min(500, Math.floor(days * 10.5));
+
+}
 
     function generateCauseOfDeath(data, days) {
         const repoName = data.name || "repo";

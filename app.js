@@ -63,15 +63,24 @@ function initApp() {
     });
 
     // 4. Wallet Provider Selection in Modal
-    document.querySelectorAll('.wallet-option-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const walletType = btn.dataset.wallet;
-            if (walletType) {
-                await connectWalletProvider(walletType);
-            }
-        });
-    });
+
+document.querySelectorAll('.wallet-select-btn, .wallet-option-btn').forEach(btn => {
+
+btn.addEventListener('click', async (e) => {
+
+e.preventDefault();
+
+const walletType = btn.dataset.wallet;
+
+if (walletType) {
+
+await connectWalletProvider(walletType);
+
+}
+
+});
+
+});
 
     // 5. Global Event Delegation
     document.addEventListener('click', handleGlobalClickEvents);
@@ -359,8 +368,17 @@ async function connectWalletProvider(walletType) {
  * Modal Helpers
  */
 function openWalletModal() {
-    const modal = document.getElementById('wallet-modal');
-    if (modal) modal.style.display = 'flex';
+
+const modal = document.getElementById('wallet-modal');
+
+if (modal) {
+
+modal.classList.remove('hidden');
+
+modal.style.display = 'flex';
+
+}
+
 }
 
 function openBioModal(walletAddress) {
@@ -372,13 +390,17 @@ function openBioModal(walletAddress) {
 
     if (modal) modal.style.display = 'flex';
 }
-
 function closeAllModals() {
-    document.querySelectorAll('.modal-overlay, .modal').forEach(modal => {
-        modal.style.display = 'none';
-    });
-}
 
+document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal').forEach(modal => {
+
+modal.style.display = 'none';
+
+modal.classList.add('hidden');
+
+});
+
+}
 /**
  * Custom Toast Notifications
  */
