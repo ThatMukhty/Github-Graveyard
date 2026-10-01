@@ -1,5 +1,7 @@
 /**
  * GITHUB GRAVEYARD — APPLICATION CONTROLLER
+ * Full script handling search, mobile layout fixes, multi-wallet EVM connections,
+ * GitHub bio ownership verification, certificate generation, and image export.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,13 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const styleFix = document.createElement('style');
     styleFix.innerHTML = `
         @media (max-width: 640px) {
+            /* Fix search box wrapping & layout on mobile */
             .search-box-wrapper, .search-input-group {
                 flex-direction: column !important;
                 width: 100% !important;
                 gap: 0.5rem !important;
             }
             .input-prefix {
-                display: none !important;
+                display: none !important; /* Hide prefix on small screens */
             }
             #repo-input {
                 width: 100% !important;
@@ -28,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 border-radius: 8px !important;
                 justify-content: center !important;
             }
+            /* Fix header wallet controls */
             header .header-container {
                 flex-direction: column !important;
                 gap: 0.75rem !important;
@@ -37,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 width: 100% !important;
                 justify-content: center !important;
             }
+            /* Fix modal padding */
             .modal-content {
                 width: 92% !important;
                 padding: 1.25rem !important;
@@ -49,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(styleFix);
 
+    // Dynamic html2canvas injection for Certificate Pass image downloads
     if (!window.html2canvas) {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -121,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Keypress listener for "Enter" key on search input
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && scanBtn) {
@@ -130,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       4. GLOBAL CLICK ROUTING (WALLETS, BURIAL, MODALS, DOWNLOADS)
+       4. GLOBAL CLICK ROUTING (WALLETS, VERIFICATION, BURIAL, MODALS, DOWNLOADS)
        ========================================================================== */
     document.addEventListener('click', async (e) => {
         // Trigger Wallet Modal
@@ -150,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Wallet Selection (Robinhood, Coinbase, Trust, MetaMask, Phantom, Fomo)
+        // Handle Wallet Selection (Robinhood, Coinbase, Trust, MetaMask, Phantom, Fomo)
         const walletOptionBtn = e.target.closest('.wallet-select-btn');
         if (walletOptionBtn) {
             const walletType = walletOptionBtn.getAttribute('data-wallet');
@@ -165,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Handle "Bury Repo" Button
+        // Handle "Bury Repo" Button (with Security Bio Check)
         if (e.target && e.target.closest('#bury-repo-btn')) {
             const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
 
@@ -174,15 +181,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            try {
-                const signMsg = `Confirming burial of repository ${activeRepoData.full_name} on GitHub Graveyard.\nTimestamp: ${Date.now()}`;
-                const signatureObj = await window.GraveyardWallet.signMessage(signMsg);
+            const repoOwner = activeRepoData.owner.login;
+            const expectedCode = `GRAVEYARD-${walletState.address.substring(0, 8).toUpperCase()}`;
 
-                if (signatureObj) {
-                    showCertificateModal(activeRepoData, activeMetrics, signatureObj.address);
+            const verifyNotice = confirm(
+                `SECURITY OWNERSHIP CHECK:\n\n` +
+                `To prove you own or manage '${activeRepoData.full_name}', add this string to your GitHub bio:\n\n` +
+                `👉 ${expectedCode}\n\n` +
+                `Click OK once updated to verify your profile.`
+            );
+
+            if (!verifyNotice) return;
+
+            try {
+                const check = await window.GraveyardScanner.verifyRepoOwnership(repoOwner, walletState.address);
+
+                if (check.verified) {
+                    alert("Ownership verified! Proceeding with transaction signature...");
+                    const signMsg = `Confirming burial of ${activeRepoData.full_name} by owner ${repoOwner}.\nTimestamp: ${Date.now()}`;
+                    const signatureObj = await window.GraveyardWallet.signMessage(signMsg);
+
+                    if (signatureObj) {
+                        showCertificateModal(activeRepoData, activeMetrics, signatureObj.address);
+                    }
+                } else {
+                    alert(
+                        `Verification Failed!\n\n` +
+                        `Could not find '${expectedCode}' in GitHub user @${repoOwner}'s bio.\n\n` +
+                        `Please update your bio at https://github.com/settings/profile and try again.`
+                    );
                 }
             } catch (err) {
-                console.error('Burial Verification Error:', err);
+                alert(`Verification Error: ${err.message}`);
             }
         }
 
@@ -192,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (certificateModal) certificateModal.classList.add('hidden');
         }
 
-        // Download Certificate Image
+        // Download Certificate Image Trigger
         if (e.target && e.target.closest('#download-cert-btn')) {
             const certElement = document.getElementById('certificate-card-node');
             if (certElement && window.html2canvas) {

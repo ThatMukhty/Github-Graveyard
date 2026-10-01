@@ -1,6 +1,7 @@
 /**
  * GITHUB GRAVEYARD — MULTI-WALLET CONNECTOR
- * Handles Extension detection on Desktop and Mobile Universal Deep Linking.
+ * Supports Robinhood, Coinbase, Trust, MetaMask, Phantom, and Fomo.
+ * Enforces EVM/Ethereum address resolution across all providers.
  */
 
 window.GraveyardWallet = (() => {
@@ -26,9 +27,9 @@ window.GraveyardWallet = (() => {
     async function connectWallet(walletType) {
         const currentUrl = window.location.href;
 
-        // MOBILE FLOW: Redirect to app via deep link if extension isn't injected
+        // MOBILE FLOW: Redirect to dApp browser via deep link if extension isn't injected
         if (isMobile()) {
-            const hasInjected = (walletType === 'phantom' && window.phantom) || window.ethereum;
+            const hasInjected = window.ethereum || window.phantom?.ethereum;
             if (!hasInjected) {
                 if (DEEP_LINKS[walletType]) {
                     window.location.href = DEEP_LINKS[walletType](currentUrl);
@@ -37,44 +38,43 @@ window.GraveyardWallet = (() => {
             }
         }
 
-        // DESKTOP & IN-APP BROWSER FLOW
+        // DESKTOP & IN-APP BROWSER FLOW (ALWAYS FETCH ETHEREUM ACCOUNT)
         try {
-            if (walletType === 'phantom') {
-                const phantom = window.phantom?.solana || window.solana;
-                if (!phantom) {
-                    window.open('https://phantom.app/', '_blank');
-                    throw new Error("Phantom extension not detected.");
-                }
-                const res = await phantom.connect();
-                state.address = res.publicKey.toString();
-                state.provider = phantom;
-                state.walletType = 'phantom';
-            } else {
-                // EVM Wallets (Robinhood, Coinbase, Trust, MetaMask, Fomo)
-                let provider = window.ethereum;
+            let provider = null;
 
-                // Handle multi-provider injection collisions
+            if (walletType === 'phantom') {
+                // Force Phantom to use its EVM provider
+                provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
+                if (!provider) {
+                    window.open('https://phantom.app/', '_blank');
+                    throw new Error("Phantom Ethereum wallet extension not detected.");
+                }
+            } else {
+                // Standard EVM Wallets
+                provider = window.ethereum;
+
                 if (window.ethereum?.providers) {
                     if (walletType === 'coinbase') provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
                     else if (walletType === 'trust') provider = window.ethereum.providers.find(p => p.isTrust);
                     else if (walletType === 'metamask') provider = window.ethereum.providers.find(p => p.isMetaMask);
                     else provider = window.ethereum.providers[0];
                 }
-
-                if (!provider) {
-                    alert(`Please install the ${walletType} browser extension or open this site inside the ${walletType} mobile app browser.`);
-                    return null;
-                }
-
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
-                if (accounts && accounts.length > 0) {
-                    state.address = accounts[0];
-                    state.provider = provider;
-                    state.walletType = walletType;
-                }
             }
 
-            console.log(`Connected to ${walletType}: ${state.address}`);
+            if (!provider) {
+                alert(`Please install the ${walletType} browser extension or open inside the ${walletType} mobile app browser.`);
+                return null;
+            }
+
+            // Request standard EVM address (0x...)
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            if (accounts && accounts.length > 0) {
+                state.address = accounts[0];
+                state.provider = provider;
+                state.walletType = walletType;
+            }
+
+            console.log(`Connected ${walletType} (EVM): ${state.address}`);
             updateUI();
             return state;
         } catch (err) {
@@ -86,17 +86,12 @@ window.GraveyardWallet = (() => {
     async function signMessage(message) {
         if (!state.address || !state.provider) throw new Error("No wallet connected.");
 
-        if (state.walletType === 'phantom') {
-            const encoded = new TextEncoder().encode(message);
-            const signed = await state.provider.signMessage(encoded, "utf8");
-            return { address: state.address, signature: signed.signature };
-        } else {
-            const signature = await state.provider.request({
-                method: 'personal_sign',
-                params: [message, state.address]
-            });
-            return { address: state.address, signature };
-        }
+        const signature = await state.provider.request({
+            method: 'personal_sign',
+            params: [message, state.address]
+        });
+
+        return { address: state.address, signature };
     }
 
     function disconnect() {

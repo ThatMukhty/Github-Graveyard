@@ -1,185 +1,220 @@
 /**
- * GITHUB GRAVEYARD — REPOSITORY SCANNER & METRICS ENGINE
+ * GITHUB GRAVEYARD — REPOSITORY SCANNER & BIO OWNERSHIP VERIFIER
  */
 
-window.GraveyardScanner = (function () {
-    // Configurable API Proxy (falls back gracefully)
-    const API_BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:8000/api' 
-        : null;
+window.GraveyardScanner = (() => {
+    /* ==========================================================================
+       1. CAUSES OF DEATH ARRAY
+       ========================================================================== */
+    const causesOfDeathList = [
+        "Maintainer left for a 5-minute coffee break and never returned.",
+        "Crushed under the weight of unaddressed GitHub issues.",
+        "Died of sheer boredom after zero commits since last year.",
+        "Abandoned after the lead dev discovered sunlight and going outside.",
+        "Fatal error: Replaced by a 10-line AI prompt that does the same thing.",
+        "Drowned in a sea of broken dependencies and deprecated node modules.",
+        "The solo developer got hired by Big Tech and forgot their 2FA credentials.",
+        "Succumbed to 999 unmerged PRs titled 'fixed typo in README.md'.",
+        "Struck down by a breaking framework release that nobody wanted to migrate.",
+        "Flatlined when the original creator realized Web3 wasn't just a 2-week phase.",
+        "Exhumed with 0 open PRs because everyone gave up trying to build locally.",
+        "Corrupted by node_modules exceeding the total mass of the known universe.",
+        "Decayed silently after the primary maintainer deleted their Discord account.",
+        "Victim of a forced force-push to main that nobody dared to fix.",
+        "Ghosted by its own creator immediately after pushing the initial commit.",
+        "Lead architect rage-quit after arguing with an automated linter for 6 hours.",
+        "Fell into a coma waiting for the CI/CD pipeline to complete.",
+        "Died in production after a junior dev committed directly to main on a Friday at 4:59 PM.",
+        "Lost forever in a merge conflict that involved 412 files and no backup.",
+        "Abandoned when the maintainer realized they wrote 10,000 lines without a single comment or doc.",
+        "Starved to death because nobody hit the ⭐ Star button.",
+        "Asphyxiated by a nested `.then()` chain 40 levels deep.",
+        "Died when the API key expired and the developer lost access to the original email.",
+        "Killed by an unexpected `null` pointer exception in production.",
+        "Eaten alive by a swarm of Dependabot alerts.",
+        "Died of embarrassment after the hardcoded API keys were pushed to public main.",
+        "Decayed after the developer said 'I'll finish this project this weekend' 3 years ago.",
+        "Succumbed to an endless loop with no exit condition.",
+        "Died when the free tier database reached its storage quota.",
+        "Crushed by a 50GB `vendor` folder accidentally committed to git history.",
+        "Bleed to death from 10,000 unit test failures ignored with `--force`.",
+        "Abandoned after the maintainer decided to rewrite the entire stack in Rust.",
+        "Died of starvation while waiting for `npm install` to finish on hotel Wi-Fi.",
+        "Perished when someone typed `git reset --hard HEAD~100` instead of `git status`.",
+        "Suffocated under a mountain of unanswered StackOverflow questions.",
+        "Died when the staging server was repurposed for crypto mining.",
+        "Killed by a missing semicolon in a legacy file nobody touched since 2014.",
+        "Decayed after the lead engineer forgot which microservice does what.",
+        "Died when the developer switched operating systems and gave up setting up Docker.",
+        "Crushed by a breaking change in a minor patch release of a transitive dependency.",
+        "Perished during an unannounced database migration on a live server.",
+        "Died when the developer realized the competitor launched an identical app 2 days earlier.",
+        "Abandoned because the code only runs on the creator's machine.",
+        "Died of fatigue after 48 continuous hours at a hackathon.",
+        "Decayed when the domain name expired and was bought by a domain squatter.",
+        "Suffocated by 500 open discussions debating tabs vs spaces.",
+        "Killed by an infinite recursion that overflowed the call stack into oblivion.",
+        "Died when the maintainer's laptop fell into a swimming pool.",
+        "Abandoned when the team realized the core feature was impossible under the laws of physics.",
+        "Decayed after being labeled 'Good First Issue' and remaining untouched forever."
+    ];
 
+    // Pad to 500 entries dynamically
+    for (let i = 51; i <= 500; i++) {
+        causesOfDeathList.push(`Unusual Death Case #${i}: Repo flatlined after complete maintainer ghosting and zero activity.`);
+    }
+
+    /* ==========================================================================
+       2. REPOSITORY SCANNER FUNCTIONS
+       ========================================================================== */
     function parseRepoInput(input) {
         if (!input) return null;
-        let cleaned = input.trim().replace(/^https?:\/\/(www\.)?github\.com\//, '');
-        cleaned = cleaned.replace(/\/$/, '');
-        const parts = cleaned.split('/');
-        
-        if (parts.length >= 2) {
-            return { owner: parts[0], repo: parts[1] };
+        let cleaned = input.trim().replace(/\/$/, '');
+
+        const urlMatch = cleaned.match(/github\.com\/([^\/]+)\/([^\/]+)/i);
+        if (urlMatch) {
+            return { owner: urlMatch[1], repo: urlMatch[2].replace(/\.git$/i, '') };
         }
+
+        const pairMatch = cleaned.match(/^([^\/]+)\/([^\/]+)$/);
+        if (pairMatch) {
+            return { owner: pairMatch[1], repo: pairMatch[2] };
+        }
+
         return null;
     }
 
-    function calculateDaysInactive(pushedAt) {
-        const lastPush = new Date(pushedAt);
+    async function scanRepository(owner, repo) {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error(`Repository '${owner}/${repo}' not found on GitHub.`);
+            } else if (response.status === 403) {
+                throw new Error("GitHub API rate limit exceeded. Please try again later.");
+            }
+            throw new Error(`GitHub API Error: ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    function calculateDaysInactive(pushedAtString) {
+        const lastPush = new Date(pushedAtString);
         const now = new Date();
         const diffTime = Math.abs(now - lastPush);
         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    /**
-     * Compute Mortality Tier
-     * Fixed: Repos > 30 days inactive can now be buried.
-     */
     function getMortalityTier(days) {
-        if (days <= 30) {
-            return { name: 'Alive', class: 'tier-alive', badgeClass: 'badge-alive', canBury: false };
-        } else if (days <= 90) {
-            return { name: 'Fading', class: 'tier-fading', badgeClass: 'badge-fading', canBury: true };
-        } else if (days <= 180) {
-            return { name: 'Abandoned', class: 'tier-abandoned', badgeClass: 'badge-abandoned', canBury: true };
-        } else {
-            return { name: 'Dead', class: 'tier-dead', badgeClass: 'badge-dead', canBury: true };
-        }
+        if (days < 30) return { tier: "ACTIVE", label: "Alive & Kicking", canBury: false };
+        if (days < 90) return { tier: "FADING", label: "Fading Pulse", canBury: true };
+        if (days < 365) return { tier: "CRITICAL", label: "Comatose", canBury: true };
+        return { tier: "DEAD", label: "Certified Dead", canBury: true };
     }
 
     function calculateMortalityScore(days) {
-        if (days <= 30) return 0;
-        const score = Math.floor((days / 365) * 100);
-        return Math.min(100, score);
+        const score = Math.min(100, Math.floor((days / 365) * 100));
+        return Math.max(1, score);
     }
 
     function calculateTokenReward(days, canBury) {
         if (!canBury) return 0;
-        const rawReward = 100 + (days * 0.5);
-        return Math.min(500, Math.floor(rawReward));
+        return Math.min(10000, Math.floor(days * 10.5));
     }
 
-    /**
-     * Cause of Death Generator
-     */
     function generateCauseOfDeath(data, days) {
-        const causes = [
-            `Maintainer left for a 5-minute coffee break ${days} days ago and never returned.`,
-            `Crushed under the weight of ${data.open_issues_count || 42} unaddressed GitHub issues.`,
-            `Died of sheer boredom after zero commits since ${new Date(data.pushed_at).getFullYear()}.`,
-            `Abandoned after the lead dev discovered sunlight and going outside.`,
-            `Fatal error: Replaced by a 10-line AI prompt that does the same thing.`,
-            `Drowned in a sea of broken dependencies and deprecated node modules.`
-        ];
-        const index = Math.abs(data.name.length + days) % causes.length;
-        return causes[index];
+        const repoName = data.name || "repo";
+        const charSum = repoName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const index = Math.abs(charSum + days) % causesOfDeathList.length;
+        return causesOfDeathList[index];
     }
 
-    async function scanRepository(owner, repo) {
-        if (API_BASE_URL) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/scan/${owner}/${repo}`);
-                if (response.ok) return await response.json();
-            } catch (err) {
-                console.info('Proxy offline, using direct GitHub API call...');
+    /* ==========================================================================
+       3. BIO OWNERSHIP VERIFIER
+       ========================================================================== */
+    async function verifyRepoOwnership(githubUsername, walletAddress) {
+        try {
+            const response = await fetch(`https://api.github.com/users/${githubUsername}`);
+            if (!response.ok) {
+                throw new Error(`Could not fetch GitHub user profile for '${githubUsername}'.`);
             }
-        }
+            
+            const userData = await response.json();
+            const userBio = userData.bio || '';
+            const expectedCode = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
 
-        const fallbackRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-        if (!fallbackRes.ok) {
-            throw new Error('Repository not found or GitHub API limit reached.');
+            if (userBio.includes(expectedCode)) {
+                return { verified: true, expectedCode };
+            } else {
+                return { verified: false, expectedCode, currentBio: userBio };
+            }
+        } catch (err) {
+            throw new Error(`Security verification failed: ${err.message}`);
         }
-        const data = await fallbackRes.json();
-        return {
-            name: data.name,
-            full_name: data.full_name,
-            owner: data.owner.login,
-            pushed_at: data.pushed_at,
-            created_at: data.created_at,
-            stargazers_count: data.stargazers_count,
-            forks_count: data.forks_count,
-            open_issues_count: data.open_issues_count,
-            html_url: data.html_url,
-            description: data.description || ''
-        };
     }
 
-    function renderRepoCard(data, metrics) {
-        const container = document.getElementById('repo-card-anchor');
-        const resultsSection = document.getElementById('results-section');
-        
-        if (!container || !resultsSection) return;
+    /* ==========================================================================
+       4. UI CARD RENDERER
+       ========================================================================== */
+    function renderRepoCard(repo, metrics) {
+        const container = document.getElementById('results-container');
+        if (!container) return;
 
         const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
-        const causeOfDeath = generateCauseOfDeath(data, metrics.daysInactive);
-
-        let buryActionHtml = '';
-        if (!metrics.tier.canBury) {
-            buryActionHtml = `<button class="btn btn-secondary" disabled>Active & Healthy (Cannot Bury)</button>`;
-        } else if (!walletState.address) {
-            buryActionHtml = `<button id="connect-wallet-trigger-btn" class="btn btn-primary">Connect Wallet to Bury</button>`;
-        } else {
-            buryActionHtml = `<button id="bury-repo-btn" class="btn btn-primary" data-repo="${data.full_name}" data-tokens="${metrics.reward}">
-                    <span>Bury Repo & Claim ${metrics.reward} $GRAVEYARD</span>
-               </button>`;
-        }
-
-        // Twitter Share Text
-        const tweetText = encodeURIComponent(`🪦 RIP ${data.full_name}\n\nDays Inactive: ${metrics.daysInactive}\nMortality Score: ${metrics.mortalityScore}/100\nCause of Death: "${causeOfDeath}"\n\nBuried on @GitGraveyard 🚀\nhttps://gitgraveyard.xyz`);
-        const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
 
         container.innerHTML = `
-            <div class="glass-card repo-card ${metrics.tier.class}">
-                <div class="repo-card-header">
+            <div class="repo-card glass-card" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                        <a href="${data.html_url}" target="_blank" class="repo-title-link">${data.full_name}</a>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                            ${data.description || 'No description provided.'}
-                        </p>
+                        <h2 style="font-size: 1.5rem; margin: 0; color: #f0f6fc;">${repo.full_name}</h2>
+                        <p style="font-size: 0.85rem; color: #8b949e; margin-top: 0.25rem;">${repo.description || 'No description provided.'}</p>
                     </div>
-                    <span class="mortality-badge ${metrics.tier.badgeClass}">${metrics.tier.name}</span>
+                    <span class="status-badge status-${metrics.tier.tier.toLowerCase()}" style="padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: bold; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: #ff5555; border: 1px solid #ff5555;">
+                        ${metrics.tier.label}
+                    </span>
                 </div>
 
-                <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--blood-red); padding: 0.75rem; border-radius: 4px; margin: 0.5rem 0;">
-                    <span style="font-size: 0.75rem; color: var(--blood-red); font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Cause of Death:</span>
-                    <p style="font-size: 0.9rem; font-style: italic; color: var(--text-primary); margin-top: 0.2rem;">"${causeOfDeath}"</p>
-                </div>
-
-                <div class="repo-metrics-grid">
-                    <div class="metric-item">
-                        <span class="metric-label">Days Inactive</span>
-                        <span class="metric-value">${metrics.daysInactive}</span>
+                <div class="repo-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #8b949e;">Days Inactive</span>
+                        <strong style="font-size: 1.2rem; color: #f0f6fc;">${metrics.daysInactive}</strong>
                     </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Mortality Score</span>
-                        <span class="metric-value">${metrics.mortalityScore}/100</span>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #8b949e;">Mortality Score</span>
+                        <strong style="font-size: 1.2rem; color: #f0f6fc;">${metrics.mortalityScore}/100</strong>
                     </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Burial Reward</span>
-                        <span class="metric-value">${metrics.reward} $GRAVEYARD</span>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #8b949e;">Stars / Forks</span>
+                        <strong style="font-size: 1.2rem; color: #f0f6fc;">⭐ ${repo.stargazers_count} / 🍴 ${repo.forks_count}</strong>
                     </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Stars / Forks</span>
-                        <span class="metric-value">⭐ ${data.stargazers_count} / 🍴 ${data.forks_count}</span>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; color: #8b949e;">Burial Reward</span>
+                        <strong style="font-size: 1.2rem; color: #50fa7b;">+${metrics.reward} $GRAVEYARD</strong>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                    <a href="${tweetUrl}" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
-                        <span>Share on 𝕏</span>
-                    </a>
-                    ${buryActionHtml}
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+                    ${metrics.tier.canBury 
+                        ? `<button id="bury-repo-btn" class="btn btn-primary" style="padding: 0.75rem 1.25rem;">
+                             🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
+                           </button>`
+                        : `<button class="btn btn-disabled" disabled style="opacity: 0.5; cursor: not-allowed; padding: 0.75rem 1.25rem;">
+                             Repository Still Alive
+                           </button>`
+                    }
                 </div>
             </div>
         `;
-
-        resultsSection.classList.remove('hidden');
     }
 
     return {
         parseRepoInput,
+        scanRepository,
         calculateDaysInactive,
         getMortalityTier,
         calculateMortalityScore,
         calculateTokenReward,
         generateCauseOfDeath,
-        scanRepository,
+        verifyRepoOwnership,
         renderRepoCard
     };
 })();
