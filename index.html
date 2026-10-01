@@ -126,27 +126,50 @@
 
 </main>
 
-    <!-- 1. PASTE WALLET MODAL HERE -->
+    <!-- EXPANDED WEB3 WALLET SELECTION MODAL -->
     <div id="wallet-modal" class="modal-backdrop hidden" style="display: none;">
         <div class="modal-content glass-card">
             <button class="modal-close modal-close-trigger">&times;</button>
-            <h3>Connect Your Web3 Wallet</h3>
-            <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem;">
-                Select a network to verify wallet ownership and bury dead repositories.
+            <h3 style="margin-bottom: 0.25rem; font-size: 1.25rem;">Connect Web3 Wallet</h3>
+            <p style="font-size: 0.8rem; color: #8b949e; margin-bottom: 1.25rem;">
+                Select a wallet to verify ownership and bury dead repositories.
             </p>
             
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <button id="connect-evm-btn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-                    <span>Connect MetaMask / EVM</span>
+            <div class="wallet-grid-options" style="display: flex; flex-direction: column; gap: 0.6rem;">
+                <!-- Robinhood Wallet -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="robinhood" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> Robinhood Wallet</span>
                 </button>
-                <button id="connect-solana-btn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-                    <span>Connect Phantom / Solana</span>
+
+                <!-- Coinbase Wallet -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="coinbase" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> Coinbase Wallet</span>
+                </button>
+
+                <!-- Trust Wallet -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="trust" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> Trust Wallet</span>
+                </button>
+
+                <!-- MetaMask / Injected EVM -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="metamask" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> MetaMask / Injected EVM</span>
+                </button>
+
+                <!-- Phantom -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="phantom" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> Phantom</span>
+                </button>
+
+                <!-- Fomo Wallet -->
+                <button class="wallet-select-btn btn btn-secondary" data-wallet="fomo" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
+                    <span> Fomo Wallet</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 2. PASTE CERTIFICATE MODAL HERE -->
+    <!-- CERTIFICATE MODAL CONTAINER -->
     <div id="certificate-modal" class="hidden"></div>
 
     <!-- Your JavaScript Files -->

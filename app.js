@@ -1,25 +1,21 @@
 /**
  * GITHUB GRAVEYARD — APPLICATION CONTROLLER
- * Full script handling search, mobile responsiveness fixes, wallet modals, 
- * certificate pass generation, and image export.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        0. MOBILE RESPONSIVE LAYOUT PATCH
        ========================================================================== */
-    // Inject responsive CSS fixes for mobile devices automatically
     const styleFix = document.createElement('style');
     styleFix.innerHTML = `
         @media (max-width: 640px) {
-            /* Fix search box wrapping & layout on mobile */
             .search-box-wrapper, .search-input-group {
                 flex-direction: column !important;
                 width: 100% !important;
                 gap: 0.5rem !important;
             }
             .input-prefix {
-                display: none !important; /* Hide prefix on small screens to save space */
+                display: none !important;
             }
             #repo-input {
                 width: 100% !important;
@@ -32,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 border-radius: 8px !important;
                 justify-content: center !important;
             }
-            /* Fix header wallet controls */
             header .header-container {
                 flex-direction: column !important;
                 gap: 0.75rem !important;
@@ -42,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 width: 100% !important;
                 justify-content: center !important;
             }
-            /* Fix modal padding */
             .modal-content {
                 width: 92% !important;
                 padding: 1.25rem !important;
@@ -55,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(styleFix);
 
-    // Dynamic html2canvas injection for Certificate Pass image downloads
     if (!window.html2canvas) {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -67,11 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================================================================== */
     const searchInput = document.getElementById('repo-input');
     const scanBtn = document.getElementById('scan-btn');
-    const connectWalletBtn = document.getElementById('connect-wallet-btn');
     const walletModal = document.getElementById('wallet-modal');
     const certificateModal = document.getElementById('certificate-modal');
-    const connectEvmBtn = document.getElementById('connect-evm-btn');
-    const connectSolanaBtn = document.getElementById('connect-solana-btn');
 
     let activeRepoData = null;
     let activeMetrics = null;
@@ -80,10 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
        2. WALLET MODAL TOGGLE HELPER
        ========================================================================== */
     function toggleWalletModal(show = true) {
-        if (!walletModal) {
-            console.warn("Element with id='wallet-modal' not found in DOM.");
-            return;
-        }
+        if (!walletModal) return;
 
         if (show) {
             walletModal.classList.remove('hidden');
@@ -134,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Keypress listener for "Enter" key on search input
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && scanBtn) {
@@ -144,10 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       4. GLOBAL CLICK ROUTING (BURIAL, MODALS, DOWNLOADS)
+       4. GLOBAL CLICK ROUTING (WALLETS, BURIAL, MODALS, DOWNLOADS)
        ========================================================================== */
     document.addEventListener('click', async (e) => {
-        // Trigger Wallet Modal if clicking top nav connect button or card button
+        // Trigger Wallet Modal
         if (e.target && (e.target.closest('#connect-wallet-btn') || e.target.closest('#connect-wallet-trigger-btn'))) {
             e.preventDefault();
             const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
@@ -161,6 +147,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 toggleWalletModal(true);
+            }
+        }
+
+        // Wallet Selection (Robinhood, Coinbase, Trust, MetaMask, Phantom, Fomo)
+        const walletOptionBtn = e.target.closest('.wallet-select-btn');
+        if (walletOptionBtn) {
+            const walletType = walletOptionBtn.getAttribute('data-wallet');
+            try {
+                await window.GraveyardWallet.connectWallet(walletType);
+                toggleWalletModal(false);
+                if (activeRepoData && activeMetrics) {
+                    window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
+                }
+            } catch (err) {
+                alert(`Failed to connect ${walletType}: ${err.message}`);
             }
         }
 
@@ -191,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (certificateModal) certificateModal.classList.add('hidden');
         }
 
-        // Download Certificate Image Trigger
+        // Download Certificate Image
         if (e.target && e.target.closest('#download-cert-btn')) {
             const certElement = document.getElementById('certificate-card-node');
             if (certElement && window.html2canvas) {
@@ -210,38 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ==========================================================================
-       5. SPECIFIC WALLET CONNECTORS
-       ========================================================================== */
-    if (connectEvmBtn) {
-        connectEvmBtn.addEventListener('click', async () => {
-            try {
-                if (window.GraveyardWallet) await window.GraveyardWallet.connectEVM();
-                toggleWalletModal(false);
-                if (activeRepoData && activeMetrics) {
-                    window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
-                }
-            } catch (err) {
-                alert(`EVM Connection Error: ${err.message}`);
-            }
-        });
-    }
-
-    if (connectSolanaBtn) {
-        connectSolanaBtn.addEventListener('click', async () => {
-            try {
-                if (window.GraveyardWallet) await window.GraveyardWallet.connectSolana();
-                toggleWalletModal(false);
-                if (activeRepoData && activeMetrics) {
-                    window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
-                }
-            } catch (err) {
-                alert(`Solana Connection Error: ${err.message}`);
-            }
-        });
-    }
-
-    /* ==========================================================================
-       6. CERTIFICATE PASS MODAL RENDER FUNCTION
+       5. CERTIFICATE PASS MODAL RENDER FUNCTION
        ========================================================================== */
     function showCertificateModal(repo, metrics, walletAddr) {
         if (!certificateModal) return;

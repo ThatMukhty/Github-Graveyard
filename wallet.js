@@ -1,176 +1,126 @@
 /**
- * GITHUB GRAVEYARD — MULTI-CHAIN WALLET ADAPTER
- * Handles Web3 wallet connections (EVM & Solana), address formatting, and verification signing.
+ * GITHUB GRAVEYARD — MULTI-WALLET CONNECTOR
+ * Handles Extension detection on Desktop and Mobile Universal Deep Linking.
  */
 
-window.GraveyardWallet = (function () {
-    const state = {
-        chain: null,      // 'evm' | 'solana' | null
-        address: null,    // Connected wallet address
-        provider: null    // Raw provider object
+window.GraveyardWallet = (() => {
+    let state = {
+        address: null,
+        walletType: null, // 'robinhood' | 'coinbase' | 'trust' | 'metamask' | 'phantom' | 'fomo'
+        provider: null
     };
 
-    /**
-     * Truncate wallet address for UI display (e.g., 0x1234...abcd)
-     */
+    const DEEP_LINKS = {
+        robinhood: (url) => `https://robinhood.com/wallet/dapp?url=${encodeURIComponent(url)}`,
+        coinbase: (url) => `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}`,
+        trust: (url) => `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(url)}`,
+        metamask: (url) => `https://metamask.app.link/dapp/${url.replace(/^https?:\/\//, '')}`,
+        phantom: (url) => `https://phantom.app/ul/browse/${encodeURIComponent(url)}`,
+        fomo: (url) => `https://fomo.family/dapp?url=${encodeURIComponent(url)}`
+    };
+
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    async function connectWallet(walletType) {
+        const currentUrl = window.location.href;
+
+        // MOBILE FLOW: Redirect to app via deep link if extension isn't injected
+        if (isMobile()) {
+            const hasInjected = (walletType === 'phantom' && window.phantom) || window.ethereum;
+            if (!hasInjected) {
+                if (DEEP_LINKS[walletType]) {
+                    window.location.href = DEEP_LINKS[walletType](currentUrl);
+                    return null;
+                }
+            }
+        }
+
+        // DESKTOP & IN-APP BROWSER FLOW
+        try {
+            if (walletType === 'phantom') {
+                const phantom = window.phantom?.solana || window.solana;
+                if (!phantom) {
+                    window.open('https://phantom.app/', '_blank');
+                    throw new Error("Phantom extension not detected.");
+                }
+                const res = await phantom.connect();
+                state.address = res.publicKey.toString();
+                state.provider = phantom;
+                state.walletType = 'phantom';
+            } else {
+                // EVM Wallets (Robinhood, Coinbase, Trust, MetaMask, Fomo)
+                let provider = window.ethereum;
+
+                // Handle multi-provider injection collisions
+                if (window.ethereum?.providers) {
+                    if (walletType === 'coinbase') provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
+                    else if (walletType === 'trust') provider = window.ethereum.providers.find(p => p.isTrust);
+                    else if (walletType === 'metamask') provider = window.ethereum.providers.find(p => p.isMetaMask);
+                    else provider = window.ethereum.providers[0];
+                }
+
+                if (!provider) {
+                    alert(`Please install the ${walletType} browser extension or open this site inside the ${walletType} mobile app browser.`);
+                    return null;
+                }
+
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                if (accounts && accounts.length > 0) {
+                    state.address = accounts[0];
+                    state.provider = provider;
+                    state.walletType = walletType;
+                }
+            }
+
+            console.log(`Connected to ${walletType}: ${state.address}`);
+            updateUI();
+            return state;
+        } catch (err) {
+            console.error(`Connection Error (${walletType}):`, err);
+            throw err;
+        }
+    }
+
+    async function signMessage(message) {
+        if (!state.address || !state.provider) throw new Error("No wallet connected.");
+
+        if (state.walletType === 'phantom') {
+            const encoded = new TextEncoder().encode(message);
+            const signed = await state.provider.signMessage(encoded, "utf8");
+            return { address: state.address, signature: signed.signature };
+        } else {
+            const signature = await state.provider.request({
+                method: 'personal_sign',
+                params: [message, state.address]
+            });
+            return { address: state.address, signature };
+        }
+    }
+
+    function disconnect() {
+        state = { address: null, walletType: null, provider: null };
+        updateUI();
+    }
+
     function formatAddress(addr) {
         if (!addr) return '';
         return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
     }
 
-    /**
-     * Connect EVM Wallet (MetaMask, Rabby, Coinbase Wallet)
-     */
-    async function connectEVM() {
-        if (typeof window.ethereum === 'undefined') {
-            throw new Error('No EVM wallet detected. Please install MetaMask or another Web3 extension.');
-        }
-
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            if (!accounts || accounts.length === 0) {
-                throw new Error('No accounts selected.');
-            }
-
-            state.chain = 'evm';
-            state.address = accounts[0];
-            state.provider = window.ethereum;
-
-            _setupEVMEvents();
-            _updateUI();
-            return { chain: state.chain, address: state.address };
-        } catch (err) {
-            console.error('EVM Connection Error:', err);
-            throw err;
-        }
-    }
-
-    /**
-     * Connect Solana Wallet (Phantom, Solflare)
-     */
-    async function connectSolana() {
-        const solanaProvider = window.solana || window.phantom?.solana;
-
-        if (!solanaProvider || !solanaProvider.isPhantom) {
-            throw new Error('Solana provider not found. Please install Phantom or Solflare.');
-        }
-
-        try {
-            const response = await solanaProvider.connect();
-            state.chain = 'solana';
-            state.address = response.publicKey.toString();
-            state.provider = solanaProvider;
-
-            _setupSolanaEvents();
-            _updateUI();
-            return { chain: state.chain, address: state.address };
-        } catch (err) {
-            console.error('Solana Connection Error:', err);
-            throw err;
-        }
-    }
-
-    /**
-     * Sign Verification Message to Prove Ownership / Intent
-     */
-    async function signMessage(message) {
-        if (!state.address || !state.provider) {
-            throw new Error('Wallet not connected.');
-        }
-
-        try {
-            if (state.chain === 'evm') {
-                const signature = await state.provider.request({
-                    method: 'personal_sign',
-                    params: [message, state.address]
-                });
-                return { chain: 'evm', signature, address: state.address };
-            } 
-            else if (state.chain === 'solana') {
-                const encodedMessage = new TextEncoder().encode(message);
-                const signedMessage = await state.provider.signMessage(encodedMessage, 'utf8');
-                return {
-                    chain: 'solana',
-                    signature: Array.from(signedMessage.signature),
-                    address: state.address
-                };
-            }
-        } catch (err) {
-            console.error('Signature Error:', err);
-            throw new Error('User rejected message signature.');
-        }
-    }
-
-    /**
-     * Disconnect active wallet session
-     */
-    function disconnect() {
-        if (state.chain === 'solana' && state.provider?.disconnect) {
-            state.provider.disconnect();
-        }
-
-        state.chain = null;
-        state.address = null;
-        state.provider = null;
-
-        _updateUI();
-    }
-
-    /**
-     * Event Listeners for EVM Chain/Account Switches
-     */
-    function _setupEVMEvents() {
-        if (!state.provider || !state.provider.on) return;
-
-        state.provider.on('accountsChanged', (accounts) => {
-            if (accounts.length === 0) {
-                disconnect();
-            } else {
-                state.address = accounts[0];
-                _updateUI();
-            }
-        });
-
-        state.provider.on('chainChanged', () => {
-            window.location.reload();
-        });
-    }
-
-    /**
-     * Event Listeners for Solana Disconnection
-     */
-    function _setupSolanaEvents() {
-        if (!state.provider || !state.provider.on) return;
-
-        state.provider.on('disconnect', () => {
-            disconnect();
-        });
-    }
-
-    /**
-     * Synchronize Wallet Button & Status in DOM
-     */
-    function _updateUI() {
-        const walletBtn = document.getElementById('connect-wallet-btn');
-        const walletText = document.getElementById('wallet-btn-text');
-
-        if (!walletBtn || !walletText) return;
-
-        if (state.address) {
-            walletText.innerText = `${state.chain.toUpperCase()}: ${formatAddress(state.address)}`;
-            walletBtn.classList.add('connected');
-        } else {
-            walletText.innerText = 'Connect Wallet';
-            walletBtn.classList.remove('connected');
+    function updateUI() {
+        const btnText = document.getElementById('wallet-btn-text');
+        if (btnText) {
+            btnText.innerText = state.address ? formatAddress(state.address) : 'Connect Wallet';
         }
     }
 
     return {
-        connectEVM,
-        connectSolana,
+        connectWallet,
         signMessage,
         disconnect,
         formatAddress,
-        getState: () => ({ ...state })
+        getState: () => state
     };
 })();
