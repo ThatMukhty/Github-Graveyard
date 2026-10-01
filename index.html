@@ -124,62 +124,34 @@
             </div>
         </section>
 
-    </main>
+</main>
 
-    <!-- Burial Certificate Pass Modal -->
-    <div id="certificate-modal" class="modal-backdrop hidden">
+    <!-- 1. PASTE WALLET MODAL HERE -->
+    <div id="wallet-modal" class="modal-backdrop hidden" style="display: none;">
         <div class="modal-content glass-card">
-            <button id="close-modal-btn" class="modal-close">&times;</button>
+            <button class="modal-close modal-close-trigger">&times;</button>
+            <h3>Connect Your Web3 Wallet</h3>
+            <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem;">
+                Select a network to verify wallet ownership and bury dead repositories.
+            </p>
             
-            <!-- Renderable Pass Area -->
-            <div id="certificate-pass" class="certificate-pass">
-                <div class="pass-header">
-                    <span class="pass-tag">OFFICIAL BURIAL CERTIFICATE</span>
-                    <span id="pass-serial" class="pass-serial">GRAVE #000000</span>
-                </div>
-                
-                <div class="pass-body">
-                    <h2 id="pass-repo-name" class="pass-repo-name">owner/repository</h2>
-                    
-                    <div class="pass-stats-grid">
-                        <div class="pass-stat">
-                            <span class="stat-label">Days Inactive</span>
-                            <span id="pass-days-inactive" class="stat-value">0</span>
-                        </div>
-                        <div class="pass-stat">
-                            <span class="stat-label">Mortality Score</span>
-                            <span id="pass-mortality-score" class="stat-value">0/100</span>
-                        </div>
-                        <div class="pass-stat">
-                            <span class="stat-label">Claimed Tokens</span>
-                            <span id="pass-tokens-claimed" class="stat-value">0 $GRAVEYARD</span>
-                        </div>
-                        <div class="pass-stat">
-                            <span class="stat-label">Burying Address</span>
-                            <span id="pass-wallet-address" class="stat-value">0x0000...0000</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pass-footer">
-                    <span class="pass-domain">GITGRAVEYARD.XYZ</span>
-                    <span class="pass-timestamp" id="pass-date">2026-09-30</span>
-                </div>
-            </div>
-
-            <!-- Modal Action Buttons -->
-            <div class="modal-actions">
-                <button id="download-pass-btn" class="btn btn-secondary">Download Pass (.PNG)</button>
-                <button id="share-x-btn" class="btn btn-primary">Share on X (Twitter)</button>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button id="connect-evm-btn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <span>Connect MetaMask / EVM</span>
+                </button>
+                <button id="connect-solana-btn" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    <span>Connect Phantom / Solana</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-   <!-- REMOVE THE js/ PREFIX FROM ALL PATHS -->
-<script src="canvas.js" defer></script>
-<script src="github.js" defer></script>
-<script src="wallet.js" defer></script>
-<script src="app.js" defer></script>
+    <!-- 2. PASTE CERTIFICATE MODAL HERE -->
+    <div id="certificate-modal" class="hidden"></div>
+
+    <!-- Your JavaScript Files -->
+    <script src="github.js"></script>
+    <script src="wallet.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
