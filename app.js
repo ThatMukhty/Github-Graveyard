@@ -1,309 +1,423 @@
 /**
- * GITHUB GRAVEYARD — APPLICATION CONTROLLER
- * Full script handling search, mobile layout fixes, multi-wallet EVM connections,
- * GitHub bio ownership verification, certificate generation, and image export.
+ * GITHUB GRAVEYARD — MAIN APPLICATION CONTROLLER
+ * Full feature suite: Scan routing, Exhumation execution, Bio-verification, 
+ * Multi-wallet connection, Download card PNG, Copy link, and Toast UI.
  */
 
+// Application State
+let state = {
+    activeRepoData: null,
+    isScanning: false,
+    isExhuming: false
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-    /* ==========================================================================
-       0. MOBILE RESPONSIVE LAYOUT PATCH
-       ========================================================================== */
-    const styleFix = document.createElement('style');
-    styleFix.innerHTML = `
-        @media (max-width: 640px) {
-            /* Fix search box wrapping & layout on mobile */
-            .search-box-wrapper, .search-input-group {
-                flex-direction: column !important;
-                width: 100% !important;
-                gap: 0.5rem !important;
-            }
-            .input-prefix {
-                display: none !important; /* Hide prefix on small screens */
-            }
-            #repo-input {
-                width: 100% !important;
-                border-radius: 8px !important;
-                font-size: 0.9rem !important;
-                padding: 0.75rem !important;
-            }
-            #scan-btn {
-                width: 100% !important;
-                border-radius: 8px !important;
-                justify-content: center !important;
-            }
-            /* Fix header wallet controls */
-            header .header-container {
-                flex-direction: column !important;
-                gap: 0.75rem !important;
-                align-items: center !important;
-            }
-            .wallet-controls, #connect-wallet-btn {
-                width: 100% !important;
-                justify-content: center !important;
-            }
-            /* Fix modal padding */
-            .modal-content {
-                width: 92% !important;
-                padding: 1.25rem !important;
-            }
-            .repo-metrics-grid, .pass-stats-grid {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 0.5rem !important;
-            }
-        }
-    `;
-    document.head.appendChild(styleFix);
+    initApp();
+});
 
-    // Dynamic html2canvas injection for Certificate Pass image downloads
-    if (!window.html2canvas) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        document.head.appendChild(script);
-    }
-
-    /* ==========================================================================
-       1. GLOBAL STATE & ELEMENT REFERENCES
-       ========================================================================== */
-    const searchInput = document.getElementById('repo-input');
+/**
+ * Initialize Event Listeners & Core Handlers
+ */
+function initApp() {
+    // 1. Scan Form & Button Handling
+    const scanForm = document.getElementById('scan-form');
     const scanBtn = document.getElementById('scan-btn');
-    const walletModal = document.getElementById('wallet-modal');
-    const certificateModal = document.getElementById('certificate-modal');
+    const repoInput = document.getElementById('repo-input');
 
-    let activeRepoData = null;
-    let activeMetrics = null;
-
-    /* ==========================================================================
-       2. WALLET MODAL TOGGLE HELPER
-       ========================================================================== */
-    function toggleWalletModal(show = true) {
-        if (!walletModal) return;
-
-        if (show) {
-            walletModal.classList.remove('hidden');
-            walletModal.style.display = 'flex';
-        } else {
-            walletModal.classList.add('hidden');
-            walletModal.style.display = 'none';
-        }
+    if (scanForm) {
+        scanForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleScan();
+        });
+    } else if (scanBtn) {
+        scanBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleScan();
+        });
     }
 
-    /* ==========================================================================
-       3. REPOSITORY SCAN HANDLER
-       ========================================================================== */
-    if (scanBtn) {
-        scanBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (!searchInput) return;
-
-            const query = searchInput.value;
-            const parsed = window.GraveyardScanner ? window.GraveyardScanner.parseRepoInput(query) : null;
-
-            if (!parsed) {
-                alert('Please enter a valid GitHub repository (e.g., owner/repo or full URL).');
-                return;
-            }
-
-            scanBtn.disabled = true;
-            const originalText = scanBtn.innerText;
-            scanBtn.innerText = 'Scanning...';
-
-            try {
-                const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
-                const daysInactive = window.GraveyardScanner.calculateDaysInactive(repoData.pushed_at);
-                const tier = window.GraveyardScanner.getMortalityTier(daysInactive);
-                const mortalityScore = window.GraveyardScanner.calculateMortalityScore(daysInactive);
-                const reward = window.GraveyardScanner.calculateTokenReward(daysInactive, tier.canBury);
-
-                activeRepoData = repoData;
-                activeMetrics = { daysInactive, tier, mortalityScore, reward };
-
-                window.GraveyardScanner.renderRepoCard(repoData, activeMetrics);
-            } catch (err) {
-                alert(`Scan Failed: ${err.message}`);
-            } finally {
-                scanBtn.disabled = false;
-                scanBtn.innerText = originalText;
+    if (repoInput) {
+        repoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleScan();
             }
         });
     }
 
-    // Keypress listener for "Enter" key on search input
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && scanBtn) {
-                scanBtn.click();
-            }
+    // 2. Global Wallet Connect Button Listener
+    const walletConnectBtn = document.getElementById('connect-wallet-btn');
+    if (walletConnectBtn) {
+        walletConnectBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openWalletModal();
         });
     }
 
-    /* ==========================================================================
-       4. GLOBAL CLICK ROUTING (WALLETS, VERIFICATION, BURIAL, MODALS, DOWNLOADS)
-       ========================================================================== */
-    document.addEventListener('click', async (e) => {
-        // Trigger Wallet Modal
-        if (e.target && (e.target.closest('#connect-wallet-btn') || e.target.closest('#connect-wallet-trigger-btn'))) {
+    // 3. Modal Close Triggers
+    document.querySelectorAll('.modal-close, .close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
             e.preventDefault();
-            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
-
-            if (walletState.address) {
-                if (confirm(`Connected: ${walletState.address}\n\nDo you want to disconnect?`)) {
-                    if (window.GraveyardWallet) window.GraveyardWallet.disconnect();
-                    if (activeRepoData && activeMetrics) {
-                        window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
-                    }
-                }
-            } else {
-                toggleWalletModal(true);
-            }
-        }
-
-        // Handle Wallet Selection (Robinhood, Coinbase, Trust, MetaMask, Phantom, Fomo)
-        const walletOptionBtn = e.target.closest('.wallet-select-btn');
-        if (walletOptionBtn) {
-            const walletType = walletOptionBtn.getAttribute('data-wallet');
-            try {
-                await window.GraveyardWallet.connectWallet(walletType);
-                toggleWalletModal(false);
-                if (activeRepoData && activeMetrics) {
-                    window.GraveyardScanner.renderRepoCard(activeRepoData, activeMetrics);
-                }
-            } catch (err) {
-                alert(`Failed to connect ${walletType}: ${err.message}`);
-            }
-        }
-
-        // Handle "Bury Repo" Button (with Security Bio Check)
-        if (e.target && e.target.closest('#bury-repo-btn')) {
-            const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
-
-            if (!walletState.address) {
-                toggleWalletModal(true);
-                return;
-            }
-
-            const repoOwner = activeRepoData.owner.login;
-            const expectedCode = `GRAVEYARD-${walletState.address.substring(0, 8).toUpperCase()}`;
-
-            const verifyNotice = confirm(
-                `SECURITY OWNERSHIP CHECK:\n\n` +
-                `To prove you own or manage '${activeRepoData.full_name}', add this string to your GitHub bio:\n\n` +
-                `👉 ${expectedCode}\n\n` +
-                `Click OK once updated to verify your profile.`
-            );
-
-            if (!verifyNotice) return;
-
-            try {
-                const check = await window.GraveyardScanner.verifyRepoOwnership(repoOwner, walletState.address);
-
-                if (check.verified) {
-                    alert("Ownership verified! Proceeding with transaction signature...");
-                    const signMsg = `Confirming burial of ${activeRepoData.full_name} by owner ${repoOwner}.\nTimestamp: ${Date.now()}`;
-                    const signatureObj = await window.GraveyardWallet.signMessage(signMsg);
-
-                    if (signatureObj) {
-                        showCertificateModal(activeRepoData, activeMetrics, signatureObj.address);
-                    }
-                } else {
-                    alert(
-                        `Verification Failed!\n\n` +
-                        `Could not find '${expectedCode}' in GitHub user @${repoOwner}'s bio.\n\n` +
-                        `Please update your bio at https://github.com/settings/profile and try again.`
-                    );
-                }
-            } catch (err) {
-                alert(`Verification Error: ${err.message}`);
-            }
-        }
-
-        // Modal Close Triggers
-        if (e.target && (e.target.classList.contains('wallet-modal-close') || e.target.classList.contains('modal-close-trigger'))) {
-            toggleWalletModal(false);
-            if (certificateModal) certificateModal.classList.add('hidden');
-        }
-
-        // Download Certificate Image Trigger
-        if (e.target && e.target.closest('#download-cert-btn')) {
-            const certElement = document.getElementById('certificate-card-node');
-            if (certElement && window.html2canvas) {
-                const downloadBtn = e.target.closest('#download-cert-btn');
-                downloadBtn.innerText = 'Generating...';
-                
-                window.html2canvas(certElement, { backgroundColor: '#070a0f', scale: 2 }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `${activeRepoData.name}-burial-pass.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    downloadBtn.innerText = 'Download Pass Image';
-                });
-            }
-        }
+            closeAllModals();
+        });
     });
 
-    /* ==========================================================================
-       5. CERTIFICATE PASS MODAL RENDER FUNCTION
-       ========================================================================== */
-    function showCertificateModal(repo, metrics, walletAddr) {
-        if (!certificateModal) return;
+    // 4. Wallet Provider Selection in Modal
+    document.querySelectorAll('.wallet-option-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const walletType = btn.dataset.wallet;
+            if (walletType) {
+                await connectWalletProvider(walletType);
+            }
+        });
+    });
 
-        const passSerial = `GRAVE-${Math.floor(100000 + Math.random() * 900000)}`;
-        const causeOfDeath = window.GraveyardScanner ? window.GraveyardScanner.generateCauseOfDeath(repo, metrics.daysInactive) : "Abandoned by maintainer";
-        const tweetText = encodeURIComponent(`I just buried ${repo.full_name} on @GitGraveyard!\n\nCause of Death: "${causeOfDeath}"\nClaimed ${metrics.reward} $GRAVEYARD tokens 🪦\n\nhttps://gitgraveyard.xyz`);
+    // 5. Global Event Delegation
+    document.addEventListener('click', handleGlobalClickEvents);
+}
 
-        certificateModal.innerHTML = `
-            <div class="modal-backdrop modal-close-trigger" style="display: flex;">
-                <div class="modal-content glass-card" onclick="event.stopPropagation()">
-                    <button class="modal-close modal-close-trigger">&times;</button>
-                    
-                    <div id="certificate-card-node" class="certificate-pass" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); padding: 1.25rem; border-radius: 8px;">
-                        <div class="pass-header" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #8b949e; margin-bottom: 0.75rem;">
-                            <span class="pass-tag" style="color: var(--blood-red, #ff5555); font-weight: bold;">OFFICIAL BURIAL CERTIFICATE</span>
-                            <span class="pass-serial">${passSerial}</span>
-                        </div>
-                        
-                        <div class="pass-repo-name" style="font-size: 1.25rem; font-weight: bold; color: #f0f6fc; margin-bottom: 0.5rem;">${repo.full_name}</div>
-                        
-                        <p style="font-size: 0.85rem; font-style: italic; color: #ff6e6e; margin-bottom: 1rem;">
-                            Cause of Death: "${causeOfDeath}"
-                        </p>
+/**
+ * Handles Repository Scanning
+ */
+async function handleScan() {
+    if (state.isScanning) return;
 
-                        <div class="pass-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px;">
-                            <div class="pass-stat">
-                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Days Inactive</span>
-                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.daysInactive}</span>
-                            </div>
-                            <div class="pass-stat">
-                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Mortality Score</span>
-                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.mortalityScore}/100</span>
-                            </div>
-                            <div class="pass-stat">
-                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Tokens Minted</span>
-                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${metrics.reward} $GRAVEYARD</span>
-                            </div>
-                            <div class="pass-stat">
-                                <span class="metric-label" style="display: block; font-size: 0.7rem; color: #8b949e;">Buried By</span>
-                                <span class="metric-value" style="font-weight: bold; color: #f0f6fc;">${window.GraveyardWallet ? window.GraveyardWallet.formatAddress(walletAddr) : walletAddr}</span>
-                            </div>
-                        </div>
+    const input = document.getElementById('repo-input')?.value;
+    const container = document.getElementById('results-container');
 
-                        <div class="pass-footer" style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #8b949e; margin-top: 1rem;">
-                            <span>GITGRAVEYARD.XYZ</span>
-                            <span>${new Date().toISOString().split('T')[0]}</span>
-                        </div>
-                    </div>
+    const parsed = window.GraveyardScanner.parseRepoInput(input);
+    if (!parsed) {
+        showToast("Please enter a valid GitHub repository URL or owner/repo format.", "error");
+        return;
+    }
 
-                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; flex-wrap: wrap;">
-                        <a href="https://twitter.com/intent/tweet?text=${tweetText}" target="_blank" class="btn btn-secondary" style="text-decoration: none;">
-                            Share Certificate on 𝕏
-                        </a>
-                        <button id="download-cert-btn" class="btn btn-primary">
-                            Download Pass Image
-                        </button>
-                    </div>
-                </div>
+    state.isScanning = true;
+    if (container) {
+        container.innerHTML = `
+            <div class="loader-container" style="text-align: center; padding: 3rem 1rem;">
+                <p style="color: #8b949e; font-size: 1rem;">Scanning graveyard records for <strong>${parsed.owner}/${parsed.repo}</strong>...</p>
             </div>
         `;
-
-        certificateModal.classList.remove('hidden');
     }
-});
+
+    try {
+        const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
+        state.activeRepoData = repoData; // Save state globally
+
+        renderCardFromData(repoData);
+    } catch (err) {
+        if (container) {
+            container.innerHTML = `
+                <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
+                    <h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
+                    <p style="color: #c9d1d9;">${err.message}</p>
+                </div>
+            `;
+        }
+        showToast(err.message, "error");
+    } finally {
+        state.isScanning = false;
+    }
+}
+
+/**
+ * Computes Metrics & Calls Scanner Card Render
+ */
+function renderCardFromData(repoData) {
+    const daysInactive = window.GraveyardScanner.calculateDaysInactive(repoData.pushed_at);
+    const tier = window.GraveyardScanner.getMortalityTier(daysInactive);
+    const mortalityScore = window.GraveyardScanner.calculateMortalityScore(daysInactive);
+    const reward = window.GraveyardScanner.calculateTokenReward(daysInactive, tier.canBury);
+
+    const metrics = { daysInactive, tier, mortalityScore, reward };
+    window.GraveyardScanner.renderRepoCard(repoData, metrics);
+}
+
+/**
+ * Handles Global Clicks (Delegation for Exhumation, Burial, Downloads, Shares, Copy Links)
+ */
+async function handleGlobalClickEvents(e) {
+    // A. EXHUME BUTTON CLICK
+    const exhumeBtn = e.target.closest('#exhume-repo-btn');
+    if (exhumeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        await executeExhumation(exhumeBtn);
+        return;
+    }
+
+    // B. BURY BUTTON CLICK
+    const buryBtn = e.target.closest('#bury-repo-btn');
+    if (buryBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        await handleBuryClick();
+        return;
+    }
+
+    // C. COPY SHARE LINK BUTTON
+    const copyLinkBtn = e.target.closest('#copy-share-link-btn');
+    if (copyLinkBtn) {
+        e.preventDefault();
+        navigator.clipboard.writeText(window.location.href);
+        showToast("Direct link copied to clipboard!", "success");
+        return;
+    }
+
+    // D. DOWNLOAD CARD IMAGE BUTTON
+    const downloadCardBtn = e.target.closest('#download-card-btn');
+    if (downloadCardBtn) {
+        e.preventDefault();
+        if (window.html2canvas) {
+            const cardElem = document.getElementById('graveyard-card');
+            if (cardElem) {
+                showToast("Generating card screenshot...", "info");
+                window.html2canvas(cardElem, { backgroundColor: '#0d1117' }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${state.activeRepoData?.name || 'graveyard'}-certificate.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    showToast("Download started!", "success");
+                });
+            }
+        } else {
+            window.print();
+        }
+        return;
+    }
+
+    // E. COPY VERIFICATION BIO CODE
+    const copyBioBtn = e.target.closest('#copy-bio-code-btn');
+    if (copyBioBtn) {
+        e.preventDefault();
+        const codeText = document.getElementById('bio-code-text')?.innerText;
+        if (codeText) {
+            navigator.clipboard.writeText(codeText);
+            showToast("Verification code copied to clipboard!", "success");
+        }
+        return;
+    }
+
+    // F. VERIFY BIO & CONFIRM BURIAL
+    const verifyBioBtn = e.target.closest('#verify-bio-btn');
+    if (verifyBioBtn) {
+        e.preventDefault();
+        await executeBioVerification();
+        return;
+    }
+}
+
+/**
+ * Execute Exhumation Logic Safely
+ */
+async function executeExhumation(exhumeBtn) {
+    if (state.isExhuming) return;
+
+    let owner = state.activeRepoData?.owner?.login;
+    let repo = state.activeRepoData?.name;
+
+    if (!owner || !repo) {
+        const input = document.getElementById('repo-input')?.value;
+        const parsed = window.GraveyardScanner.parseRepoInput(input);
+        if (parsed) {
+            owner = parsed.owner;
+            repo = parsed.repo;
+        }
+    }
+
+    if (!owner || !repo) {
+        showToast("No active repository loaded to exhume.", "error");
+        return;
+    }
+
+    state.isExhuming = true;
+    const originalContent = exhumeBtn.innerHTML;
+    exhumeBtn.innerHTML = `⚡ Scanning GitHub...`;
+    exhumeBtn.style.pointerEvents = "none";
+    exhumeBtn.style.opacity = "0.7";
+
+    try {
+        const result = await window.GraveyardScanner.exhumeRepo(owner, repo);
+
+        if (result.success) {
+            showToast(result.message, "success");
+            state.activeRepoData = result.repoData;
+            renderCardFromData(result.repoData);
+        } else {
+            showToast(result.message, "info");
+            exhumeBtn.innerHTML = originalContent;
+            exhumeBtn.style.pointerEvents = "auto";
+            exhumeBtn.style.opacity = "1";
+        }
+    } catch (err) {
+        showToast(err.message, "error");
+        exhumeBtn.innerHTML = originalContent;
+        exhumeBtn.style.pointerEvents = "auto";
+        exhumeBtn.style.opacity = "1";
+    } finally {
+        state.isExhuming = false;
+    }
+}
+
+/**
+ * Handle Burial Step & Prompt Wallet / Verification Modals
+ */
+async function handleBuryClick() {
+    const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+
+    if (!walletState || !walletState.address) {
+        showToast("Please connect your Web3 wallet first.", "info");
+        openWalletModal();
+        return;
+    }
+
+    if (!state.activeRepoData) {
+        showToast("Please scan a repository first.", "error");
+        return;
+    }
+
+    openBioModal(walletState.address);
+}
+
+/**
+ * Verifies Bio Code on GitHub Profile
+ */
+async function executeBioVerification() {
+    const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+    const githubUsernameInput = document.getElementById('github-username-input')?.value;
+
+    if (!githubUsernameInput) {
+        showToast("Please enter your GitHub username.", "error");
+        return;
+    }
+
+    if (!walletState || !walletState.address) {
+        showToast("Wallet is not connected.", "error");
+        return;
+    }
+
+    const verifyBtn = document.getElementById('verify-bio-btn');
+    if (verifyBtn) {
+        verifyBtn.innerText = "Verifying Profile...";
+        verifyBtn.disabled = true;
+    }
+
+    try {
+        const res = await window.GraveyardScanner.verifyRepoOwnership(githubUsernameInput.trim(), walletState.address);
+
+        if (res.verified) {
+            showToast("GitHub Ownership Verified!", "success");
+            closeAllModals();
+            
+            const msg = `Confirm Burial of ${state.activeRepoData.full_name} for Wallet: ${walletState.address}`;
+            await window.GraveyardWallet.signMessage(msg);
+
+            showToast(`Repository ${state.activeRepoData.full_name} successfully buried!`, "success");
+        } else {
+            showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
+        }
+    } catch (err) {
+        showToast(err.message, "error");
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.innerText = "Verify Bio & Complete Burial";
+            verifyBtn.disabled = false;
+        }
+    }
+}
+
+/**
+ * Connect Wallet Provider
+ */
+async function connectWalletProvider(walletType) {
+    try {
+        const res = await window.GraveyardWallet.connectWallet(walletType);
+        if (res && res.address) {
+            showToast(`Connected to ${walletType} (${window.GraveyardWallet.formatAddress(res.address)})`, "success");
+            closeAllModals();
+            
+            if (state.activeRepoData) {
+                renderCardFromData(state.activeRepoData);
+            }
+        }
+    } catch (err) {
+        showToast(`Connection failed: ${err.message}`, "error");
+    }
+}
+
+/**
+ * Modal Helpers
+ */
+function openWalletModal() {
+    const modal = document.getElementById('wallet-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function openBioModal(walletAddress) {
+    const modal = document.getElementById('bio-modal');
+    const codeDisplay = document.getElementById('bio-code-text');
+    
+    if (codeDisplay && walletAddress) {
+        codeDisplay.innerText = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+    }
+
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.modal-overlay, .modal').forEach(modal => {
+        modal.style.display = 'none';
+    });
+}
+
+/**
+ * Custom Toast Notifications
+ */
+function showToast(message, type = "info") {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? '#ff5555' : type === 'success' ? '#50fa7b' : '#8be9fd';
+
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: #0d1117;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(10px);
+    `;
+    toast.innerText = message;
+
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}

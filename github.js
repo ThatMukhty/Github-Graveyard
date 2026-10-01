@@ -1,5 +1,5 @@
 /**
- * GITHUB GRAVEYARD — REPOSITORY SCANNER, OWNERSHIP VERIFIER & EXHUMER
+ * GITHUB GRAVEYARD — REPOSITORY SCANNER, OWNERSHIP VERIFIER, EXHUMER & UI RENDERER
  */
 
 window.GraveyardScanner = (() => {
@@ -59,7 +59,7 @@ window.GraveyardScanner = (() => {
         "Decayed after being labeled 'Good First Issue' and remaining untouched forever."
     ];
 
-    // Pad array up to 500 unique entries
+    // Pad array up to 500 unique entries dynamically
     for (let i = 51; i <= 500; i++) {
         causesOfDeathList.push(`Unusual Death Case #${i}: Repo flatlined after complete maintainer ghosting and zero commit activity.`);
     }
@@ -85,7 +85,8 @@ window.GraveyardScanner = (() => {
     }
 
     async function scanRepository(owner, repo) {
-        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        // Cache-busting parameter avoids stale GitHub responses
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}?t=${Date.now()}`);
         if (!response.ok) {
             if (response.status === 404) {
                 throw new Error(`Repository '${owner}/${repo}' not found on GitHub.`);
@@ -139,13 +140,13 @@ window.GraveyardScanner = (() => {
             if (daysInactive < 30) {
                 return {
                     success: true,
-                    message: `Repository ${owner}/${repo} has been successfully exhumed! New commit activity detected (${daysInactive} days ago).`,
+                    message: `Repository ${owner}/${repo} has been successfully exhumed! Active push detected (${daysInactive} day(s) ago).`,
                     repoData
                 };
             } else {
                 return {
                     success: false,
-                    message: `Cannot exhume ${owner}/${repo}. It is still inactive (${daysInactive} days since last push).`,
+                    message: `Cannot exhume ${owner}/${repo}. Last push was ${daysInactive} days ago (must be under 30 days).`,
                     repoData
                 };
             }
@@ -159,9 +160,9 @@ window.GraveyardScanner = (() => {
        ========================================================================== */
     async function verifyRepoOwnership(githubUsername, walletAddress) {
         try {
-            const response = await fetch(`https://api.github.com/users/${githubUsername}`);
+            const response = await fetch(`https://api.github.com/users/${githubUsername}?t=${Date.now()}`);
             if (!response.ok) {
-                throw new Error(`Could not fetch GitHub user profile for '${githubUsername}'.`);
+                throw new Error(`Could not fetch GitHub profile for '${githubUsername}'.`);
             }
             
             const userData = await response.json();
@@ -179,26 +180,32 @@ window.GraveyardScanner = (() => {
     }
 
     /* ==========================================================================
-       5. UI CARD RENDERER
+       5. UI CARD RENDERER (INCLUDES DOWNLOAD & SHARE)
        ========================================================================== */
     function renderRepoCard(repo, metrics) {
         const container = document.getElementById('results-container');
         if (!container) return;
 
         const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : { address: null };
+        const shareUrl = window.location.href;
+        const shareText = encodeURIComponent(`🪦 Repository ${repo.full_name} has been scanned on GitHub Graveyard!\n\n💀 Status: ${metrics.tier.label}\n⏳ Days Inactive: ${metrics.daysInactive}\n🔥 Mortality Score: ${metrics.mortalityScore}/100\n\nCheck yours here:`);
+        const twitterShareLink = `https://twitter.com/intent/tweet?text=${shareText}&url=${encodeURIComponent(shareUrl)}`;
 
         container.innerHTML = `
-            <div class="repo-card glass-card" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
+            <div id="graveyard-card" class="repo-card glass-card" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; position: relative;">
+                
+                <!-- HEADER -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
                         <h2 style="font-size: 1.5rem; margin: 0; color: #f0f6fc;">${repo.full_name}</h2>
                         <p style="font-size: 0.85rem; color: #8b949e; margin-top: 0.25rem;">${repo.description || 'No description provided.'}</p>
                     </div>
-                    <span class="status-badge status-${metrics.tier.tier.toLowerCase()}" style="padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: bold; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: #ff5555; border: 1px solid #ff5555;">
+                    <span class="status-badge status-${metrics.tier.tier.toLowerCase()}" style="padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: bold; font-size: 0.8rem; background: rgba(255,255,255,0.05); color: ${metrics.tier.canBury ? '#ff5555' : '#50fa7b'}; border: 1px solid ${metrics.tier.canBury ? '#ff5555' : '#50fa7b'};">
                         ${metrics.tier.label}
                     </span>
                 </div>
 
+                <!-- METRICS GRID -->
                 <div class="repo-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem;">
                     <div>
                         <span style="display: block; font-size: 0.75rem; color: #8b949e;">Days Inactive</span>
@@ -218,16 +225,41 @@ window.GraveyardScanner = (() => {
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
-                    ${metrics.tier.canBury 
-                        ? `<button id="bury-repo-btn" class="btn btn-primary" style="padding: 0.75rem 1.25rem;">
-                             🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
-                           </button>`
-                        : `<button id="exhume-repo-btn" class="btn btn-secondary" style="padding: 0.75rem 1.25rem; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                             ⚡ Attempt Exhumation
-                           </button>`
-                    }
+                <!-- CAUSE OF DEATH -->
+                <div style="background: rgba(255, 85, 85, 0.08); border-left: 3px solid #ff5555; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.25rem;">
+                    <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #ff5555; font-weight: bold; display: block; margin-bottom: 0.2rem;">Probable Cause of Death</span>
+                    <p style="margin: 0; font-size: 0.9rem; color: #f0f6fc; font-style: italic;">"${generateCauseOfDeath(repo, metrics.daysInactive)}"</p>
                 </div>
+
+                <!-- ACTION BUTTONS: EXHUME / BURY & SOCIAL SHARES -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    
+                    <!-- SHARE & DOWNLOAD TOOLS -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="${twitterShareLink}" target="_blank" rel="noopener noreferrer" id="share-x-btn" class="btn" style="padding: 0.5rem 0.85rem; background: #1da1f2; color: #fff; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            𝕏 Share Result
+                        </a>
+                        <button id="download-card-btn" class="btn" style="padding: 0.5rem 0.85rem; background: #21262d; color: #c9d1d9; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">
+                            📥 Download Image
+                        </button>
+                        <button id="copy-share-link-btn" class="btn" style="padding: 0.5rem 0.85rem; background: #21262d; color: #c9d1d9; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+                            🔗 Copy Link
+                        </button>
+                    </div>
+
+                    <!-- PRIMARY ACTION -->
+                    <div>
+                        ${metrics.tier.canBury 
+                            ? `<button id="bury-repo-btn" class="btn btn-primary" style="padding: 0.65rem 1.25rem; background: #ff5555; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                                 🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
+                               </button>`
+                            : `<button id="exhume-repo-btn" class="btn btn-secondary" style="padding: 0.65rem 1.25rem; background: #238636; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                                 ⚡ Attempt Exhumation
+                               </button>`
+                        }
+                    </div>
+                </div>
+
             </div>
         `;
     }
