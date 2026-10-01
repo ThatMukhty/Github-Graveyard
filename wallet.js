@@ -27,7 +27,7 @@ window.GraveyardWallet = (() => {
     async function connectWallet(walletType) {
         const currentUrl = window.location.href;
 
-        // MOBILE FLOW: Redirect to dApp browser via deep link if extension isn't injected
+        // MOBILE FLOW: Redirect to dApp browser via deep link if provider isn't injected
         if (isMobile()) {
             const hasInjected = window.ethereum || window.phantom?.ethereum;
             if (!hasInjected) {

@@ -1,10 +1,10 @@
 /**
- * GITHUB GRAVEYARD — REPOSITORY SCANNER & BIO OWNERSHIP VERIFIER
+ * GITHUB GRAVEYARD — REPOSITORY SCANNER, OWNERSHIP VERIFIER & EXHUMER
  */
 
 window.GraveyardScanner = (() => {
     /* ==========================================================================
-       1. CAUSES OF DEATH ARRAY
+       1. CAUSES OF DEATH ARRAY (500 ENTRIES)
        ========================================================================== */
     const causesOfDeathList = [
         "Maintainer left for a 5-minute coffee break and never returned.",
@@ -59,9 +59,9 @@ window.GraveyardScanner = (() => {
         "Decayed after being labeled 'Good First Issue' and remaining untouched forever."
     ];
 
-    // Pad to 500 entries dynamically
+    // Pad array up to 500 unique entries
     for (let i = 51; i <= 500; i++) {
-        causesOfDeathList.push(`Unusual Death Case #${i}: Repo flatlined after complete maintainer ghosting and zero activity.`);
+        causesOfDeathList.push(`Unusual Death Case #${i}: Repo flatlined after complete maintainer ghosting and zero commit activity.`);
     }
 
     /* ==========================================================================
@@ -129,7 +129,33 @@ window.GraveyardScanner = (() => {
     }
 
     /* ==========================================================================
-       3. BIO OWNERSHIP VERIFIER
+       3. EXHUME REPOSITORY METHOD
+       ========================================================================== */
+    async function exhumeRepo(owner, repo) {
+        try {
+            const repoData = await scanRepository(owner, repo);
+            const daysInactive = calculateDaysInactive(repoData.pushed_at);
+
+            if (daysInactive < 30) {
+                return {
+                    success: true,
+                    message: `Repository ${owner}/${repo} has been successfully exhumed! New commit activity detected (${daysInactive} days ago).`,
+                    repoData
+                };
+            } else {
+                return {
+                    success: false,
+                    message: `Cannot exhume ${owner}/${repo}. It is still inactive (${daysInactive} days since last push).`,
+                    repoData
+                };
+            }
+        } catch (err) {
+            throw new Error(`Exhumation failed: ${err.message}`);
+        }
+    }
+
+    /* ==========================================================================
+       4. SECURITY BIO OWNERSHIP VERIFIER
        ========================================================================== */
     async function verifyRepoOwnership(githubUsername, walletAddress) {
         try {
@@ -153,7 +179,7 @@ window.GraveyardScanner = (() => {
     }
 
     /* ==========================================================================
-       4. UI CARD RENDERER
+       5. UI CARD RENDERER
        ========================================================================== */
     function renderRepoCard(repo, metrics) {
         const container = document.getElementById('results-container');
@@ -197,8 +223,8 @@ window.GraveyardScanner = (() => {
                         ? `<button id="bury-repo-btn" class="btn btn-primary" style="padding: 0.75rem 1.25rem;">
                              🪦 ${walletState.address ? 'Verify & Bury Repository' : 'Connect Wallet to Bury'}
                            </button>`
-                        : `<button class="btn btn-disabled" disabled style="opacity: 0.5; cursor: not-allowed; padding: 0.75rem 1.25rem;">
-                             Repository Still Alive
+                        : `<button id="exhume-repo-btn" class="btn btn-secondary" style="padding: 0.75rem 1.25rem; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                             ⚡ Attempt Exhumation
                            </button>`
                     }
                 </div>
@@ -206,6 +232,9 @@ window.GraveyardScanner = (() => {
         `;
     }
 
+    /* ==========================================================================
+       6. EXPOSED MODULE API
+       ========================================================================== */
     return {
         parseRepoInput,
         scanRepository,
@@ -214,6 +243,7 @@ window.GraveyardScanner = (() => {
         calculateMortalityScore,
         calculateTokenReward,
         generateCauseOfDeath,
+        exhumeRepo,
         verifyRepoOwnership,
         renderRepoCard
     };
