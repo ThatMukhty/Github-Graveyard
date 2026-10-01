@@ -122,7 +122,9 @@ function calculateTokenReward(days, canBury) {
 
 if (!canBury) return 0;
 
-return Math.min(500, Math.floor(days * 10.5));
+const mortalityScore = calculateMortalityScore(days);
+
+return Math.min(500, mortalityScore * 5);
 
 }
 
