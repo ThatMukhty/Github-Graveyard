@@ -42,23 +42,47 @@ window.GraveyardWallet = (() => {
         try {
             let provider = null;
 
-            if (walletType === 'phantom') {
-                // Force Phantom to use its EVM provider
-                provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-                if (!provider) {
-                    window.open('https://phantom.app/', '_blank');
-                    throw new Error("Phantom Ethereum wallet extension not detected.");
-                }
-            } else {
+           if (walletType === 'phantom') {
+          // Check explicit Phantom EVM provider, isPhantom flag, or EIP-6963 multi-provider list
+          if (window.phantom?.ethereum) {
+            provider = window.phantom.ethereum;
+          } else if (window.ethereum?.isPhantom) {
+            provider = window.ethereum;
+          } else if (window.ethereum?.providers) {
+            provider = window.ethereum.providers.find((p) => p.isPhantom);
+          }
+
+          if (!provider) {
+            if (!isMobile()) {
+              window.open('https://phantom.app/', '_blank');
+            }
+            throw new Error('Phantom Ethereum wallet extension not detected.');
+          }
+        } else {
                 // Standard EVM Wallets
                 provider = window.ethereum;
 
-                if (window.ethereum?.providers) {
-                    if (walletType === 'coinbase') provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
-                    else if (walletType === 'trust') provider = window.ethereum.providers.find(p => p.isTrust);
-                    else if (walletType === 'metamask') provider = window.ethereum.providers.find(p => p.isMetaMask);
-                    else provider = window.ethereum.providers[0];
-                }
+               if (window.ethereum?.providers) {
+          if (walletType === 'coinbase')
+            provider =
+              window.ethereum.providers.find((p) => p.isCoinbaseWallet) ||
+              provider;
+          else if (walletType === 'trust')
+            provider =
+              window.ethereum.providers.find((p) => p.isTrust) || provider;
+          else if (walletType === 'metamask')
+            provider =
+              window.ethereum.providers.find(
+                (p) => p.isMetaMask && !p.isPhantom
+              ) || provider;
+          else if (walletType === 'robinhood')
+            provider =
+              window.ethereum.providers.find((p) => p.isRobinhood) || provider;
+          else if (walletType === 'fomo')
+            provider =
+              window.ethereum.providers.find((p) => p.isFomo) || provider;
+          else provider = window.ethereum.providers[0];
+        }
             }
 
             if (!provider) {
