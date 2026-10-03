@@ -235,14 +235,19 @@ async function handleGlobalClickEvents(e) {
         }
         return;
     }
+// F. VERIFY BIO & CONFIRM BURIAL
 
-    // F. VERIFY BIO & CONFIRM BURIAL
-    const verifyBioBtn = e.target.closest('#verify-bio-btn');
-    if (verifyBioBtn) {
-        e.preventDefault();
-        await executeBioVerification();
-        return;
-    }
+const verifyBioBtn = e.target.closest('#verify-bio-btn, #verify-bio-modal-btn');
+
+if (verifyBioBtn) {
+
+e.preventDefault();
+
+await executeBioVerification();
+
+return;
+
+}
 }
 
 /**
@@ -343,16 +348,27 @@ async function executeBioVerification() {
     try {
         const res = await window.GraveyardScanner.verifyRepoOwnership(githubUsernameInput.trim(), walletState.address);
 
-        if (res.verified) {
+       if (res.verified) {
             showToast("GitHub Ownership Verified!", "success");
             closeAllModals();
-            const msg = `Confirm Burial of ${state.activeRepoData.full_name} for Wallet: ${walletState.address}`;
             
+            const msg = `Confirm Burial of ${state.activeRepoData?.full_name || 'repo'} for Wallet: ${walletState.address}`;
             if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
                 await window.GraveyardWallet.signMessage(msg);
             }
 
-            showToast(`Repository ${state.activeRepoData.full_name} successfully buried!`, "success");
+            // Calculate reward dynamically from repo data (or default to 100)
+            const daysInactive = state.activeRepoData?.pushed_at ? window.GraveyardScanner.calculateDaysInactive(state.activeRepoData.pushed_at) : 90;
+            const rewardAmount = window.GraveyardScanner.calculateTokenReward(daysInactive, true) || 100;
+
+            showToast(`Claiming ${rewardAmount} $GRAVEYARD tokens on-chain...`, "info");
+
+            try {
+                const claimResult = await window.GraveyardContract.claimTokens(walletState.address, rewardAmount);
+                showToast(`🎉 Claimed ${rewardAmount} $GRAVEYARD! Tx: ${claimResult.transactionHash.slice(0, 10)}...`, "success");
+            } catch (claimErr) {
+                showToast(`Verification passed, but token claim failed: ${claimErr.message}`, "error");
+            }
         } else {
             showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
         }
@@ -394,55 +410,42 @@ async function connectWalletProvider(walletType) {
 /**
  * Modal Helpers
  */
-function openWalletModal() {
-
-const modal = document.getElementById('wallet-modal');
-
-if (modal) {
-
-modal.classList.remove('hidden');
-
-modal.style.display = 'flex';
-
-}
-
-}
-
 function openBioModal(walletAddress) {
+    const modal = document.getElementById('bio-modal');
+    const codeDisplay = document.getElementById('bio-code-text');
+    const usernameInput = document.getElementById('github-username-input');
 
-const modal = document.getElementById('bio-modal');
+    // Extract repo owner as default username if available
+    if (usernameInput && !usernameInput.value && state.activeRepoData) {
+        usernameInput.value = state.activeRepoData.owner?.login || '';
+    }
 
-const codeDisplay = document.getElementById('bio-code-text');
+    const updateCodeDisplay = () => {
+        if (!walletAddress) return;
+        const username = (usernameInput?.value.trim() || 'USERNAME').toUpperCase();
+        const walletEnd = walletAddress.slice(-4).toUpperCase();
+        const code = `GRAVEYARD-${username}-${walletEnd}`;
+        if (codeDisplay) codeDisplay.innerText = code;
+    };
 
+    updateCodeDisplay();
 
-if (walletAddress) {
+    if (usernameInput && !usernameInput.dataset.hasBioListener) {
+        usernameInput.addEventListener('input', updateCodeDisplay);
+        usernameInput.dataset.hasBioListener = 'true';
+    }
 
-const code = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+    if (walletAddress) {
+        localStorage.setItem('pending_verification', JSON.stringify({
+            walletAddress,
+            repo: state.activeRepoData?.full_name || ''
+        }));
+    }
 
-if (codeDisplay) codeDisplay.innerText = code;
-
-
-// Save pending verification state so mobile tab-switching doesn't lose progress
-
-localStorage.setItem('pending_verification', JSON.stringify({
-
-walletAddress,
-
-repo: state.activeRepoData?.full_name || ''
-
-}));
-
-}
-
-
-if (modal) {
-
-modal.classList.remove('hidden');
-
-modal.style.display = 'flex';
-
-}
-
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+    }
 }
 function closeAllModals() {
 

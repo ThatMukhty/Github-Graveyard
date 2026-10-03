@@ -173,32 +173,59 @@ return Math.min(500, mortalityScore * 5);
         }
     }
 
-    /* ==========================================================================
-       4. SECURITY BIO OWNERSHIP VERIFIER
-       ========================================================================== */
-    async function verifyRepoOwnership(githubUsername, walletAddress) {
-        if (!githubUsername || !walletAddress) {
-            throw new Error("GitHub username and wallet address are required.");
-        }
+   /* ==========================================================================
 
-        try {
-            const response = await fetch(`https://api.github.com/users/${githubUsername}?t=${Date.now()}`);
-            if (!response.ok) {
-                throw new Error(`Could not fetch GitHub profile for '${githubUsername}'.`);
-            }
-            const userData = await response.json();
-            const userBio = userData.bio || '';
-            const expectedCode = `GRAVEYARD-${walletAddress.substring(0, 8).toUpperCase()}`;
+4. SECURITY BIO OWNERSHIP VERIFIER
 
-            if (userBio.includes(expectedCode)) {
-                return { verified: true, expectedCode };
-            } else {
-                return { verified: false, expectedCode, currentBio: userBio };
-            }
-        } catch (err) {
-            throw new Error(`Security verification failed: ${err.message}`);
-        }
-    }
+========================================================================== */
+
+async function verifyRepoOwnership(githubUsername, walletAddress) {
+
+if (!githubUsername || !walletAddress) {
+
+throw new Error("GitHub username and wallet address are required.");
+
+}
+
+
+try {
+
+const response = await fetch(`https://api.github.com/users/${githubUsername}?t=${Date.now()}`);
+
+if (!response.ok) {
+
+throw new Error(`Could not fetch GitHub profile for '${githubUsername}'.`);
+
+}
+
+const userData = await response.json();
+
+const userBio = (userData.bio || '').toUpperCase();
+
+const username = githubUsername.trim().toUpperCase();
+
+const walletEnd = walletAddress.slice(-4).toUpperCase();
+
+const expectedCode = `GRAVEYARD-${username}-${walletEnd}`;
+
+
+if (userBio.includes(expectedCode)) {
+
+return { verified: true, expectedCode };
+
+} else {
+
+return { verified: false, expectedCode, currentBio: userData.bio || '' };
+
+}
+
+} catch (err) {
+
+throw new Error(`Security verification failed: ${err.message}`);
+
+}
+
+}
 
     /* ==========================================================================
        5. UI CARD RENDERER

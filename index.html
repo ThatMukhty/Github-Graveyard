@@ -115,22 +115,7 @@
 
 </section>
 
-        <!-- Verification & Anti-Sybil Panel -->
-        <section id="verification-panel" class="verification-panel glass-card hidden">
-            <h3 class="panel-title">Ownership Verification Required</h3>
-            <p class="panel-desc">To bury this repo and claim $GRAVEYARD tokens, add your unique verification hash to your GitHub profile bio:</p>
-            
-            <div class="code-box">
-                <code id="verification-code-display">GRAVE-USER-0000</code>
-                <button id="copy-code-btn" class="btn-sm">Copy</button>
-            </div>
-
-            <div class="verification-actions">
-                <button id="verify-bio-btn" class="btn btn-primary">Verify Bio & Unlock Mint</button>
-                <span id="verification-status" class="status-indicator">Unverified</span>
-            </div>
-        </section>
-
+       <!-- Inline verification panel removed (handled dynamically inside modal) -->
 </main>
 
     <!-- EXPANDED WEB3 WALLET SELECTION MODAL -->
@@ -176,33 +161,50 @@
         </div>
     </div>
 
-    <!-- BIO VERIFICATION MODAL -->
+   <!-- BIO VERIFICATION MODAL -->
+
 <div id="bio-modal" class="modal-backdrop hidden" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10000; padding: 1rem;">
-  <div class="modal-content glass-card" style="background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; max-width: 480px; width: 100%; color: #c9d1d9;">
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="margin: 0; font-size: 1.2rem; color: #f0f6fc;">Ownership Verification Required</h3>
-      <button class="modal-close" style="background: none; border: none; color: #8b949e; font-size: 1.5rem; cursor: pointer;">&times;</button>
-    </div>
-    
-    <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem; line-height: 1.4;">
-      To bury this repo and claim $GRAVEYARD tokens, add your unique verification hash to your public GitHub profile bio:
-    </p>
-    
-    <div style="background: #161b22; border: 1px solid #30363d; padding: 0.75rem 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-      <code id="bio-code-text" style="color: #50fa7b; font-family: monospace; font-size: 0.95rem; font-weight: bold;">GRAVEYARD-00000000</code>
-      <button id="copy-bio-code-btn" class="btn" style="padding: 0.35rem 0.65rem; background: #21262d; color: #c9d1d9; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Copy</button>
-    </div>
 
-    <div style="margin-bottom: 1.25rem;">
-      <label style="display: block; font-size: 0.8rem; color: #8b949e; margin-bottom: 0.4rem;">GitHub Username</label>
-      <input type="text" id="github-username-input" placeholder="e.g. octocat" style="width: 100%; padding: 0.65rem; background: #010409; border: 1px solid #30363d; border-radius: 6px; color: #f0f6fc; box-sizing: border-box; font-size: 0.9rem;">
-    </div>
+<div class="modal-content glass-card" style="background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; max-width: 480px; width: 100%; color: #c9d1d9;">
 
-    <button id="verify-bio-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; background: #ff5555; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">
-      Verify Bio & Claim Tokens
-    </button>
-  </div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+
+<h3 style="margin: 0; font-size: 1.2rem; color: #f0f6fc;">Ownership Verification Required</h3>
+
+<button class="modal-close" style="background: none; border: none; color: #8b949e; font-size: 1.5rem; cursor: pointer;">&times;</button>
+
+</div>
+
+<p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem; line-height: 1.4;">
+
+To bury this repo and claim $GRAVEYARD tokens, add your unique wallet-bound code to your public GitHub profile bio:
+
+</p>
+
+<div style="margin-bottom: 1.25rem;">
+
+<label style="display: block; font-size: 0.8rem; color: #8b949e; margin-bottom: 0.4rem;">GitHub Username</label>
+
+<input type="text" id="github-username-input" placeholder="e.g. octocat" style="width: 100%; padding: 0.65rem; background: #010409; border: 1px solid #30363d; border-radius: 6px; color: #f0f6fc; box-sizing: border-box; font-size: 0.9rem;">
+
+</div>
+
+<div style="background: #161b22; border: 1px solid #30363d; padding: 0.75rem 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+
+<code id="bio-code-text" style="color: #50fa7b; font-family: monospace; font-size: 0.95rem; font-weight: bold;">GRAVEYARD-USERNAME-XXXX</code>
+
+<button id="copy-bio-code-btn" class="btn" style="padding: 0.35rem 0.65rem; background: #21262d; color: #c9d1d9; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Copy</button>
+
+</div>
+
+<button id="verify-bio-modal-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">
+
+Verify Bio & Unlock Claims
+
+</button>
+
+</div>
+
 </div>
 
 <!-- CERTIFICATE MODAL CONTAINER -->
@@ -210,6 +212,9 @@
     <!-- Your JavaScript Files -->
     <script src="github.js"></script>
     <script src="wallet.js"></script>
+        <script src="contract.js"></script>
     <script src="app.js"></script>
+
+
 </body>
 </html>
