@@ -534,3 +534,40 @@ function closeAllModals() {
         modal.style.display = 'none';
     });
 }
+/**
+ * Handles wallet provider selection & connection logic
+ */
+async function connectWalletProvider(walletType) {
+    try {
+        if (!window.GraveyardWallet) {
+            throw new Error("GraveyardWallet module is not loaded.");
+        }
+
+        const connectFn = window.GraveyardWallet.connectWallet || window.GraveyardWallet.connect;
+        const res = await connectFn(walletType);
+
+        // Retrieve connected address from state or window.ethereum/window.phantom
+        const connectedAddress = res?.address || window.ethereum?.selectedAddress || window.phantom?.solana?.publicKey?.toString();
+
+        if (connectedAddress) {
+            const formatted = window.GraveyardWallet.formatAddress 
+                ? window.GraveyardWallet.formatAddress(connectedAddress) 
+                : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
+                
+            showToast(`Connected: ${formatted}`, "success");
+            
+            closeAllModals();
+
+            // Transition directly into the bio verification step
+            if (state.activeRepoData) {
+                renderCardFromData(state.activeRepoData);
+                openBioModal(connectedAddress);
+            }
+        } else {
+            showToast("Wallet connection succeeded but no address was returned.", "error");
+        }
+
+    } catch (err) {
+        showToast(`Connection failed: ${err.message}`, "error");
+    }
+}
