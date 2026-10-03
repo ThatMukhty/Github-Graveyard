@@ -514,3 +514,23 @@ function showToast(message, type = "info") {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+/**
+ * Modal Helper Functions
+ */
+function openWalletModal() {
+    const walletModal = document.getElementById('wallet-modal');
+    if (walletModal) {
+        walletModal.classList.remove('hidden');
+        walletModal.style.display = 'flex';
+    } else {
+        console.error("wallet-modal element not found in HTML.");
+    }
+}
+
+function closeAllModals() {
+    const modals = document.querySelectorAll('.modal, #wallet-modal, #bio-modal');
+    modals.forEach(modal => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    });
+}
