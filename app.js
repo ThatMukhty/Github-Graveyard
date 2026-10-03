@@ -357,14 +357,24 @@ async function executeBioVerification() {
                 await window.GraveyardWallet.signMessage(msg);
             }
 
-            // Calculate reward dynamically from repo data (or default to 100)
+           // Re-fetch latest wallet state to ensure active session
+            const currentWallet = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+            const activeAddress = currentWallet?.address || walletState?.address;
+
+            if (!activeAddress) {
+                showToast("Please connect your Web3 wallet to claim tokens.", "info");
+                openWalletModal();
+                return;
+            }
+
+            // Calculate reward dynamically from repo data
             const daysInactive = state.activeRepoData?.pushed_at ? window.GraveyardScanner.calculateDaysInactive(state.activeRepoData.pushed_at) : 90;
             const rewardAmount = window.GraveyardScanner.calculateTokenReward(daysInactive, true) || 100;
 
             showToast(`Claiming ${rewardAmount} $GRAVEYARD tokens on-chain...`, "info");
 
             try {
-                const claimResult = await window.GraveyardContract.claimTokens(walletState.address, rewardAmount);
+                const claimResult = await window.GraveyardContract.claimTokens(activeAddress, rewardAmount);
                 showToast(`🎉 Claimed ${rewardAmount} $GRAVEYARD! Tx: ${claimResult.transactionHash.slice(0, 10)}...`, "success");
             } catch (claimErr) {
                 showToast(`Verification passed, but token claim failed: ${claimErr.message}`, "error");
