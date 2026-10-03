@@ -306,20 +306,30 @@ async function executeExhumation(exhumeBtn) {
  * Handle Burial Step & Prompt Wallet / Verification Modals
  */
 async function handleBuryClick() {
-    const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-
-    if (!walletState || !walletState.address) {
-        showToast("Please connect your Web3 wallet first.", "info");
-        openWalletModal();
-        return;
-    }
 
     if (!state.activeRepoData) {
         showToast("Please scan a repository first.", "error");
         return;
     }
 
-    openBioModal(walletState.address);
+    // Check module state first
+    let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+    let activeAddress = walletState?.address;
+
+    // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
+    if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
+        activeAddress = window.ethereum.selectedAddress;
+    }
+
+    // If still no address, pop the wallet modal so the user can select their wallet
+    if (!activeAddress) {
+        showToast("Please select and connect your Web3 wallet.", "info");
+        openWalletModal();
+        return;
+    }
+
+    // Address is verified -> Proceed to bio verification modal
+    openBioModal(activeAddress);
 }
 
 /**
@@ -357,28 +367,7 @@ async function executeBioVerification() {
                 await window.GraveyardWallet.signMessage(msg);
             }
 
-           // Re-fetch latest wallet state to ensure active session
-            const currentWallet = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-            const activeAddress = currentWallet?.address || walletState?.address;
-
-            if (!activeAddress) {
-                showToast("Please connect your Web3 wallet to claim tokens.", "info");
-                openWalletModal();
-                return;
-            }
-
-            // Calculate reward dynamically from repo data
-            const daysInactive = state.activeRepoData?.pushed_at ? window.GraveyardScanner.calculateDaysInactive(state.activeRepoData.pushed_at) : 90;
-            const rewardAmount = window.GraveyardScanner.calculateTokenReward(daysInactive, true) || 100;
-
-            showToast(`Claiming ${rewardAmount} $GRAVEYARD tokens on-chain...`, "info");
-
-            try {
-                const claimResult = await window.GraveyardContract.claimTokens(activeAddress, rewardAmount);
-                showToast(`🎉 Claimed ${rewardAmount} $GRAVEYARD! Tx: ${claimResult.transactionHash.slice(0, 10)}...`, "success");
-            } catch (claimErr) {
-                showToast(`Verification passed, but token claim failed: ${claimErr.message}`, "error");
-            }
+           
         } else {
             showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
         }
@@ -395,26 +384,31 @@ async function executeBioVerification() {
 /**
  * Connect Wallet Provider
  */
-async function connectWalletProvider(walletType) {
-    try {
-        if (!window.GraveyardWallet) {
-            throw new Error("GraveyardWallet module is not loaded.");
-        }
+async function handleBuryClick() {
 
-        const connectFn = window.GraveyardWallet.connectWallet || window.GraveyardWallet.connect;
-        const res = await connectFn(walletType);
-
-        if (res && res.address) {
-            const formatted = window.GraveyardWallet.formatAddress ? window.GraveyardWallet.formatAddress(res.address) : res.address;
-            showToast(`Connected to ${walletType} (${formatted})`, "success");
-            closeAllModals();
-            if (state.activeRepoData) {
-                renderCardFromData(state.activeRepoData);
-            }
-        }
-    } catch (err) {
-        showToast(`Connection failed: ${err.message}`, "error");
+    if (!state.activeRepoData) {
+        showToast("Please scan a repository first.", "error");
+        return;
     }
+
+    // Check module state first
+    let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+    let activeAddress = walletState?.address;
+
+    // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
+    if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
+        activeAddress = window.ethereum.selectedAddress;
+    }
+
+    // If still no address, pop the wallet modal so the user can select their wallet
+    if (!activeAddress) {
+        showToast("Please select and connect your Web3 wallet.", "info");
+        openWalletModal();
+        return;
+    }
+
+    // Address is verified -> Proceed to bio verification modal
+    openBioModal(activeAddress);
 }
 
 /**
