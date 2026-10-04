@@ -157,32 +157,21 @@ async function handleScan() {
       `;
     }
     showToast(err.message, "error");
+ } catch (err) {
+    if (container) {
+      container.innerHTML = `
+        <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
+          <h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
+          <p style="color: #c9d1d9;">${err.message}</p>
+        </div>
+      `;
+    }
+    showToast(err.message, "error");
   } finally {
     state.isScanning = false;
   }
 }
-  if (container) {
-    container.innerHTML = `
-<div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
-<h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
-<p style="color: #c9d1d9;">${err.message}</p>
-</div>
-`;
-  }
-  showToast(err.message, 'error');
-} finally {
-  state.isScanning = false;
-}
-        if (container) {
-            container.innerHTML = `
-                <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
-                    <h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
-                    <p style="color: #c9d1d9;">${err.message}</p>
-                </div>
-            `;
-        }
-        showToast(err.message, "error");
-    } finally {
+    finally {
         state.isScanning = false;
     }
 }
