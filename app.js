@@ -553,3 +553,4 @@ if (connectedAddress) {
 } catch (err) {
   showToast(`Connection failed: ${err.message}`, "error");
 }
+}
