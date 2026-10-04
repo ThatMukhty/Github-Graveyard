@@ -146,9 +146,21 @@ try {
   renderCardFromData(repoData);
   showToast(`Successfully scanned ${repoData.full_name}`, 'success');
 
-  // Trigger Bio Verification immediately after scan
+  // Trigger Bio Verification immediately after scanning
   openBioModal(state.activeRepoData.owner?.login);
 } catch (err) {
+  if (container) {
+    container.innerHTML = `
+<div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
+<h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
+<p style="color: #c9d1d9;">${err.message}</p>
+</div>
+`;
+  }
+  showToast(err.message, 'error');
+} finally {
+  state.isScanning = false;
+}
         if (container) {
             container.innerHTML = `
                 <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
@@ -366,16 +378,13 @@ async function executeBioVerification() {
     try {
         const res = await window.GraveyardScanner.verifyRepoOwnership(githubUsernameInput.trim(), walletState.address);
 if (res.verified) {
-      showToast('GitHub Ownership Verified!', 'success');
-      closeAllModals();
+            showToast('GitHub Ownership Verified!', 'success');
+            closeAllModals();
 
-      // Proceed to Exhumation step after successful Bio Verification
-      const exhumeBtn = document.getElementById('exhume-repo-btn');
-      if (exhumeBtn) {
-        await executeExhumation(exhumeBtn);
-      } else {
-        openWalletModal();
-      }
+            // Programmatically trigger Exhumation step
+            const exhumeBtn = document.getElementById('exhume-repo-btn') || document.createElement('button');
+            await executeExhumation(exhumeBtn);
+        }
     } else 
             showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
         }
