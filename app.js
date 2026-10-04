@@ -147,7 +147,7 @@ async function handleScan() {
 
     // Trigger Bio Verification immediately after scanning
     openBioModal(state.activeRepoData.owner?.login);
-  } catch (err) {
+ } catch (err) {
     if (container) {
       container.innerHTML = `
         <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
@@ -171,10 +171,6 @@ async function handleScan() {
     state.isScanning = false;
   }
 }
-    finally {
-        state.isScanning = false;
-    }
-}
 
 /**
  * Computes Metrics & Calls Scanner Card Render
@@ -187,7 +183,7 @@ function renderCardFromData(repoData) {
 
     const metrics = { daysInactive, tier, mortalityScore, reward };
     window.GraveyardScanner.renderRepoCard(repoData, metrics);
-}
+
 
 /**
  * Handles Global Clicks (Delegation for Exhumation, Burial, Downloads, Shares, Copy Links)
