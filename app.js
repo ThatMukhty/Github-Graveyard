@@ -541,7 +541,7 @@ if (connectedAddress) {
     closeAllModals();
 
     // Final step: Sign burial / claim message if available
-    const repoName = state.activeRepoData?.full_name || 'repo';
+  const repoName = state.activeRepoData?.full_name || 'repo';
     const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
 
     if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
