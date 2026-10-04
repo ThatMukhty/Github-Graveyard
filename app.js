@@ -6,117 +6,93 @@
 
 // Application State
 let state = {
-    activeRepoData: null,
-    isScanning: false,
-    isExhuming: false
+  activeRepoData: null,
+  isScanning: false,
+  isExhuming: false
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    initApp();
+  initApp();
 });
 
 /**
  * Initialize Event Listeners & Core Handlers
  */
 function initApp() {
-    // 1. Scan Form & Button Handling
-    const scanForm = document.getElementById('scan-form');
-    const scanBtn = document.getElementById('scan-btn');
-    const repoInput = document.getElementById('repo-input');
+  // 1. Scan Form & Button Handling
+  const scanForm = document.getElementById('scan-form');
+  const scanBtn = document.getElementById('scan-btn');
+  const repoInput = document.getElementById('repo-input');
 
-    if (scanForm) {
-        scanForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleScan();
-        });
-    } else if (scanBtn) {
-        scanBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleScan();
-        });
-    }
-
-    if (repoInput) {
-        repoInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleScan();
-            }
-        });
-    }
-
-    // 2. Global Wallet Connect Button Listener
-    const walletConnectBtn = document.getElementById('connect-wallet-btn');
-    if (walletConnectBtn) {
-        walletConnectBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            openWalletModal();
-        });
-    }
-
-    // 3. Modal Close Triggers
-    document.querySelectorAll('.modal-close, .close-modal-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            closeAllModals();
-        });
+  if (scanForm) {
+    scanForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleScan();
     });
+  } else if (scanBtn) {
+    scanBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleScan();
+    });
+  }
 
-    // 4. Wallet Provider Selection in Modal
+  if (repoInput) {
+    repoInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleScan();
+      }
+    });
+  }
 
-document.querySelectorAll('.wallet-select-btn, .wallet-option-btn').forEach(btn => {
+  // 2. Global Wallet Connect Button Listener
+  const walletConnectBtn = document.getElementById('connect-wallet-btn');
+  if (walletConnectBtn) {
+    walletConnectBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openWalletModal();
+    });
+  }
 
-btn.addEventListener('click', async (e) => {
+  // 3. Modal Close Triggers
+  document.querySelectorAll('.modal-close, .close-modal-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeAllModals();
+    });
+  });
 
-e.preventDefault();
+  // 4. Wallet Provider Selection in Modal
+  document.querySelectorAll('.wallet-select-btn, .wallet-option-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const walletType = btn.dataset.wallet;
+      if (walletType) {
+        await connectWalletProvider(walletType);
+      }
+    });
+  });
 
-const walletType = btn.dataset.wallet;
+  // 5. Global Event Delegation
+  document.addEventListener('click', handleGlobalClickEvents);
 
-if (walletType) {
-
-await connectWalletProvider(walletType);
-
-}
-
-});
-
-});
-
-   // 5. Global Event Delegation
-
-document.addEventListener('click', handleGlobalClickEvents);
-
-
-// 6. Auto-reopen verification modal if returning from editing GitHub bio on mobile
-
-const pending = localStorage.getItem('pending_verification');
-
-if (pending) {
-
-try {
-
-const data = JSON.parse(pending);
-
-if (data.walletAddress) {
-
-openBioModal(data.walletAddress);
-
-}
-
-} catch (e) {
-
-localStorage.removeItem('pending_verification');
-
-}
-
-}
-
+  // 6. Auto-reopen verification modal if returning from editing GitHub bio on mobile
+  const pending = localStorage.getItem('pending_verification');
+  if (pending) {
+    try {
+      const data = JSON.parse(pending);
+      if (data.walletAddress) {
+        openBioModal(data.walletAddress);
+      }
+    } catch (e) {
+      localStorage.removeItem('pending_verification');
+    }
+  }
 }
 
 /**
-/**
-* Handles Repository Scanning
-*/
+ * Handles Repository Scanning
+ */
 async function handleScan() {
   if (state.isScanning) return;
 
@@ -166,127 +142,122 @@ async function handleScan() {
  * Computes Metrics & Calls Scanner Card Render
  */
 function renderCardFromData(repoData) {
-    const daysInactive = window.GraveyardScanner.calculateDaysInactive(repoData.pushed_at);
-    const tier = window.GraveyardScanner.getMortalityTier(daysInactive);
-    const mortalityScore = window.GraveyardScanner.calculateMortalityScore(daysInactive);
-    const reward = window.GraveyardScanner.calculateTokenReward(daysInactive, tier.canBury);
+  const daysInactive = window.GraveyardScanner.calculateDaysInactive(repoData.pushed_at);
+  const tier = window.GraveyardScanner.getMortalityTier(daysInactive);
+  const mortalityScore = window.GraveyardScanner.calculateMortalityScore(daysInactive);
+  const reward = window.GraveyardScanner.calculateTokenReward(daysInactive, tier.canBury);
 
-    const metrics = { daysInactive, tier, mortalityScore, reward };
-    window.GraveyardScanner.renderRepoCard(repoData, metrics);
-
+  const metrics = { daysInactive, tier, mortalityScore, reward };
+  window.GraveyardScanner.renderRepoCard(repoData, metrics);
+}
 
 /**
  * Handles Global Clicks (Delegation for Exhumation, Burial, Downloads, Shares, Copy Links)
  */
 async function handleGlobalClickEvents(e) {
-    // A. EXHUME BUTTON CLICK
-    const exhumeBtn = e.target.closest('#exhume-repo-btn');
-    if (exhumeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        await executeExhumation(exhumeBtn);
-        return;
+  // A. EXHUME BUTTON CLICK
+  const exhumeBtn = e.target.closest('#exhume-repo-btn');
+  if (exhumeBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    await executeExhumation(exhumeBtn);
+    return;
+  }
+
+  // B. BURY BUTTON CLICK
+  const buryBtn = e.target.closest('#bury-repo-btn');
+  if (buryBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    await handleBuryClick();
+    return;
+  }
+
+  // C. COPY SHARE LINK BUTTON
+  const copyLinkBtn = e.target.closest('#copy-share-link-btn');
+  if (copyLinkBtn) {
+    e.preventDefault();
+    navigator.clipboard.writeText(window.location.href);
+    showToast("Direct link copied to clipboard!", "success");
+    return;
+  }
+
+  // D. DOWNLOAD CARD IMAGE BUTTON
+  const downloadCardBtn = e.target.closest('#download-card-btn');
+  if (downloadCardBtn) {
+    e.preventDefault();
+    if (window.html2canvas) {
+      const cardElem = document.getElementById('graveyard-card');
+      if (cardElem) {
+        showToast("Generating card screenshot...", "info");
+        window.html2canvas(cardElem, { backgroundColor: '#0d1117' }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = `${state.activeRepoData?.name || 'graveyard'}-certificate.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          showToast("Download started!", "success");
+        });
+      }
+    } else {
+      window.print();
     }
+    return;
+  }
 
-    // B. BURY BUTTON CLICK
-    const buryBtn = e.target.closest('#bury-repo-btn');
-    if (buryBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        await handleBuryClick();
-        return;
+  // E. COPY VERIFICATION BIO CODE
+  const copyBioBtn = e.target.closest('#copy-bio-code-btn');
+  if (copyBioBtn) {
+    e.preventDefault();
+    const codeText = document.getElementById('bio-code-text')?.innerText;
+    if (codeText) {
+      navigator.clipboard.writeText(codeText);
+      showToast("Verification code copied to clipboard!", "success");
     }
+    return;
+  }
 
-    // C. COPY SHARE LINK BUTTON
-    const copyLinkBtn = e.target.closest('#copy-share-link-btn');
-    if (copyLinkBtn) {
-        e.preventDefault();
-        navigator.clipboard.writeText(window.location.href);
-        showToast("Direct link copied to clipboard!", "success");
-        return;
-    }
-
-    // D. DOWNLOAD CARD IMAGE BUTTON
-    const downloadCardBtn = e.target.closest('#download-card-btn');
-    if (downloadCardBtn) {
-        e.preventDefault();
-        if (window.html2canvas) {
-            const cardElem = document.getElementById('graveyard-card');
-            if (cardElem) {
-                showToast("Generating card screenshot...", "info");
-                window.html2canvas(cardElem, { backgroundColor: '#0d1117' }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `${state.activeRepoData?.name || 'graveyard'}-certificate.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    showToast("Download started!", "success");
-                });
-            }
-        } else {
-            window.print();
-        }
-        return;
-    }
-
-    // E. COPY VERIFICATION BIO CODE
-    const copyBioBtn = e.target.closest('#copy-bio-code-btn');
-    if (copyBioBtn) {
-        e.preventDefault();
-        const codeText = document.getElementById('bio-code-text')?.innerText;
-        if (codeText) {
-            navigator.clipboard.writeText(codeText);
-            showToast("Verification code copied to clipboard!", "success");
-        }
-        return;
-    }
-// F. VERIFY BIO & CONFIRM BURIAL
-
-const verifyBioBtn = e.target.closest('#verify-bio-btn, #verify-bio-modal-btn');
-
-if (verifyBioBtn) {
-
-e.preventDefault();
-
-await executeBioVerification();
-
-return;
-
-}
+  // F. VERIFY BIO & CONFIRM BURIAL
+  const verifyBioBtn = e.target.closest('#verify-bio-btn, #verify-bio-modal-btn');
+  if (verifyBioBtn) {
+    e.preventDefault();
+    await executeBioVerification();
+    return;
+  }
 }
 
 /**
  * Execute Exhumation Logic Safely
  */
 async function executeExhumation(exhumeBtn) {
-    if (state.isExhuming) return;
+  if (state.isExhuming) return;
 
-    let owner = state.activeRepoData?.owner?.login;
-    let repo = state.activeRepoData?.name;
+  let owner = state.activeRepoData?.owner?.login;
+  let repo = state.activeRepoData?.name;
 
-    if (!owner || !repo) {
-        const input = document.getElementById('repo-input')?.value;
-        const parsed = window.GraveyardScanner.parseRepoInput(input);
-        if (parsed) {
-            owner = parsed.owner;
-            repo = parsed.repo;
-        }
+  if (!owner || !repo) {
+    const input = document.getElementById('repo-input')?.value;
+    const parsed = window.GraveyardScanner.parseRepoInput(input);
+    if (parsed) {
+      owner = parsed.owner;
+      repo = parsed.repo;
     }
+  }
 
-    if (!owner || !repo) {
-        showToast("No active repository loaded to exhume.", "error");
-        return;
-    }
+  if (!owner || !repo) {
+    showToast("No active repository loaded to exhume.", "error");
+    return;
+  }
 
-    state.isExhuming = true;
-    const originalContent = exhumeBtn.innerHTML;
-    exhumeBtn.innerHTML = `⚡ Verifying GitHub...`;
-    exhumeBtn.style.pointerEvents = "none";
-    exhumeBtn.style.opacity = "0.7";
+  state.isExhuming = true;
+  const originalContent = exhumeBtn.innerHTML;
+  exhumeBtn.innerHTML = `⚡ Verifying GitHub...`;
+  exhumeBtn.style.pointerEvents = "none";
+  exhumeBtn.style.opacity = "0.7";
 
-    try {
-        const result = await window.GraveyardScanner.exhumeRepo(owner, repo);
+  try {
+    const result = await window.GraveyardScanner.exhumeRepo(owner, repo);
 
-       if (result.success) {
+    if (result.success) {
       showToast(result.message, 'success');
       state.activeRepoData = result.repoData;
       renderCardFromData(result.repoData);
@@ -294,61 +265,56 @@ async function executeExhumation(exhumeBtn) {
       // Prompt Wallet Connection after repo is exhumed
       openWalletModal();
     } else {
-            showToast(result.message, "info");
-            exhumeBtn.innerHTML = originalContent;
-            exhumeBtn.style.pointerEvents = "auto";
-            exhumeBtn.style.opacity = "1";
-        }
-    } catch (err) {
-        showToast(err.message, "error");
-        exhumeBtn.innerHTML = originalContent;
-        exhumeBtn.style.pointerEvents = "auto";
-        exhumeBtn.style.opacity = "1";
-    } finally {
-        state.isExhuming = false;
+      showToast(result.message, "info");
+      exhumeBtn.innerHTML = originalContent;
+      exhumeBtn.style.pointerEvents = "auto";
+      exhumeBtn.style.opacity = "1";
     }
+  } catch (err) {
+    showToast(err.message, "error");
+    exhumeBtn.innerHTML = originalContent;
+    exhumeBtn.style.pointerEvents = "auto";
+    exhumeBtn.style.opacity = "1";
+  } finally {
+    state.isExhuming = false;
+  }
 }
 
 /**
  * Handle Burial Step & Prompt Wallet / Verification Modals
  */
 async function handleBuryClick() {
+  if (!state.activeRepoData) {
+    showToast("Please scan a repository first.", "error");
+    return;
+  }
 
-    if (!state.activeRepoData) {
-        showToast("Please scan a repository first.", "error");
-        return;
-    }
+  // Check module state first
+  let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+  let activeAddress = walletState?.address;
 
-    // Check module state first
-    let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-    let activeAddress = walletState?.address;
+  // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
+  if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
+    activeAddress = window.ethereum.selectedAddress;
+  }
 
-    // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
-    if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
-        activeAddress = window.ethereum.selectedAddress;
-    }
+  // If still no address, pop the wallet modal so the user can select their wallet
+  if (!activeAddress) {
+    showToast("Please select and connect your Web3 wallet.", "info");
+    openWalletModal();
+    return;
+  }
 
-    // If still no address, pop the wallet modal so the user can select their wallet
-    if (!activeAddress) {
-        showToast("Please select and connect your Web3 wallet.", "info");
-        openWalletModal();
-        return;
-    }
-
-    // Address is verified -> Proceed to bio verification modal
-    openBioModal(activeAddress);
+  // Address is verified -> Proceed to bio verification modal
+  openBioModal(activeAddress);
 }
 
 /**
  * Verifies Bio Code on GitHub Profile
  */
 async function executeBioVerification() {
-  const walletState = window.GraveyardWallet
-    ? window.GraveyardWallet.getState()
-    : null;
-  const githubUsernameInput = document.getElementById(
-    'github-username-input'
-  )?.value;
+  const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
+  const githubUsernameInput = document.getElementById('github-username-input')?.value;
 
   if (!githubUsernameInput) {
     showToast('Please enter your GitHub username.', 'error');
@@ -374,15 +340,10 @@ async function executeBioVerification() {
       closeAllModals();
 
       // Proceed directly to Exhumation step
-      const exhumeBtn =
-        document.getElementById('exhume-repo-btn') ||
-        document.createElement('button');
+      const exhumeBtn = document.getElementById('exhume-repo-btn') || document.createElement('button');
       await executeExhumation(exhumeBtn);
     } else {
-      showToast(
-        `Verification code '${res.expectedCode}' not found in GitHub bio.`,
-        'error'
-      );
+      showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, 'error');
     }
   } catch (err) {
     showToast(err.message, 'error');
@@ -394,130 +355,116 @@ async function executeBioVerification() {
   }
 }
 
-// Duplicate handleBuryClick removed
 /**
  * Modal Helpers
  */
 function openBioModal(walletAddress) {
-    const modal = document.getElementById('bio-modal');
-    const codeDisplay = document.getElementById('bio-code-text');
-    const usernameInput = document.getElementById('github-username-input');
+  const modal = document.getElementById('bio-modal');
+  const codeDisplay = document.getElementById('bio-code-text');
+  const usernameInput = document.getElementById('github-username-input');
 
-    // Extract repo owner as default username if available
-    if (usernameInput && !usernameInput.value && state.activeRepoData) {
-        usernameInput.value = state.activeRepoData.owner?.login || '';
-    }
+  // Extract repo owner as default username if available
+  if (usernameInput && !usernameInput.value && state.activeRepoData) {
+    usernameInput.value = state.activeRepoData.owner?.login || '';
+  }
 
-    const updateCodeDisplay = () => {
-        if (!walletAddress) return;
-        const username = (usernameInput?.value.trim() || 'USERNAME').toUpperCase();
-        const walletEnd = walletAddress.slice(-4).toUpperCase();
-        const code = `GRAVEYARD-${username}-${walletEnd}`;
-        if (codeDisplay) codeDisplay.innerText = code;
-    };
+  const updateCodeDisplay = () => {
+    if (!walletAddress) return;
+    const username = (usernameInput?.value.trim() || 'USERNAME').toUpperCase();
+    const walletEnd = walletAddress.slice(-4).toUpperCase();
+    const code = `GRAVEYARD-${username}-${walletEnd}`;
+    if (codeDisplay) codeDisplay.innerText = code;
+  };
 
-    updateCodeDisplay();
+  updateCodeDisplay();
 
-    if (usernameInput && !usernameInput.dataset.hasBioListener) {
-        usernameInput.addEventListener('input', updateCodeDisplay);
-        usernameInput.dataset.hasBioListener = 'true';
-    }
+  if (usernameInput && !usernameInput.dataset.hasBioListener) {
+    usernameInput.addEventListener('input', updateCodeDisplay);
+    usernameInput.dataset.hasBioListener = 'true';
+  }
 
-    if (walletAddress) {
-        localStorage.setItem('pending_verification', JSON.stringify({
-            walletAddress,
-            repo: state.activeRepoData?.full_name || ''
-        }));
-    }
+  if (walletAddress) {
+    localStorage.setItem('pending_verification', JSON.stringify({
+      walletAddress,
+      repo: state.activeRepoData?.full_name || ''
+    }));
+  }
 
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-    }
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
 }
+
+function openWalletModal() {
+  const walletModal = document.getElementById('wallet-modal');
+  if (walletModal) {
+    walletModal.classList.remove('hidden');
+    walletModal.style.display = 'flex';
+  } else {
+    console.error("wallet-modal element not found in HTML.");
+  }
+}
+
 function closeAllModals() {
-
-localStorage.removeItem('pending_verification');
-
-document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal, #bio-modal').forEach(modal => {
-
-modal.style.display = 'none';
-
-modal.classList.add('hidden');
-
-});
-
+  localStorage.removeItem('pending_verification');
+  document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal, #bio-modal').forEach(modal => {
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+  });
 }
+
 /**
  * Custom Toast Notifications
  */
 function showToast(message, type = "info") {
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        `;
-        document.body.appendChild(toastContainer);
-    }
-
-    const toast = document.createElement('div');
-    const bgColor = type === 'error' ? '#ff5555' : type === 'success' ? '#50fa7b' : '#8be9fd';
-
-    toast.style.cssText = `
-        background: ${bgColor};
-        color: #0d1117;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 0.9rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transition: all 0.3s ease;
-        opacity: 0;
-        transform: translateY(10px);
+  let toastContainer = document.getElementById('toast-container');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'toast-container';
+    toastContainer.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     `;
-    toast.innerText = message;
+    document.body.appendChild(toastContainer);
+  }
 
-    toastContainer.appendChild(toast);
+  const toast = document.createElement('div');
+  const bgColor = type === 'error' ? '#ff5555' : type === 'success' ? '#50fa7b' : '#8be9fd';
 
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    }, 10);
+  toast.style.cssText = `
+    background: ${bgColor};
+    color: #0d1117;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+  `;
+  toast.innerText = message;
 
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  }, 10);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
 }
-/**
- * Modal Helper Functions
- */
-function openWalletModal() {
-    const walletModal = document.getElementById('wallet-modal');
-    if (walletModal) {
-        walletModal.classList.remove('hidden');
-        walletModal.style.display = 'flex';
-    } else {
-        console.error("wallet-modal element not found in HTML.");
-    }
-}
 
-function closeAllModals() {
-    const modals = document.querySelectorAll('.modal, #wallet-modal, #bio-modal');
-    modals.forEach(modal => {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    });
-}
 /**
  * Handles wallet provider selection & connection logic
  */
