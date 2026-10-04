@@ -356,46 +356,55 @@ async function handleBuryClick() {
  * Verifies Bio Code on GitHub Profile
  */
 async function executeBioVerification() {
-    const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-    const githubUsernameInput = document.getElementById('github-username-input')?.value;
+  const walletState = window.GraveyardWallet
+    ? window.GraveyardWallet.getState()
+    : null;
+  const githubUsernameInput = document.getElementById(
+    'github-username-input'
+  )?.value;
 
-    if (!githubUsernameInput) {
-        showToast("Please enter your GitHub username.", "error");
-        return;
+  if (!githubUsernameInput) {
+    showToast('Please enter your GitHub username.', 'error');
+    return;
+  }
+
+  const verifyBtn = document.getElementById('verify-bio-btn');
+  if (verifyBtn) {
+    verifyBtn.innerText = 'Verifying Profile...';
+    verifyBtn.disabled = true;
+  }
+
+  try {
+    // Uses dummy/fallback address if wallet isn't connected yet during Step 2
+    const addressToCheck = walletState?.address || '0x0000000000000000000000000000000000000000';
+    const res = await window.GraveyardScanner.verifyRepoOwnership(
+      githubUsernameInput.trim(),
+      addressToCheck
+    );
+
+    if (res.verified) {
+      showToast('GitHub Ownership Verified!', 'success');
+      closeAllModals();
+
+      // Proceed directly to Exhumation step
+      const exhumeBtn =
+        document.getElementById('exhume-repo-btn') ||
+        document.createElement('button');
+      await executeExhumation(exhumeBtn);
+    } else {
+      showToast(
+        `Verification code '${res.expectedCode}' not found in GitHub bio.`,
+        'error'
+      );
     }
-
-    if (!walletState || !walletState.address) {
-        showToast("Wallet is not connected.", "error");
-        return;
-    }
-
-    const verifyBtn = document.getElementById('verify-bio-btn');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
     if (verifyBtn) {
-        verifyBtn.innerText = "Verifying Profile...";
-        verifyBtn.disabled = true;
+      verifyBtn.innerText = 'Verify Bio & Complete Burial';
+      verifyBtn.disabled = false;
     }
-
-    try {
-        const res = await window.GraveyardScanner.verifyRepoOwnership(githubUsernameInput.trim(), walletState.address);
-if (res.verified) {
-            showToast('GitHub Ownership Verified!', 'success');
-            closeAllModals();
-
-            // Programmatically trigger Exhumation step
-            const exhumeBtn = document.getElementById('exhume-repo-btn') || document.createElement('button');
-            await executeExhumation(exhumeBtn);
-        }
-    } else 
-            showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
-        }
-    } catch (err) {
-        showToast(err.message, "error");
-    } finally {
-        if (verifyBtn) {
-            verifyBtn.innerText = "Verify Bio & Complete Burial";
-            verifyBtn.disabled = false;
-        }
-    }
+  }
 }
 
 // Duplicate handleBuryClick removed
