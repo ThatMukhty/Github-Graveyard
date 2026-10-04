@@ -114,8 +114,9 @@ localStorage.removeItem('pending_verification');
 }
 
 /**
- * Handles Repository Scanning
- */
+/**
+* Handles Repository Scanning
+*/
 async function handleScan() {
   if (state.isScanning) return;
 
