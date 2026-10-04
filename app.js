@@ -117,38 +117,49 @@ localStorage.removeItem('pending_verification');
  * Handles Repository Scanning
  */
 async function handleScan() {
-    if (state.isScanning) return;
+  if (state.isScanning) return;
 
-    const input = document.getElementById('repo-input')?.value;
-    const container = document.getElementById('results-container');
+  const input = document.getElementById('repo-input')?.value;
+  const container = document.getElementById('results-container');
 
-    const parsed = window.GraveyardScanner.parseRepoInput(input);
-    if (!parsed) {
-        showToast("Please enter a valid GitHub repository URL or owner/repo format.", "error");
-        return;
-    }
+  const parsed = window.GraveyardScanner.parseRepoInput(input);
+  if (!parsed) {
+    showToast("Please enter a valid GitHub repository URL or owner/repo format.", "error");
+    return;
+  }
 
-    state.isScanning = true;
+  state.isScanning = true;
+  if (container) {
+    container.innerHTML = `
+      <div class="loader-container" style="text-align: center; padding: 3rem 1rem;">
+        <p style="color: #8b949e; font-size: 1rem;">Scanning graveyard records for <strong>${parsed.owner}/${parsed.repo}</strong>...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
+    state.activeRepoData = repoData;
+
+    renderCardFromData(repoData);
+    showToast(`Successfully scanned ${repoData.full_name}`, "success");
+
+    // Trigger Bio Verification immediately after scanning
+    openBioModal(state.activeRepoData.owner?.login);
+  } catch (err) {
     if (container) {
-        container.innerHTML = `
-            <div class="loader-container" style="text-align: center; padding: 3rem 1rem;">
-                <p style="color: #8b949e; font-size: 1rem;">Scanning graveyard records for <strong>${parsed.owner}/${parsed.repo}</strong>...</p>
-            </div>
-        `;
+      container.innerHTML = `
+        <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
+          <h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
+          <p style="color: #c9d1d9;">${err.message}</p>
+        </div>
+      `;
     }
-try {
-  const repoData = await window.GraveyardScanner.scanRepository(
-    parsed.owner,
-    parsed.repo
-  );
-  state.activeRepoData = repoData; // Save state globally
-
-  renderCardFromData(repoData);
-  showToast(`Successfully scanned ${repoData.full_name}`, 'success');
-
-  // Trigger Bio Verification immediately after scanning
-  openBioModal(state.activeRepoData.owner?.login);
-} catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    state.isScanning = false;
+  }
+}
   if (container) {
     container.innerHTML = `
 <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
