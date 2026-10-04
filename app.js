@@ -136,14 +136,19 @@ async function handleScan() {
             </div>
         `;
     }
+try {
+  const repoData = await window.GraveyardScanner.scanRepository(
+    parsed.owner,
+    parsed.repo
+  );
+  state.activeRepoData = repoData; // Save state globally
 
-    try {
-        const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
-        state.activeRepoData = repoData; // Save state globally
+  renderCardFromData(repoData);
+  showToast(`Successfully scanned ${repoData.full_name}`, 'success');
 
-        renderCardFromData(repoData);
-        showToast(`Successfully scanned ${repoData.full_name}`, "success");
-    } catch (err) {
+  // Trigger Bio Verification immediately after scan
+  openBioModal(state.activeRepoData.owner?.login);
+} catch (err) {
         if (container) {
             container.innerHTML = `
                 <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
@@ -282,11 +287,14 @@ async function executeExhumation(exhumeBtn) {
     try {
         const result = await window.GraveyardScanner.exhumeRepo(owner, repo);
 
-        if (result.success) {
-            showToast(result.message, "success");
-            state.activeRepoData = result.repoData;
-            renderCardFromData(result.repoData);
-        } else {
+       if (result.success) {
+      showToast(result.message, 'success');
+      state.activeRepoData = result.repoData;
+      renderCardFromData(result.repoData);
+
+      // Prompt Wallet Connection after repo is exhumed
+      openWalletModal();
+    } else {
             showToast(result.message, "info");
             exhumeBtn.innerHTML = originalContent;
             exhumeBtn.style.pointerEvents = "auto";
@@ -357,18 +365,18 @@ async function executeBioVerification() {
 
     try {
         const res = await window.GraveyardScanner.verifyRepoOwnership(githubUsernameInput.trim(), walletState.address);
+if (res.verified) {
+      showToast('GitHub Ownership Verified!', 'success');
+      closeAllModals();
 
-       if (res.verified) {
-            showToast("GitHub Ownership Verified!", "success");
-            closeAllModals();
-            
-            const msg = `Confirm Burial of ${state.activeRepoData?.full_name || 'repo'} for Wallet: ${walletState.address}`;
-            if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
-                await window.GraveyardWallet.signMessage(msg);
-            }
-
-           
-        } else {
+      // Proceed to Exhumation step after successful Bio Verification
+      const exhumeBtn = document.getElementById('exhume-repo-btn');
+      if (exhumeBtn) {
+        await executeExhumation(exhumeBtn);
+      } else {
+        openWalletModal();
+      }
+    } else 
             showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, "error");
         }
     } catch (err) {
@@ -381,36 +389,7 @@ async function executeBioVerification() {
     }
 }
 
-/**
- * Connect Wallet Provider
- */
-async function handleBuryClick() {
-
-    if (!state.activeRepoData) {
-        showToast("Please scan a repository first.", "error");
-        return;
-    }
-
-    // Check module state first
-    let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-    let activeAddress = walletState?.address;
-
-    // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
-    if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
-        activeAddress = window.ethereum.selectedAddress;
-    }
-
-    // If still no address, pop the wallet modal so the user can select their wallet
-    if (!activeAddress) {
-        showToast("Please select and connect your Web3 wallet.", "info");
-        openWalletModal();
-        return;
-    }
-
-    // Address is verified -> Proceed to bio verification modal
-    openBioModal(activeAddress);
-}
-
+// Duplicate handleBuryClick removed
 /**
  * Modal Helpers
  */
@@ -548,22 +527,23 @@ async function connectWalletProvider(walletType) {
 
         // Retrieve connected address from state or window.ethereum/window.phantom
         const connectedAddress = res?.address || window.ethereum?.selectedAddress || window.phantom?.solana?.publicKey?.toString();
+if (connectedAddress) {
+        const formatted = window.GraveyardWallet.formatAddress
+          ? window.GraveyardWallet.formatAddress(connectedAddress)
+          : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(
+              -4
+            )}`;
+        showToast(`Connected: ${formatted}`, 'success');
+        closeAllModals();
 
-        if (connectedAddress) {
-            const formatted = window.GraveyardWallet.formatAddress 
-                ? window.GraveyardWallet.formatAddress(connectedAddress) 
-                : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
-                
-            showToast(`Connected: ${formatted}`, "success");
-            
-            closeAllModals();
-
-            // Transition directly into the bio verification step
-            if (state.activeRepoData) {
-                renderCardFromData(state.activeRepoData);
-                openBioModal(connectedAddress);
-            }
-        } else {
+        // Final step: Sign burial / claim message after wallet is connected
+        const msg = `Confirm Burial of ${
+          state.activeRepoData?.full_name || 'repo'
+        } for Wallet: ${connectedAddress}`;
+        if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
+          await window.GraveyardWallet.signMessage(msg);
+        }
+      } else {
             showToast("Wallet connection succeeded but no address was returned.", "error");
         }
 
