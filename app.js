@@ -533,25 +533,23 @@ async function connectWalletProvider(walletType) {
         // Retrieve connected address from state or window.ethereum/window.phantom
         const connectedAddress = res?.address || window.ethereum?.selectedAddress || window.phantom?.solana?.publicKey?.toString();
 if (connectedAddress) {
-        const formatted = window.GraveyardWallet.formatAddress
-          ? window.GraveyardWallet.formatAddress(connectedAddress)
-          : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(
-              -4
-            )}`;
-        showToast(`Connected: ${formatted}`, 'success');
-       closeAllModals();
+    const formatted = window.GraveyardWallet.formatAddress
+      ? window.GraveyardWallet.formatAddress(connectedAddress)
+      : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
 
-      // Final step: Sign burial / claim message if available
-      const repoName = state.activeRepoData?.full_name || 'repo';
-      const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
+    showToast(`Connected: ${formatted}`, 'success');
+    closeAllModals();
 
-      if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
-        await window.GraveyardWallet.signMessage(msg);
-      }
-    } else {
-      showToast("Wallet connection succeeded but no address returned.", "error");
+    // Final step: Sign burial / claim message if available
+    const repoName = state.activeRepoData?.full_name || 'repo';
+    const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
+
+    if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
+      await window.GraveyardWallet.signMessage(msg);
     }
-  } catch (err) {
-    showToast(`Connection failed: ${err.message}`, "error");
+  } else {
+    showToast("Wallet connection succeeded but no address returned.", "error");
   }
+} catch (err) {
+  showToast(`Connection failed: ${err.message}`, "error");
 }
