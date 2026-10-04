@@ -539,20 +539,19 @@ if (connectedAddress) {
               -4
             )}`;
         showToast(`Connected: ${formatted}`, 'success');
-        closeAllModals();
+       closeAllModals();
 
-        // Final step: Sign burial / claim message after wallet is connected
-        const msg = `Confirm Burial of ${
-          state.activeRepoData?.full_name || 'repo'
-        } for Wallet: ${connectedAddress}`;
-        if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
-          await window.GraveyardWallet.signMessage(msg);
-        }
-      } else {
-            showToast("Wallet connection succeeded but no address was returned.", "error");
-        }
+      // Final step: Sign burial / claim message if available
+      const repoName = state.activeRepoData?.full_name || 'repo';
+      const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
 
-    } catch (err) {
-        showToast(`Connection failed: ${err.message}`, "error");
+      if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
+        await window.GraveyardWallet.signMessage(msg);
+      }
+    } else {
+      showToast("Wallet connection succeeded but no address returned.", "error");
     }
+  } catch (err) {
+    showToast(`Connection failed: ${err.message}`, "error");
+  }
 }
