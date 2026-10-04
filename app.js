@@ -522,35 +522,28 @@ function closeAllModals() {
  * Handles wallet provider selection & connection logic
  */
 async function connectWalletProvider(walletType) {
-    try {
-        if (!window.GraveyardWallet) {
-            throw new Error("GraveyardWallet module is not loaded.");
-        }
+  try {
+    const connectedAddress = await window.GraveyardWallet.connect(walletType);
 
-        const connectFn = window.GraveyardWallet.connectWallet || window.GraveyardWallet.connect;
-        const res = await connectFn(walletType);
+    if (connectedAddress) {
+      const formatted = window.GraveyardWallet.formatAddress
+        ? window.GraveyardWallet.formatAddress(connectedAddress)
+        : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
 
-        // Retrieve connected address from state or window.ethereum/window.phantom
-        const connectedAddress = res?.address || window.ethereum?.selectedAddress || window.phantom?.solana?.publicKey?.toString();
-if (connectedAddress) {
-    const formatted = window.GraveyardWallet.formatAddress
-      ? window.GraveyardWallet.formatAddress(connectedAddress)
-      : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
+      showToast(`Connected: ${formatted}`, 'success');
+      closeAllModals();
 
-    showToast(`Connected: ${formatted}`, 'success');
-    closeAllModals();
+      // Final step: Sign burial / claim message if available
+      const repoName = state.activeRepoData?.full_name || 'repo';
+      const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
 
-    // Final step: Sign burial / claim message if available
-  const repoName = state.activeRepoData?.full_name || 'repo';
-    const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
-
-    if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
-      await window.GraveyardWallet.signMessage(msg);
+      if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
+        await window.GraveyardWallet.signMessage(msg);
+      }
+    } else {
+      showToast("Wallet connection succeeded but no address returned.", "error");
     }
-  } else {
-    showToast("Wallet connection succeeded but no address returned.", "error");
+  } catch (err) {
+    showToast(`Connection failed: ${err.message}`, "error");
   }
-} catch (err) {
-  showToast(`Connection failed: ${err.message}`, "error");
-}
 }
