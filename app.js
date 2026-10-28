@@ -11,7 +11,6 @@ const AUTOPSY_CAUSES = [
 
 let connectedWalletAddress = null;
 let userRepos = [];
-
 const GITHUB_CLIENT_ID = "Ov23liBRVfvbW6RyVwZl";
 const REDIRECT_URI = "https://gitgraveyard.xyz";
 
@@ -19,79 +18,140 @@ function loginWithGitHub() {
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=repo`;
   window.location.href = githubAuthUrl;
 }
-
 window.addEventListener('DOMContentLoaded', async () => {
-  const authContainer = document.getElementById('authContainer');
-  if (authContainer) {
-    authContainer.innerHTML = `
-      <button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
-        CONNECT GITHUB
-      </button>
-    `;
-  }
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
+const authContainer = document.getElementById('authContainer');
 
-  if (code) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-    await fetchPublicGitHubData();
-  }
+if (authContainer) {
+
+authContainer.innerHTML = `
+
+<button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
+
+CONNECT GITHUB
+
+</button>
+
+`;
+
+}
+
+
+const urlParams = new URLSearchParams(window.location.search);
+
+const code = urlParams.get('code');
+
+
+if (code) {
+
+window.history.replaceState({}, document.title, window.location.pathname);
+
+await authenticateAndFetchData(code);
+
+}
+
 });
 
-async function fetchPublicGitHubData() {
-  try {
-    const username = prompt("Enter your GitHub Username to scan your graveyard:");
-    if (!username) return;
+async function authenticateAndFetchData(code) {
 
-    const userRes = await fetch(`https://api.github.com/users/${username}`);
-    const userData = await userRes.json();
+try {
 
-    if (userData.message === "Not Found") {
-      alert("User not found!");
-      return;
-    }
+const heroBtn = document.querySelector('#heroSection button');
 
-    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`);
-    const reposData = await reposRes.json();
+if (heroBtn) {
 
-    document.getElementById('heroSection').classList.add('hidden');
-    const dashboard = document.getElementById('dashboardSection');
-    dashboard.classList.remove('hidden');
+heroBtn.innerText = "AUTHENTICATING & SCANNING... ⌛";
 
-    document.getElementById('authContainer').innerHTML = `
-      <div class="flex items-center gap-2 bg-red-950/40 border border-red-800 px-3 py-1 rounded">
-        <span class="w-2 h-2 rounded-full bg-graveyard-red animate-pulse"></span>
-        <span class="text-xs text-white font-bold uppercase">@${userData.login}</span>
-      </div>
-    `;
+heroBtn.disabled = true;
 
-    document.getElementById('userAvatar').src = userData.avatar_url;
-    document.getElementById('userName').innerText = userData.name || userData.login;
-    document.getElementById('userHandle').innerText = "@" + userData.login;
+}
 
-    const now = new Date();
-    userRepos = reposData.map((repo, idx) => {
-      const lastPushed = new Date(repo.pushed_at);
-      const diffDays = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24)));
-      // Assign a consistent cause of death based on repo name length/index
-      const cause = AUTOPSY_CAUSES[(repo.name.length + idx) % AUTOPSY_CAUSES.length];
 
-      return {
-        name: repo.name,
-        daysInactive: diffDays,
-        stars: repo.stargazers_count,
-        fork: repo.fork,
-        causeOfDeath: cause
-      };
-    }).filter(repo => !repo.fork);
+const res = await fetch(`/api/auth?code=${code}`);
 
-    renderGraveyard(userRepos);
+const data = await res.json();
 
-  } catch (err) {
-    console.error("GitHub API fetch error:", err);
-    alert("Failed to pull GitHub data. Please try again.");
-  }
+
+if (res.status !== 200 || data.error) {
+
+alert("Authentication failed: " + (data.error || "Unable to verify GitHub account."));
+
+return;
+
+}
+
+
+const userData = data.user;
+
+const reposData = data.repos;
+
+
+document.getElementById('heroSection').classList.add('hidden');
+
+const dashboard = document.getElementById('dashboardSection');
+
+dashboard.classList.remove('hidden');
+
+
+document.getElementById('authContainer').innerHTML = `
+
+<div class="flex items-center gap-2 bg-red-950/40 border border-red-800 px-3 py-1 rounded">
+
+<span class="w-2 h-2 rounded-full bg-graveyard-red animate-pulse"></span>
+
+<span class="text-xs text-white font-bold uppercase">@${userData.login}</span>
+
+</div>
+
+`;
+
+
+document.getElementById('userAvatar').src = userData.avatar_url;
+
+document.getElementById('userName').innerText = userData.name || userData.login;
+
+document.getElementById('userHandle').innerText = "@" + userData.login;
+
+
+const now = new Date();
+
+userRepos = reposData.map((repo, idx) => {
+
+const lastPushed = new Date(repo.pushed_at);
+
+const diffDays = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24)));
+
+const cause = AUTOPSY_CAUSES[(repo.name.length + idx) % AUTOPSY_CAUSES.length];
+
+
+return {
+
+name: repo.name,
+
+daysInactive: diffDays,
+
+stars: repo.stargazers_count,
+
+fork: repo.fork,
+
+causeOfDeath: cause
+
+};
+
+}).filter(repo => !repo.fork);
+
+
+renderGraveyard(userRepos);
+
+
+} catch (err) {
+
+console.error("Authentication & Scan error:", err);
+
+alert("Failed to authenticate with GitHub. Please try again.");
+
+}
+
 }
 
 function getDecayTier(days) {
