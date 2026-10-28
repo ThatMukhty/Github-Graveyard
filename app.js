@@ -15,7 +15,7 @@ let userRepos = [];
 // GitHub OAuth Configuration
 const GITHUB_CLIENT_ID = "Ov23liBRVfvbW6RyVwZl";
 // Automatically detects if you are testing on localhost or live on gitgraveyard.xyz
-const REDIRECT_URI = window.location.origin + window.location.pathname;
+const REDIRECT_URI = "https://gitgraveyard.xyz";
 
 // Trigger GitHub Login Redirect
 function loginWithGitHub() {
