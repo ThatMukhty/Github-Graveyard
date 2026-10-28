@@ -67,18 +67,28 @@ heroBtn.disabled = true;
 }
 
 
-const res = await fetch(`/api/auth?code=${code}`);
-
-const data = await res.json();
-
-
-if (res.status !== 200 || data.error) {
-
-alert("Authentication failed: " + (data.error || "Unable to verify GitHub account."));
-
-return;
-
+let data;
+try {
+    const res = await fetch(`/api/auth?code=${code}`);
+    const textResponse = await res.text();
+    
+    // Check if Vercel returned an HTML error page instead of JSON
+    if (textResponse.includes("FUNCTION_INVOCATION_FAILED") || textResponse.includes("<!DOCTYPE html>")) {
+        throw new Error("Vercel API Function failed to execute.");
+    }
+    
+    data = JSON.parse(textResponse);
+} catch (parseErr) {
+    console.error("Authentication & Scan error:", parseErr);
+    alert("Authentication failed because the serverless route crashed.");
+    return;
 }
+
+if (!data || data.error) {
+    alert("Authentication failed: " + (data?.error || "Unable to verify"));
+    return;
+}
+
 
 
 const userData = data.user;
