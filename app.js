@@ -127,7 +127,7 @@ function renderGraveyard(repos) {
     if (tier.isDead) {
       // Scary Tombstone Card for Dead Repos
       const cardHTML = `
-        <div class="border-2 border-red-950 bg-gradient-to-b from-graveyard-surface to-black p-5 rounded-xl shadow-xl space-y-4 relative overflow-hidden">
+      <div class="tombstone-card transition-all duration-200 border-2 border-red-950 bg-gradient-to-b from-graveyard-surface to-black p-5 rounded-xl shadow-xl space-y-4 relative overflow-hidden">
           <div class="absolute top-0 right-0 bg-red-950/80 text-graveyard-red text-[10px] font-black px-3 py-1 rounded-bl uppercase tracking-widest border-l border-b border-red-900">
             ${tier.name}
           </div>
@@ -151,9 +151,11 @@ function renderGraveyard(repos) {
             <button onclick="tweetRepoCause('${repo.name}')" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold py-2 px-3 rounded transition flex items-center justify-center gap-1.5 shadow">
               <span>🐦 Tweet Reason</span>
             </button>
-            <button onclick="openWalletModalForRepo('${repo.name}')" class="bg-blue-950/60 hover:bg-blue-900/80 border border-blue-800 text-blue-200 text-xs font-bold py-2.5 px-3 rounded transition flex items-center justify-center gap-1.5">
-              <span id="mintBtn-${idx}">🔗 ${connectedWalletAddress ? 'Mint On-Chain' : 'Connect EVM'}</span>
-            </button>
+           <button onclick="openWalletModalForRepo('${repo.name}')" class="bg-blue-950/60 hover:bg-blue-900/80 border border-blue-800 text-blue-200 text-xs font-bold py-2.5 px-3 rounded transition flex items-center justify-center gap-1.5">
+
+<span id="mintBtn-${idx}">🔗 ${connectedWalletAddress ? connectedWalletAddress.substring(0,6) + '...' + connectedWalletAddress.substring(38) : 'Connect EVM'}</span>
+
+</button>
           </div>
         </div>
       `;
@@ -176,13 +178,64 @@ function renderGraveyard(repos) {
     }
   });
 }
-
 function downloadTombstoneCard(repoName, days, tier) {
-  alert(`Generating gothic tombstone card image for '${repoName}'... Download initiated! 🪦`);
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 630;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#08080a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = '#991b1b';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+  ctx.fillStyle = '#991b1b';
+  ctx.fillRect(80, 80, 260, 45);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText('🪦 RIP CODEBASE', 105, 110);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 50px sans-serif';
+  ctx.fillText(repoName, 80, 190);
+
+  ctx.fillStyle = '#888899';
+  ctx.font = '22px sans-serif';
+  ctx.fillText(`Rotting in silence for ${days} days — Status: ${tier}`, 80, 235);
+
+  ctx.fillStyle = '#111116';
+  ctx.fillRect(80, 280, canvas.width - 160, 160);
+  ctx.strokeStyle = '#22222e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(80, 280, canvas.width - 160, 160);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('OFFICIAL CAUSE OF DEATH:', 120, 330);
+
+  const repoObj = userRepos.find(r => r.name === repoName);
+  const causeText = repoObj ? repoObj.causeOfDeath : "Died of unresolvable dependency rot.";
+  
+  ctx.fillStyle = '#d1d5db';
+  ctx.font = 'italic 24px sans-serif';
+  ctx.fillText(`"${causeText}"`, 120, 385, canvas.width - 240);
+
+  ctx.fillStyle = '#888899';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('gitgraveyard.xyz •  ALL CODE DIES EVENTUALLY', 80, 520);
+
+  const link = document.createElement('a');
+  link.download = `${repoName}-tombstone.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 }
 
 function tweetRepoCause(repoName) {
-  const tweetText = encodeURIComponent(`My codebase '${repoName}' died a tragic death on GitHub Graveyard 💀 Check your repo mortality rate at https://gitgraveyard.xyz & drop your tombstones below! 🪦👇`);
+  const repoObj = userRepos.find(r => r.name === repoName);
+  const cause = repoObj ? repoObj.causeOfDeath : "Died of dependency hell.";
+  const tweetText = encodeURIComponent(`My codebase '${repoName}' just died on GitHub Graveyard 💀 Cause of death: "${cause}"\n\nCheck your repo mortality rate at https://gitgraveyard.xyz & drop your tombstones below! Tagging @1 @2 🪦👇`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
 }
 
@@ -199,13 +252,12 @@ function openWalletModal() {
 function closeWalletModal() {
   document.getElementById('walletModal').classList.add('hidden');
 }
-
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
   try {
     if (walletType === 'phantom') {
-      provider = window.phantom?.ethereum;
-    } else if (walletType === 'metamask' || walletType === 'coinbase') {
+      provider = window.phantom?.ethereum || window.ethereum;
+    } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
       provider = window.ethereum;
     }
 
@@ -219,25 +271,26 @@ window.connectSelectedWallet = async function(walletType) {
     }
 
     if (!provider) {
-      document.getElementById('walletStatus').innerText = `Please install ${walletType.toUpperCase()}.`;
+      document.getElementById('walletStatus').innerText = `Please install ${walletType.toUpperCase()} extension.`;
       return;
     }
 
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (accounts && accounts.length > 0) {
       connectedWalletAddress = accounts[0];
-      const shortAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
-      document.getElementById('walletStatus').innerText = `Connected: ${shortAddr}`;
+      const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
+      document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
       
       setTimeout(() => {
         closeWalletModal();
+        renderGraveyard(userRepos); // Refreshes UI to show masked address on cards
         if (activeMintRepo) {
-          alert(`Wallet connected! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
+          alert(`Wallet connected (${maskedAddr})! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
         }
-      }, 1000);
+      }, 800);
     }
   } catch (err) {
     console.error('Wallet error:', err);
-    document.getElementById('walletStatus').innerText = 'Connection failed.';
+    document.getElementById('walletStatus').innerText = 'Connection failed or rejected.';
   }
 };

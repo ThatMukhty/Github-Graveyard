@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GitHub Graveyard 🪦 | Dead Code Autopsy</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
+<script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -19,11 +19,39 @@
               darkred: '#991b1b',
               muted: '#888899'
             }
+          },
+          animation: {
+            'fog-drift': 'fog 12s ease-in-out infinite alternate',
+            'tombstone-shiver': 'shiver 0.4s ease-in-out infinite',
+            'crimson-pulse': 'pulseGlow 2.5s infinite'
+          },
+          keyframes: {
+            fog: {
+              '0%': { transform: 'translateX(-5%) opacity(0.3)' },
+              '100%': { transform: 'translateX(5%) opacity(0.6)' }
+            },
+            shiver: {
+              '0%, 100%': { transform: 'rotate(0deg)' },
+              '25%': { transform: 'rotate(-0.8deg) translateY(-1px)' },
+              '75%': { transform: 'rotate(0.8deg) translateY(1px)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(220, 38, 38, 0.4)' },
+              '50%': { boxShadow: '0 0 35px rgba(220, 38, 38, 0.85)' }
+            }
           }
         }
       }
     }
   </script>
+  <style>
+    /* Card hover shudder effect */
+    .tombstone-card:hover {
+      animation: shiver 0.3s ease-in-out infinite;
+      box-shadow: 0 0 25px rgba(220, 38, 38, 0.5);
+      border-color: #dc2626 !important;
+    }
+  </style>
 </head>
 <body class="bg-graveyard-bg text-gray-100 min-h-screen font-sans antialiased flex flex-col justify-between selection:bg-red-900 selection:text-white">
 
@@ -44,19 +72,23 @@
   <main class="max-w-5xl mx-auto w-full px-4 py-8 flex-1 space-y-8">
 
     <!-- Hero Section (Before Auth) -->
-    <section id="heroSection" class="text-center py-12 space-y-6 max-w-xl mx-auto">
-      <div class="inline-block px-3 py-1 rounded-full bg-red-950/50 border border-red-800 text-graveyard-red text-xs font-bold uppercase tracking-widest">
+    <section id="heroSection" class="text-center py-16 space-y-6 max-w-xl mx-auto relative z-10">
+      <!-- Background Fog FX -->
+      <div class="absolute inset-0 -z-10 bg-gradient-to-t from-red-950/20 via-transparent to-transparent blur-2xl pointer-events-none animate-fog-drift"></div>
+
+      <div class="inline-block px-3.5 py-1.5 rounded-full bg-red-950/80 border border-red-800 text-graveyard-red text-xs font-black uppercase tracking-widest animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.3)]">
         ☠️ Code Mortality Tracker
       </div>
-      <h2 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">
-        Where Abandoned Code <br/><span class="text-graveyard-red">Rots In Peace</span>
+      <h2 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight leading-none">
+        Where Abandoned Code <br/>
+        <span class="text-graveyard-red drop-shadow-[0_0_25px_rgba(220,38,38,0.6)]">Rots In Peace</span>
       </h2>
-      <p class="text-sm text-graveyard-muted leading-relaxed">
+      <p class="text-sm sm:text-base text-graveyard-muted leading-relaxed max-w-md mx-auto">
         Connect your GitHub account to scan your repositories, calculate your dev mortality rate, and perform autopsies on your dead projects.
       </p>
-      <div class="pt-2">
-        <button onclick="loginWithGitHub()" class="w-full sm:w-auto bg-graveyard-red hover:bg-graveyard-darkred text-white text-sm font-bold px-8 py-3 rounded transition border border-red-600 shadow-lg uppercase tracking-wider">
-          CONNECT GITHUB TO SCAN
+      <div class="pt-4">
+        <button onclick="loginWithGitHub()" class="w-full sm:w-auto bg-graveyard-red hover:bg-graveyard-darkred text-white text-sm font-black px-8 py-3.5 rounded-lg transition-all duration-300 border border-red-500 animate-crimson-pulse uppercase tracking-wider transform hover:-translate-y-0.5">
+          CONNECT GITHUB TO SCAN ⚡
         </button>
       </div>
     </section>
@@ -136,23 +168,26 @@
     </div>
   </div>
 
-  <!-- Wallet Selection Modal -->
+  <!-- Wallet Selection Modal (5 Providers) -->
   <div id="walletModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-graveyard-surface border border-graveyard-border p-6 rounded-xl max-w-xs w-full space-y-4 relative shadow-2xl">
+    <div class="bg-graveyard-surface border border-graveyard-border p-6 rounded-xl max-w-xs w-full space-y-3 relative shadow-2xl">
       <button onclick="closeWalletModal()" class="absolute top-3 right-3 text-graveyard-muted hover:text-white text-lg font-bold">✕</button>
       <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-graveyard-border pb-2">Select EVM Wallet</h3>
       <div class="space-y-2">
-        <button onclick="connectSelectedWallet('metamask')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
-          <span>MetaMask</span>
-          <span class="text-xs">🦊</span>
+        <button onclick="connectSelectedWallet('metamask')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2 px-3 rounded transition text-left flex items-center justify-between">
+          <span>MetaMask</span><span>🦊</span>
         </button>
-        <button onclick="connectSelectedWallet('phantom')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
-          <span>Phantom EVM</span>
-          <span class="text-xs">👻</span>
+        <button onclick="connectSelectedWallet('rabby')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2 px-3 rounded transition text-left flex items-center justify-between">
+          <span>Rabby Wallet</span><span>🐰</span>
         </button>
-        <button onclick="connectSelectedWallet('coinbase')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
-          <span>Coinbase Wallet</span>
-          <span class="text-xs">🔵</span>
+        <button onclick="connectSelectedWallet('phantom')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2 px-3 rounded transition text-left flex items-center justify-between">
+          <span>Phantom (EVM)</span><span>👻</span>
+        </button>
+        <button onclick="connectSelectedWallet('coinbase')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2 px-3 rounded transition text-left flex items-center justify-between">
+          <span>Coinbase Wallet</span><span>🔵</span>
+        </button>
+        <button onclick="connectSelectedWallet('walletconnect')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2 px-3 rounded transition text-left flex items-center justify-between">
+          <span>WalletConnect</span><span>🌐</span>
         </button>
       </div>
       <p id="walletStatus" class="text-[10px] text-graveyard-muted text-center pt-1 min-h-[16px]"></p>
