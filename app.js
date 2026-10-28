@@ -71,15 +71,18 @@ async function fetchPublicGitHubData() {
     document.getElementById('userHandle').innerText = "@" + userData.login;
 
     const now = new Date();
-    userRepos = reposData.map(repo => {
+    userRepos = reposData.map((repo, idx) => {
       const lastPushed = new Date(repo.pushed_at);
       const diffDays = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24)));
+      // Assign a consistent cause of death based on repo name length/index
+      const cause = AUTOPSY_CAUSES[(repo.name.length + idx) % AUTOPSY_CAUSES.length];
 
       return {
         name: repo.name,
         daysInactive: diffDays,
         stars: repo.stargazers_count,
-        fork: repo.fork
+        fork: repo.fork,
+        causeOfDeath: cause
       };
     }).filter(repo => !repo.fork);
 
@@ -91,9 +94,6 @@ async function fetchPublicGitHubData() {
   }
 }
 
-// Inactivity threshold logic:
-// < 30 days = Active 🟢 (Not dead)
-// >= 30 days = Dead repo with decay tiers
 function getDecayTier(days) {
   if (days < 30) {
     return { name: "Active 🟢", color: "text-green-400 bg-green-950/40 border-green-900", isDead: false };
@@ -123,53 +123,73 @@ function renderGraveyard(repos) {
 
   repos.forEach((repo, idx) => {
     const tier = getDecayTier(repo.daysInactive);
-    const cardHTML = `
-      <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm hover:border-gray-700 transition">
-        <div class="space-y-1">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-[10px] px-2 py-0.5 rounded border ${tier.color} font-bold uppercase tracking-wide">${tier.name}</span>
-            <h5 class="text-sm font-bold text-white">${repo.name}</h5>
+    
+    if (tier.isDead) {
+      // Scary Tombstone Card for Dead Repos
+      const cardHTML = `
+        <div class="border-2 border-red-950 bg-gradient-to-b from-graveyard-surface to-black p-5 rounded-xl shadow-xl space-y-4 relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-red-950/80 text-graveyard-red text-[10px] font-black px-3 py-1 rounded-bl uppercase tracking-widest border-l border-b border-red-900">
+            ${tier.name}
           </div>
-          <p class="text-xs text-graveyard-muted">Last pushed ${repo.daysInactive === 0 ? "today" : repo.daysInactive + " days ago"}</p>
+          
+          <div class="space-y-1">
+            <span class="text-xs text-graveyard-muted uppercase tracking-wider">🪦 RIP Codebase</span>
+            <h4 class="text-lg font-black text-white tracking-tight">${repo.name}</h4>
+            <p class="text-xs text-graveyard-muted">Rotting in silence for <span class="text-white font-bold">${repo.daysInactive} days</span></p>
+          </div>
+
+          <div class="bg-black/80 p-3.5 rounded-lg border border-red-950/60 space-y-1">
+            <span class="text-[10px] font-bold text-graveyard-red uppercase tracking-wider">Official Cause of Death:</span>
+            <p class="text-xs text-gray-300 italic leading-relaxed">"${repo.causeOfDeath}"</p>
+          </div>
+
+          <!-- Action Buttons Bar -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-graveyard-border">
+            <button onclick="downloadTombstoneCard('${repo.name}', '${repo.daysInactive}', '${tier.name}')" class="bg-black hover:bg-graveyard-border border border-graveyard-border text-gray-200 text-xs font-bold py-2 px-3 rounded transition flex items-center justify-center gap-1.5">
+              <span>📥 Download Card</span>
+            </button>
+            <button onclick="tweetRepoCause('${repo.name}')" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold py-2 px-3 rounded transition flex items-center justify-center gap-1.5 shadow">
+              <span>🐦 Tweet Reason</span>
+            </button>
+            <button onclick="openWalletModalForRepo('${repo.name}')" class="bg-blue-950/60 hover:bg-blue-900/80 border border-blue-800 text-blue-200 text-xs font-bold py-2.5 px-3 rounded transition flex items-center justify-center gap-1.5">
+              <span id="mintBtn-${idx}">🔗 ${connectedWalletAddress ? 'Mint On-Chain' : 'Connect EVM'}</span>
+            </button>
+          </div>
         </div>
-        ${tier.isDead ? `
-          <button onclick="openAutopsy(${idx})" class="w-full sm:w-auto bg-graveyard-red hover:bg-graveyard-darkred text-xs text-white px-3.5 py-2 rounded-md font-bold transition flex items-center justify-center gap-1.5 shadow">
-            <span>Autopsy</span> ☠️
-          </button>
-        ` : `
-          <span class="text-xs text-green-400 font-semibold px-2 py-1 bg-green-950/30 rounded border border-green-900/50">Healthy</span>
-        `}
-      </div>
-    `;
-    listContainer.innerHTML += cardHTML;
+      `;
+      listContainer.innerHTML += cardHTML;
+    } else {
+      // Clean Healthy Row for Active Repos
+      const cardHTML = `
+        <div class="border border-graveyard-border bg-graveyard-surface/60 p-3.5 rounded-lg flex items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded border ${tier.color} font-bold uppercase">${tier.name}</span>
+              <h5 class="text-xs font-bold text-white">${repo.name}</h5>
+            </div>
+            <p class="text-[11px] text-graveyard-muted">Last pushed ${repo.daysInactive === 0 ? "today" : repo.daysInactive + " days ago"}</p>
+          </div>
+          <span class="text-xs text-green-400 font-semibold px-2.5 py-1 bg-green-950/30 rounded border border-green-900/50">Healthy</span>
+        </div>
+      `;
+      listContainer.innerHTML += cardHTML;
+    }
   });
 }
 
-function openAutopsy(index) {
-  const repo = userRepos[index];
-  const tier = getDecayTier(repo.daysInactive);
-  const randomCause = AUTOPSY_CAUSES[Math.floor(Math.random() * AUTOPSY_CAUSES.length)];
-
-  document.getElementById('modalRepoName').innerText = repo.name;
-  document.getElementById('modalCauseOfDeath').innerText = randomCause;
-  
-  const stageEl = document.getElementById('modalStage');
-  stageEl.innerText = tier.name;
-  stageEl.className = `text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide border ${tier.color}`;
-
-  document.getElementById('modalDays').innerText = repo.daysInactive + " days ago";
-
-  document.getElementById('autopsyModal').classList.remove('hidden');
+function downloadTombstoneCard(repoName, days, tier) {
+  alert(`Generating gothic tombstone card image for '${repoName}'... Download initiated! 🪦`);
 }
 
-function closeAutopsyModal() {
-  document.getElementById('autopsyModal').classList.add('hidden');
-}
-
-function generateTweetCard() {
-  const repoName = document.getElementById('modalRepoName').innerText;
-  const tweetText = encodeURIComponent(`My GitHub mortality rate is looking tragic 💀 Just autopsied my dead repo '${repoName}' on GitHub Graveyard.\n\nCheck your dead code at https://gitgraveyard.xyz & drop your tombstones below! 🪦👇`);
+function tweetRepoCause(repoName) {
+  const tweetText = encodeURIComponent(`My codebase '${repoName}' died a tragic death on GitHub Graveyard 💀 Check your repo mortality rate at https://gitgraveyard.xyz & drop your tombstones below! 🪦👇`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
+}
+
+let activeMintRepo = null;
+function openWalletModalForRepo(repoName) {
+  activeMintRepo = repoName;
+  openWalletModal();
 }
 
 function openWalletModal() {
@@ -195,9 +215,6 @@ window.connectSelectedWallet = async function(walletType) {
       if (walletType === 'metamask') {
         window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
         return;
-      } else if (walletType === 'phantom') {
-        window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
-        return;
       }
     }
 
@@ -212,14 +229,12 @@ window.connectSelectedWallet = async function(walletType) {
       const shortAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
       document.getElementById('walletStatus').innerText = `Connected: ${shortAddr}`;
       
-      const modalBtn = document.getElementById('modalWalletConnectBtn');
-      if (modalBtn) {
-        modalBtn.innerHTML = `<span>🟢 ${shortAddr}</span>`;
-        modalBtn.classList.replace('bg-blue-900/40', 'bg-green-950/60');
-        modalBtn.classList.replace('border-blue-700', 'border-green-800');
-        modalBtn.classList.replace('text-blue-200', 'text-green-300');
-      }
-      setTimeout(() => closeWalletModal(), 1000);
+      setTimeout(() => {
+        closeWalletModal();
+        if (activeMintRepo) {
+          alert(`Wallet connected! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
+        }
+      }, 1000);
     }
   } catch (err) {
     console.error('Wallet error:', err);
