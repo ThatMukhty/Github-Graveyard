@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Graveyard 🪦 | Bury Your Dead Code</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Graveyard 🪦 | Dead Code Autopsy</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -12,210 +12,158 @@
         extend: {
           colors: {
             graveyard: {
-              bg: '#050505',
-              surface: '#0d0d0d',
-              border: '#1f1f1f',
-              red: '#FF0033',
-              darkred: '#99001f',
-              bone: '#e5e5e5',
-              muted: '#737373'
+              bg: '#08080a',
+              surface: '#111116',
+              border: '#22222e',
+              red: '#dc2626',
+              darkred: '#991b1b',
+              muted: '#888899'
             }
-          },
-          fontFamily: {
-            mono: ['Courier New', Courier, monospace],
           }
         }
       }
     }
   </script>
-  <style>
-    body { background-color: #050505; color: #e5e5e5; font-family: 'Courier New', Courier, monospace; }
-    .creepy-glow { text-shadow: 0 0 12px rgba(255, 0, 51, 0.6); }
-    .card-shadow { box-shadow: 0 4px 30px rgba(255, 0, 51, 0.12); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #050505; }
-    ::-webkit-scrollbar-thumb { background: #99001f; border-radius: 3px; }
-  </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-graveyard-red selection:text-white">
+<body class="bg-graveyard-bg text-gray-100 min-h-screen font-sans antialiased flex flex-col justify-between selection:bg-red-900 selection:text-white">
 
-  <!-- TOP HEADER -->
-  <header class="w-full border-b border-graveyard-border bg-graveyard-surface/90 backdrop-blur sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-2">
-      <span class="text-2xl animate-pulse">🪦</span>
-      <h1 class="font-bold tracking-wider text-graveyard-red text-sm sm:text-base uppercase creepy-glow">GitHub Graveyard</h1>
-    </div>
-    <div id="authContainer">
-      <a href="/auth/github" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-2 rounded transition border border-red-600 shadow-lg inline-block tracking-wider">
-        CONNECT GITHUB
-      </a>
+  <!-- Header / Navigation -->
+  <header class="border-b border-graveyard-border bg-graveyard-surface/80 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-5xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🪦</span>
+        <h1 class="text-base font-black tracking-wider uppercase text-white">GIT<span class="text-graveyard-red">GRAVEYARD</span></h1>
+      </div>
+      <div id="authContainer">
+        <!-- Injected via app.js -->
+      </div>
     </div>
   </header>
 
-  <!-- MAIN APP CONTAINER -->
-  <main class="w-full max-w-md mx-auto px-4 py-6 flex-grow flex flex-col justify-start space-y-6">
+  <!-- Main Content Area -->
+  <main class="max-w-5xl mx-auto w-full px-4 py-8 flex-1 space-y-8">
 
-    <!-- HERO SECTION WITH CREEPY TEXTS -->
-    <section id="heroSection" class="space-y-5 text-left">
-      <div class="space-y-3">
-        <div class="inline-flex items-center space-x-2 bg-red-950/40 border border-red-900/50 px-2.5 py-1 rounded">
-          <span class="w-2 h-2 rounded-full bg-graveyard-red animate-ping"></span>
-          <span class="text-[10px] uppercase tracking-widest text-graveyard-red font-bold">SYSTEM WARNING: UNBURIED CORPSES DETECTED</span>
-        </div>
-        
-        <h2 class="text-3xl font-extrabold tracking-tight text-white leading-tight">
-          Where abandoned side projects come to <span class="text-graveyard-red underline decoration-graveyard-darkred decoration-2">rot in digital silence.</span>
-        </h2>
-        
-        <p class="text-xs text-graveyard-muted leading-relaxed">
-          Your commit history smells like a morgue. Connect your GitHub to inspect your mortality rate, read unhinged coroner autopsy reports, and enter the community token drop.
-        </p>
+    <!-- Hero Section (Before Auth) -->
+    <section id="heroSection" class="text-center py-12 space-y-6 max-w-xl mx-auto">
+      <div class="inline-block px-3 py-1 rounded-full bg-red-950/50 border border-red-800 text-graveyard-red text-xs font-bold uppercase tracking-widest">
+        ☠️ Code Mortality Tracker
       </div>
-
-      <!-- Creepy Feature Breakdown -->
-      <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg space-y-3 shadow-inner">
-        <div class="flex items-start space-x-3 text-xs">
-          <span class="text-graveyard-red text-base">💀</span>
-          <p><strong class="text-white">Necrosis Stages:</strong> Ranging from 30-day <span class="text-blue-400 font-bold">Comatose</span> to 120+ day <span class="text-graveyard-red font-bold">Curse of the Ancients</span>.</p>
-        </div>
-        <div class="flex items-start space-x-3 text-xs">
-          <span class="text-graveyard-red text-base">☠️</span>
-          <p><strong class="text-white">The Autopsy Table:</strong> Over 400+ brutal coroner causes of death pulled straight from your dead repos.</p>
-        </div>
-        <div class="flex items-start space-x-3 text-xs">
-          <span class="text-graveyard-red text-base">📜</span>
-          <p><strong class="text-white">Dev Last Will:</strong> Legally bequeath your broken merge conflicts and dead code to friends on X.</p>
-        </div>
-      </div>
-
-      <a href="/auth/github" class="w-full bg-graveyard-red hover:bg-graveyard-darkred text-white font-bold py-3 px-4 rounded text-xs transition shadow-lg tracking-widest border border-red-500 block text-center uppercase">
-        DIG UP MY GITHUB CORPSE ➔
-      </a>
-
-      <p class="text-[10px] text-center text-graveyard-muted italic">
-        "Abandon hope, all ye who push `git push --force` to main."
+      <h2 class="text-3xl sm:text-4xl font-black text-white uppercase tracking-tight">
+        Where Abandoned Code <br/><span class="text-graveyard-red">Rots In Peace</span>
+      </h2>
+      <p class="text-sm text-graveyard-muted leading-relaxed">
+        Connect your GitHub account to scan your repositories, calculate your dev mortality rate, and perform autopsies on your dead projects.
       </p>
-    </section>
-
-    <!-- DASHBOARD SECTION (Populated after Auth) -->
-    <section id="dashboardSection" class="hidden space-y-5 text-left w-full">
-      <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg space-y-3 card-shadow">
-        <div class="flex items-center space-x-3">
-          <img id="userAvatar" src="" alt="Avatar" class="w-12 h-12 rounded border border-graveyard-red object-cover">
-          <div>
-            <h3 id="userName" class="text-sm font-bold text-white"></h3>
-            <p id="userHandle" class="text-xs text-graveyard-muted"></p>
-          </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-graveyard-border text-xs">
-          <div>
-            <span class="text-graveyard-muted block">Total Repos:</span>
-            <span id="statTotalRepos" class="text-white font-bold text-base">0</span>
-          </div>
-          <div>
-            <span class="text-graveyard-muted block">Dev Mortality Rate:</span>
-            <span id="statMortalityRate" class="text-graveyard-red font-bold text-base">0%</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="border border-graveyard-red/40 bg-graveyard-darkred/20 p-3 rounded text-xs space-y-2">
-        <p class="font-bold text-white flex items-center justify-between">
-          <span>🎯 X Giveaway Entry Active</span>
-          <span class="text-graveyard-red animate-pulse">● LIVE</span>
-        </p>
-        <p class="text-graveyard-muted">Autopsy a repo, download your gothic tombstone card, and drop it in our X replies to claim your stake.</p>
-        <button onclick="openWalletModal()" class="w-full bg-black hover:bg-graveyard-surface text-graveyard-red border border-graveyard-red py-2 rounded font-bold transition text-xs tracking-wider">
-          OPTIONAL: CONNECT EVM WALLET 🔗
+      <div class="pt-2">
+        <button onclick="loginWithGitHub()" class="w-full sm:w-auto bg-graveyard-red hover:bg-graveyard-darkred text-white text-sm font-bold px-8 py-3 rounded transition border border-red-600 shadow-lg uppercase tracking-wider">
+          CONNECT GITHUB TO SCAN
         </button>
       </div>
-
-      <div class="space-y-3">
-        <h4 class="text-xs uppercase tracking-wider text-graveyard-muted font-bold flex items-center justify-between">
-          <span>Buried Repositories</span>
-          <span id="deadRepoCount" class="text-graveyard-red font-bold">0</span>
-        </h4>
-        <div id="repoGraveyardList" class="space-y-2.5"></div>
-      </div>
     </section>
 
+    <!-- Dashboard Section (After Auth) -->
+    <section id="dashboardSection" class="hidden space-y-6">
+
+      <!-- Profile Header & Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- User Profile Card -->
+        <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg flex items-center gap-3">
+          <img id="userAvatar" src="" alt="Avatar" class="w-12 h-12 rounded-full border border-graveyard-border bg-black" />
+          <div class="overflow-hidden">
+            <h3 id="userName" class="text-sm font-bold text-white truncate"></h3>
+            <p id="userHandle" class="text-xs text-graveyard-muted truncate"></p>
+          </div>
+        </div>
+
+        <!-- Metric 1: Total Repos -->
+        <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg flex flex-col justify-center">
+          <span class="text-xs text-graveyard-muted font-bold uppercase tracking-wider">Total Repos</span>
+          <span id="statTotalRepos" class="text-2xl font-black text-white">0</span>
+        </div>
+
+        <!-- Metric 2: Dead Repos -->
+        <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg flex flex-col justify-center">
+          <span class="text-xs text-graveyard-muted font-bold uppercase tracking-wider">Buried Repos (30+ Days)</span>
+          <span id="deadRepoCount" class="text-2xl font-black text-graveyard-red">0</span>
+        </div>
+
+        <!-- Metric 3: Mortality Rate -->
+        <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg flex flex-col justify-center">
+          <span class="text-xs text-graveyard-muted font-bold uppercase tracking-wider">Dev Mortality Rate</span>
+          <span id="statMortalityRate" class="text-2xl font-black text-white">0%</span>
+        </div>
+      </div>
+
+      <!-- Repositories List Container -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-graveyard-muted uppercase tracking-wider">Repository Health & Crypts</h4>
+        </div>
+        <div id="repoGraveyardList" class="grid grid-cols-1 gap-3">
+          <!-- Injected dynamically via app.js -->
+        </div>
+      </div>
+
+    </section>
   </main>
 
-  <!-- AUTOPSY MODAL -->
-  <div id="autopsyModal" class="fixed inset-0 bg-black/95 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-graveyard-surface border border-graveyard-red w-full max-w-sm rounded-lg p-5 space-y-4 text-left card-shadow">
-      <div class="flex justify-between items-start border-b border-graveyard-border pb-2">
-        <div>
-          <span class="text-[10px] text-graveyard-red uppercase tracking-widest font-bold">Official Coroner Report ☠️</span>
-          <h3 id="modalRepoName" class="text-sm font-bold text-white pt-0.5">repo-name</h3>
-        </div>
-        <button onclick="closeAutopsyModal()" class="text-graveyard-muted hover:text-white text-lg font-bold">&times;</button>
-      </div>
+  <!-- Autopsy Modal -->
+  <div id="autopsyModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-graveyard-surface border border-graveyard-border p-6 rounded-xl max-w-md w-full space-y-5 relative shadow-2xl">
+      <button onclick="closeAutopsyModal()" class="absolute top-4 right-4 text-graveyard-muted hover:text-white text-lg font-bold">✕</button>
       
-      <div class="space-y-3 text-xs">
-        <div>
-          <span class="text-graveyard-muted block">Cause of Death:</span>
-          <p id="modalCauseOfDeath" class="text-graveyard-red font-bold mt-1 leading-relaxed bg-red-950/20 p-2.5 rounded border border-red-900/40"></p>
-        </div>
-        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-graveyard-border">
-          <div>
-            <span class="text-graveyard-muted block">Necrosis Stage:</span>
-            <span id="modalStage" class="text-white font-bold">Comatose</span>
-          </div>
-          <div>
-            <span class="text-graveyard-muted block">Inactivity:</span>
-            <span id="modalDays" class="text-white font-bold">0 days</span>
-          </div>
-        </div>
+      <div class="border-b border-graveyard-border pb-3">
+        <span id="modalStage" class="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide border"></span>
+        <h3 id="modalRepoName" class="text-xl font-black text-white mt-2"></h3>
+        <p class="text-xs text-graveyard-muted mt-0.5">Inactive for <span id="modalDays" class="text-white font-bold"></span></p>
+      </div>
+
+      <div class="bg-black/60 p-4 rounded-lg border border-graveyard-border space-y-1">
+        <h4 class="text-xs font-bold text-graveyard-red uppercase tracking-wide">Cause of Death:</h4>
+        <p id="modalCauseOfDeath" class="text-xs text-gray-300 italic leading-relaxed"></p>
       </div>
 
       <div class="space-y-2 pt-2">
-        <button onclick="generateTweetCard()" class="w-full bg-graveyard-red hover:bg-graveyard-darkred text-white py-2.5 rounded font-bold text-xs transition tracking-wider uppercase">
-          GENERATE TWEET & WILL 🐦
-        </button>
-        <button onclick="closeAutopsyModal()" class="w-full bg-graveyard-border hover:bg-graveyard-surface text-graveyard-muted hover:text-white py-1.5 rounded text-xs transition">
-          Close Report
-        </button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button id="modalWalletConnectBtn" onclick="openWalletModal()" class="w-full bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700 text-blue-200 text-xs font-bold py-2.5 px-3 rounded transition flex items-center justify-center gap-1.5">
+            <span>🔗 Connect EVM</span>
+          </button>
+          <button onclick="generateTweetCard()" class="w-full bg-graveyard-red hover:bg-graveyard-darkred border border-red-600 text-white text-xs font-bold py-2.5 px-3 rounded transition flex items-center justify-center gap-1.5 shadow-md">
+            <span>Share to X</span> 🐦
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- WALLET MODAL -->
-  <div id="walletModal" class="fixed inset-0 bg-black/95 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-graveyard-surface border border-graveyard-border w-full max-w-sm rounded-lg p-5 space-y-4 text-left">
-      <div class="flex justify-between items-center border-b border-graveyard-border pb-2">
-        <h3 class="text-sm font-bold text-white">Connect EVM Wallet</h3>
-        <button onclick="closeWalletModal()" class="text-graveyard-muted hover:text-white text-lg">&times;</button>
-      </div>
-      <p class="text-xs text-graveyard-muted">Select your web3 wallet to bind your address for verification:</p>
-      
-      <div class="space-y-2 text-xs">
-        <button onclick="connectSelectedWallet('metamask')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
-          <span class="font-bold text-white">MetaMask</span>
-          <span class="text-graveyard-muted">Extension / App</span>
+  <!-- Wallet Selection Modal -->
+  <div id="walletModal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-graveyard-surface border border-graveyard-border p-6 rounded-xl max-w-xs w-full space-y-4 relative shadow-2xl">
+      <button onclick="closeWalletModal()" class="absolute top-3 right-3 text-graveyard-muted hover:text-white text-lg font-bold">✕</button>
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-graveyard-border pb-2">Select EVM Wallet</h3>
+      <div class="space-y-2">
+        <button onclick="connectSelectedWallet('metamask')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
+          <span>MetaMask</span>
+          <span class="text-xs">🦊</span>
         </button>
-        <button onclick="connectSelectedWallet('coinbase')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
-          <span class="font-bold text-white">Coinbase Wallet</span>
-          <span class="text-graveyard-muted">Retail & Mobile</span>
+        <button onclick="connectSelectedWallet('phantom')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
+          <span>Phantom EVM</span>
+          <span class="text-xs">👻</span>
         </button>
-        <button onclick="connectSelectedWallet('phantom')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
-          <span class="font-bold text-white">Phantom</span>
-          <span class="text-graveyard-muted">Multichain</span>
-        </button>
-        <button onclick="connectSelectedWallet('robinhood')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
-          <span class="font-bold text-white">Robinhood Wallet</span>
-          <span class="text-graveyard-muted">Direct Link</span>
+        <button onclick="connectSelectedWallet('coinbase')" class="w-full bg-black hover:bg-graveyard-border border border-graveyard-border text-white text-xs font-bold py-2.5 px-3 rounded transition text-left flex items-center justify-between">
+          <span>Coinbase Wallet</span>
+          <span class="text-xs">🔵</span>
         </button>
       </div>
-      <p id="walletStatus" class="text-[10px] text-graveyard-red font-bold"></p>
+      <p id="walletStatus" class="text-[10px] text-graveyard-muted text-center pt-1 min-h-[16px]"></p>
     </div>
   </div>
 
-  <footer class="w-full border-t border-graveyard-border py-4 px-4 text-center text-[10px] text-graveyard-muted">
-    GitHub Graveyard • Built for Degens & Dead Code 🪦
+  <!-- Footer -->
+  <footer class="border-t border-graveyard-border py-4 px-4 text-center text-xs text-graveyard-muted">
+    <p>gitgraveyard.XYZ &copy; 2026 — ALL CODE DIES EVENTUALLY.</p>
   </footer>
 
-  <script src="/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
