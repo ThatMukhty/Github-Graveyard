@@ -1,4 +1,5 @@
 const AUTOPSY_CAUSES = [
+ 
   "Died of acute dependency hell: node_modules directory became heavier than a black hole.",
   "Abandoned instantly when the developer discovered a shiny new framework template.",
   "Killed by an unresolvable git merge conflict on a Friday night at 3 AM.",
@@ -6,8 +7,112 @@ const AUTOPSY_CAUSES = [
   "Died of loneliness. README.md contained only 'WIP - will finish tomorrow' for 14 months.",
   "Killed by scope creep: started as a simple todo app, ended as a broken microservices cluster.",
   "Died of zero user adoption after 3 months of obsessive localhost testing.",
-  "Succumbed to fatal syntax corruption: 404 semi-colons missing across production files."
+  "Succumbed to fatal syntax corruption: 404 semi-colons missing across production files.",
+  "Died of chronic tutorial addiction: watched 87 hours of courses but never wrote a single original function.",
+  "Murdered by a deprecated package that refused to die quietly.",
+  "Died of configuration poisoning: .env file contained more secrets than actual code.",
+  "Killed by an infinite loading spinner that outlived its creator's motivation.",
+  "Died of acute burnout after the developer promised a Friday launch on Monday.",
+  "Murdered by a CSS flexbox that refused to center itself.",
+  "Died of a fatal version mismatch between Node.js and the developer's patience.",
+  "Killed by an unexpected cloud bill before reaching the first 10 users.",
+  "Died of terminal velocity after npm install produced 1,247 warnings.",
+  "Murdered by a database migration that deleted production data and the developer's will to continue.",
+  "Died of chronic overengineering: needed a button, built an event-driven distributed architecture.",
+  "Killed by a mysterious CORS error that survived three AI assistants and two all-nighters.",
+  "Died of starvation after the API rate limit consumed its entire data supply.",
+  "Murdered by a README so empty that even the developer forgot what the project did.",
+  "Died of premature optimization before a single user arrived.",
+  "Killed by an authentication system that locked its creator out permanently.",
+  "Died of chronic imposter syndrome after seeing another developer's portfolio.",
+  "Murdered by a package-lock.json conflict that nobody dared to resolve.",
+  "Died of fatal feature bloat: the settings page had settings for its own settings.",
+  "Killed by a framework migration that turned a weekend project into a six-month archaeological dig.",
+  "Died of acute perfectionism: never released because the button radius was still wrong.",
+  "Murdered by a failed deployment at 11:59 PM on launch day.",
+  "Died of database amnesia after every refresh erased the entire application.",
+  "Killed by a forgotten free-tier limit that shut down the backend during its first demo.",
+  "Died of chronic placeholder disease: every feature was marked 'coming soon'.",
+  "Murdered by a rogue regular expression that consumed the entire validation layer.",
+  "Died of severe GitHub Actions failure after the CI pipeline rejected every possible commit.",
+  "Killed by an AI-generated codebase nobody understood well enough to debug.",
+  "Died of acute JavaScript callback hell before Promises could arrive.",
+  "Murdered by a single missing environment variable that brought down the entire system.",
+  "Died of memory leakage after an abandoned setInterval kept every component alive.",
+  "Killed by a redesign so ambitious that the original working version was deleted.",
+  "Died of terminal confusion after running the development server in the wrong directory for six hours.",
+  "Murdered by a broken webhook that silently ignored every incoming event.",
+  "Died of excessive abstraction: the function that returned true required eleven helper classes.",
+  "Killed by a 500 Internal Server Error that refused to reveal its last words.",
+  "Died of dependency starvation after the maintainer unpublished the critical package.",
+  "Murdered by a Docker container that worked everywhere except the developer's machine.",
+  "Died of chronic procrastination while the launch countdown reached its third anniversary.",
+  "Killed by an undocumented API change introduced five minutes before deployment.",
+  "Died of a fatal merge into main without testing, witnesses, or a backup.",
+  "Murdered by an accidental rm -rf that erased six months of undocumented genius.",
+  "Died of serverless confusion after deploying a backend that had no idea how to stay alive.",
+  "Killed by a broken OAuth callback redirecting every user into an existential loop.",
+  "Died of chronic impromptu rewrites: version 12 never made it past the planning stage.",
+  "Murdered by a database schema with 46 tables and absolutely no relationships.",
+  "Died of severe mobile responsiveness failure after the entire interface escaped the screen.",
+  "Killed by a mysterious race condition that disappeared whenever the developer opened DevTools.",
+  "Died of API abandonment after the third-party service changed its pricing overnight.",
+  "Murdered by an expired SSL certificate during the project's only viral moment.",
+  "Died of acute commit-message neglect: the entire Git history read 'fix', 'fix2', and 'final-final'.",
+  "Killed by a package manager civil war between npm, Yarn, and pnpm.",
+  "Died of chronic fake productivity: spent 40 hours choosing a tech stack and zero hours building.",
+  "Murdered by a broken state management system where changing one checkbox crashed the homepage.",
+  "Died of fatal authentication overkill: required biometric verification to display a welcome message.",
+  "Killed by an infinite redirect loop that trapped every visitor in digital purgatory.",
+  "Died of a missing semicolon in a legacy file nobody had touched since 2019.",
+  "Murdered by a frontend-backend treaty violation: both sides expected the other to handle validation.",
+  "Died of chronic abandoned branches: 38 feature branches and not one finished release.",
+  "Killed by an overconfident refactor that replaced working code with philosophical improvements.",
+  "Died of acute deployment anxiety: the developer refused to press the production button.",
+  "Murdered by a broken DNS record that sent visitors into the void.",
+  "Died of fatal cache corruption: users kept seeing a website that no longer existed.",
+  "Killed by a 12 MB hero image that loaded slower than the developer's career progression.",
+  "Died of severe testing neglect: the first real user became the entire QA department.",
+  "Murdered by a forgotten trial subscription that devoured the project's remaining budget.",
+  "Died of chronic empty-state syndrome: the dashboard looked incredible with data nobody had.",
+  "Killed by an undocumented legacy function named doStuff() that controlled everything.",
+  "Died of acute framework hopping after switching stacks for the fifth time in one month.",
+  "Murdered by a production database accidentally pointed at the local development environment.",
+  "Died of fatal merge paralysis: three developers disagreed over a variable name for two weeks.",
+  "Killed by a security audit that discovered the admin password was 'password123'.",
+  "Died of chronic demo-itis: worked perfectly when presented, collapsed immediately afterward.",
+  "Murdered by a rogue CSS z-index that buried the entire navigation behind the footer.",
+  "Died of API key withdrawal after the only developer with access deleted their account.",
+  "Killed by a stale browser compatibility issue that refused to respect modern JavaScript.",
+  "Died of fatal abstraction leakage: every simple change required edits across 27 files.",
+  "Murdered by an abandoned authentication library whose last update predates the current decade.",
+  "Died of acute server-log denial: the errors were visible, but nobody wanted to read them.",
+  "Killed by a failed payment integration before the first customer could pay.",
+  "Died of chronic localhost delusion: the developer believed the internet was just another port.",
+  "Murdered by a corrupted Git repository after the only backup was stored inside the repository.",
+  "Died of fatal UI inconsistency: every page looked like it belonged to a different startup.",
+  "Killed by an overcomplicated smart contract that required a PhD to mint a memorial.",
+  "Died of blockchain gas fees after the memorial cost more to preserve than the project was worth.",
+  "Murdered by a wallet connection flow that rejected every wallet except the developer's own.",
+  "Died of a failed testnet migration after the entire community moved to a different chain.",
+  "Killed by a tokenomics spreadsheet that had more utility than the actual product.",
+  "Died of chronic airdrop farming expectations: everyone wanted rewards, nobody wanted to use the app.",
+  "Murdered by a smart contract deployed to the wrong network with no upgrade path.",
+  "Died of acute founder distraction after discovering a newer, shinier idea on X.",
+  "Killed by a launch tweet that received three likes, two of which came from the founder.",
+  "Died of chronic feature-request poisoning: every stranger became the product manager.",
+  "Murdered by a forgotten TODO comment that became the entire technical roadmap.",
+  "Died peacefully after the developer finally admitted that the idea was better than the implementation."
+
 ];
+function getCauseOfDeath(repoName) {
+    let hash = 0;
+    for (let i = 0; i < repoName.length; i++) {
+        hash = repoName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % causesOfDeath.length;
+    return causesOfDeath[index];
+}
 
 let connectedWalletAddress = null;
 let userRepos = [];
@@ -131,7 +236,7 @@ const lastPushed = new Date(repo.pushed_at);
 
 const diffDays = Math.max(0, Math.floor((now - lastPushed) / (1000 * 60 * 60 * 24)));
 
-const cause = AUTOPSY_CAUSES[(repo.name.length + idx) % AUTOPSY_CAUSES.length];
+const cause = getCauseOfDeath(repo.name);
 
 
 return {
