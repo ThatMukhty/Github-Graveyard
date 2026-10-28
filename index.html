@@ -1,220 +1,210 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Graveyard — Exhume & Bury Abandoned Code</title>
-    <meta name="description" content="Scan, exhume, and claim $GRAVEYARD tokens for dead GitHub repositories.">
-    
-    <!-- Open Graph / Meta -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://gitgraveyard.xyz">
-    <meta property="og:title" content="GitHub Graveyard">
-    <meta property="og:description" content="Exhume dead GitHub repositories and claim burial rewards.">
-    
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="main.css">
-    
-    <!-- html2canvas for High-Res Pass Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Graveyard 🪦 | Bury Your Dead Code</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            graveyard: {
+              bg: '#050505',
+              surface: '#0d0d0d',
+              border: '#1f1f1f',
+              red: '#FF0033',
+              darkred: '#99001f',
+              bone: '#e5e5e5',
+              muted: '#737373'
+            }
+          },
+          fontFamily: {
+            mono: ['Courier New', Courier, monospace],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #050505; color: #e5e5e5; font-family: 'Courier New', Courier, monospace; }
+    .creepy-glow { text-shadow: 0 0 10px rgba(255, 0, 51, 0.4); }
+    .card-shadow { box-shadow: 0 4px 30px rgba(255, 0, 51, 0.08); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #050505; }
+    ::-webkit-scrollbar-thumb { background: #99001f; border-radius: 3px; }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between selection:bg-graveyard-red selection:text-white">
 
-    <!-- Animated Canvas Background (Particles & Embers) -->
-    <canvas id="bg-canvas"></canvas>
+  <!-- TOP HEADER -->
+  <header class="w-full border-b border-graveyard-border bg-graveyard-surface/80 backdrop-blur sticky top-0 z-50 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+      <span class="text-2xl animate-pulse">🪦</span>
+      <h1 class="font-bold tracking-wider text-graveyard-red text-lg uppercase creepy-glow">GitHub Graveyard</h1>
+    </div>
+    <div id="authContainer">
+      <a href="/auth/github" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-2 rounded transition border border-red-600 shadow-lg inline-block">
+        CONNECT GITHUB
+      </a>
+    </div>
+  </header>
 
-    <!-- Header Navigation -->
-    <header class="navbar">
-        <div class="nav-container">
-            <!-- Cyber-Skull Tombstone SVG Logo -->
-            <div class="brand-logo">
-                <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#22c55e" />
-                            <stop offset="100%" stop-color="#ef4444" />
-                        </linearGradient>
-                        <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
-                            <feMerge>
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                        </filter>
-                    </defs>
+  <!-- MAIN APP CONTAINER -->
+  <main class="w-full max-w-md mx-auto px-4 py-6 flex-grow flex flex-col justify-start">
 
-                    <!-- Tombstone Base Outer -->
-                    <path d="M 20 85 L 20 35 A 30 30 0 0 1 80 35 L 80 85 Z" fill="#0d1117" stroke="url(#neonGlow)" stroke-width="3" filter="url(#glowEffect)" />
-                    <!-- Crossbones / Code Brackets behind Skull -->
-                    <path d="M 30 40 L 70 70 M 70 40 L 30 70" stroke="#ef4444" stroke-width="3" stroke-linecap="round" opacity="0.6" />
-                    <!-- Cyber Skull Base -->
-                    <path d="M 35 45 C 35 35 65 35 65 45 C 65 55 60 58 60 62 L 40 62 C 40 58 35 55 35 45 Z" fill="#161b22" stroke="#22c55e" stroke-width="2" />
-                    <!-- Glowing Eye Sockets -->
-                    <polygon points="42,46 48,46 45,52" fill="#ef4444" />
-                    <polygon points="52,46 58,46 55,52" fill="#22c55e" />
-                    <!-- Skull Teeth Grid -->
-                    <line x1="43" y1="62" x2="43" y2="67" stroke="#22c55e" stroke-width="1.5" />
-                    <line x1="47" y1="62" x2="47" y2="67" stroke="#22c55e" stroke-width="1.5" />
-                    <line x1="51" y1="62" x2="51" y2="67" stroke="#22c55e" stroke-width="1.5" />
-                    <line x1="55" y1="62" x2="55" y2="67" stroke="#22c55e" stroke-width="1.5" />
-                    <!-- RIP Text -->
-                    <text x="50" y="32" font-family="'Courier New', monospace" font-size="8" font-weight="bold" fill="#22c55e" text-anchor="middle" letter-spacing="1">R.I.P</text>
-                </svg>
-                <div class="brand-text">
-                    <span class="title-primary">GITHUB</span>
-                    <span class="title-secondary">GRAVEYARD</span>
-                </div>
-            </div>
+    <!-- HERO SECTION -->
+    <section id="heroSection" class="space-y-6 text-left">
+      <div class="space-y-2">
+        <span class="text-xs uppercase tracking-widest text-graveyard-red font-bold">⚠️ System Diagnostic: Necrosis Detected</span>
+        <h2 class="text-3xl font-extrabold tracking-tight text-white leading-tight">
+          Where abandoned repositories come to <span class="text-graveyard-red underline decoration-graveyard-darkred">rot.</span>
+        </h2>
+        <p class="text-xs text-graveyard-muted leading-relaxed">
+          Log in with GitHub to securely scan your repositories, calculate your Dev Mortality Rate, autopsy your failures, and enter the X giveaway.
+        </p>
+      </div>
 
-            <!-- Wallet Connect Controls -->
-            <div class="wallet-controls">
-                <button id="connect-wallet-btn" class="btn btn-primary">
-                    <span class="btn-icon">⚡</span>
-                    <span id="wallet-btn-text">Connect Wallet</span>
-                </button>
-            </div>
+      <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg space-y-3">
+        <div class="flex items-start space-x-3 text-xs">
+          <span class="text-graveyard-red text-base">💀</span>
+          <p><strong class="text-white">Decay Tiers:</strong> From 30-day <span class="text-blue-400">Comatose</span> to 120+ day <span class="text-graveyard-red">Curse of the Ancients</span>.</p>
         </div>
-    </header>
+        <div class="flex items-start space-x-3 text-xs">
+          <span class="text-graveyard-red text-base">☠️</span>
+          <p><strong class="text-white">The Autopsy Table:</strong> Over 400+ unhinged coroner causes of death extracted from your repos.</p>
+        </div>
+        <div class="flex items-start space-x-3 text-xs">
+          <span class="text-graveyard-red text-base">📜</span>
+          <p><strong class="text-white">Dev Last Will:</strong> Bequeath your broken code to friends on X to trigger viral notifications.</p>
+        </div>
+      </div>
 
-    <!-- Main Content Container -->
-    <main class="main-container">
+      <a href="/auth/github" class="w-full bg-graveyard-red hover:bg-graveyard-darkred text-white font-bold py-3 px-4 rounded text-sm transition shadow-lg tracking-wider border border-red-500 block text-center">
+        SCAN MY GITHUB CORPSE ➔
+      </a>
+    </section>
+
+    <!-- DASHBOARD SECTION (Populated after Auth) -->
+    <section id="dashboardSection" class="hidden space-y-6 text-left w-full">
+      <div class="border border-graveyard-border bg-graveyard-surface p-4 rounded-lg space-y-3 card-shadow">
+        <div class="flex items-center space-x-3">
+          <img id="userAvatar" src="" alt="Avatar" class="w-12 h-12 rounded border border-graveyard-red object-cover">
+          <div>
+            <h3 id="userName" class="text-sm font-bold text-white"></h3>
+            <p id="userHandle" class="text-xs text-graveyard-muted"></p>
+          </div>
+        </div>
         
-        <!-- Hero & Search Input Section -->
-        <section class="hero-section">
-    <div class="hero-logo-wrapper">
-        <img src="logo.png" alt="GitHub Graveyard Logo" class="hero-logo-img">
-    </div>
-    <h1 class="hero-title">GITHUB GRAVEYARD</h1>
-    <p class="hero-subtitle">Exhume Dead Repos. Claim On-Chain Rewards.<br>Scan public repositories for inactivity, compute mortality metrics, and earn $GRAVEYARD.</p>
-            <div class="search-box-wrapper">
-                <div class="search-input-group">
-                    <span class="input-prefix">github.com/</span>
-                    <input type="text" id="repo-input" placeholder="owner/repository" autocomplete="off" spellcheck="false">
-                    <button id="scan-btn" class="btn btn-primary">
-                        <span>Exhume Repo</span>
-                    </button>
-                </div>
-                <div class="search-hint">Example: <code>facebook/react-native-website</code> or <code>torvalds/linux</code></div>
-            </div>
-        </section>
-
-        <!-- Radar Scan Overlay Indicator (Active during exhumation) -->
-        <div id="radar-container" class="radar-container hidden">
-            <div class="radar-sweep"></div>
-            <div class="radar-grid"></div>
-            <p class="radar-status-text">EXHUMING REPOSITORY DATA...</p>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-graveyard-border text-xs">
+          <div>
+            <span class="text-graveyard-muted block">Total Repos:</span>
+            <span id="statTotalRepos" class="text-white font-bold text-base">0</span>
+          </div>
+          <div>
+            <span class="text-graveyard-muted block">Mortality Rate:</span>
+            <span id="statMortalityRate" class="text-graveyard-red font-bold text-base">0%</span>
+          </div>
         </div>
+      </div>
 
-        <!-- Repository Results Container -->
-  <section id="results-section" class="results-section">
+      <div class="border border-graveyard-red/40 bg-graveyard-darkred/20 p-3 rounded text-xs space-y-2">
+        <p class="font-bold text-white flex items-center justify-between">
+          <span>🎯 Giveaway Entry Active</span>
+          <span class="text-graveyard-red animate-pulse">● LIVE</span>
+        </p>
+        <p class="text-graveyard-muted">Generate your tombstone card, download it, and reply under our X pinned post to qualify.</p>
+        <button onclick="openWalletModal()" class="w-full bg-black hover:bg-graveyard-surface text-graveyard-red border border-graveyard-red py-2 rounded font-bold transition text-xs">
+          OPTIONAL: CONNECT EVM WALLET 🔗
+        </button>
+      </div>
 
-<div id="results-container"></div>
-<div id="results"></div>
-<div id="scan-results"></div>
-<div id="repo-card-anchor"></div>
+      <div class="space-y-3">
+        <h4 class="text-xs uppercase tracking-wider text-graveyard-muted font-bold">Buried Repositories (<span id="deadRepoCount">0</span>)</h4>
+        <div id="repoGraveyardList" class="space-y-3"></div>
+      </div>
+    </section>
 
-</section>
+  </main>
 
-       <!-- Inline verification panel removed (handled dynamically inside modal) -->
-</main>
-
-    <!-- EXPANDED WEB3 WALLET SELECTION MODAL -->
-    <div id="wallet-modal" class="modal-backdrop hidden" style="display: none;">
-        <div class="modal-content glass-card">
-            <button class="modal-close modal-close-trigger">&times;</button>
-            <h3 style="margin-bottom: 0.25rem; font-size: 1.25rem;">Connect Web3 Wallet</h3>
-            <p style="font-size: 0.8rem; color: #8b949e; margin-bottom: 1.25rem;">
-                Select a wallet to verify ownership and bury dead repositories.
-            </p>
-            
-            <div class="wallet-grid-options" style="display: flex; flex-direction: column; gap: 0.6rem;">
-                <!-- Robinhood Wallet -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="robinhood" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> Robinhood Wallet</span>
-                </button>
-
-                <!-- Coinbase Wallet -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="coinbase" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> Coinbase Wallet</span>
-                </button>
-
-                <!-- Trust Wallet -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="trust" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> Trust Wallet</span>
-                </button>
-
-                <!-- MetaMask / Injected EVM -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="metamask" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> MetaMask / Injected EVM</span>
-                </button>
-
-                <!-- Phantom -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="phantom" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> Phantom</span>
-                </button>
-
-                <!-- Fomo Wallet -->
-                <button class="wallet-select-btn btn btn-secondary" data-wallet="fomo" style="width: 100%; justify-content: flex-start; padding: 0.75rem 1rem;">
-                    <span> Fomo Wallet</span>
-                </button>
-            </div>
+  <!-- AUTOPSY MODAL -->
+  <div id="autopsyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-graveyard-surface border border-graveyard-red w-full max-w-sm rounded-lg p-5 space-y-4 text-left card-shadow">
+      <div class="flex justify-between items-start border-b border-graveyard-border pb-2">
+        <div>
+          <span class="text-[10px] text-graveyard-red uppercase tracking-widest font-bold">Official Coroner Report</span>
+          <h3 id="modalRepoName" class="text-sm font-bold text-white">repo-name</h3>
         </div>
+        <button onclick="closeAutopsyModal()" class="text-graveyard-muted hover:text-white text-lg font-bold">&times;</button>
+      </div>
+      
+      <div class="space-y-3 text-xs">
+        <div>
+          <span class="text-graveyard-muted block">Cause of Death:</span>
+          <p id="modalCauseOfDeath" class="text-graveyard-red font-bold mt-0.5 leading-relaxed"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-graveyard-border">
+          <div>
+            <span class="text-graveyard-muted block">Stage:</span>
+            <span id="modalStage" class="text-white font-bold">Comatose</span>
+          </div>
+          <div>
+            <span class="text-graveyard-muted block">Inactivity:</span>
+            <span id="modalDays" class="text-white font-bold">0 days</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="generateTweetCard()" class="w-full bg-graveyard-red hover:bg-graveyard-darkred text-white py-2 rounded font-bold text-xs transition">
+          GENERATE TWEET & WILL 🐦
+        </button>
+        <button onclick="closeAutopsyModal()" class="w-full bg-graveyard-border hover:bg-graveyard-surface text-graveyard-muted hover:text-white py-1.5 rounded text-xs transition">
+          Close Report
+        </button>
+      </div>
     </div>
+  </div>
 
-   <!-- BIO VERIFICATION MODAL -->
+  <!-- WALLET MODAL -->
+  <div id="walletModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-graveyard-surface border border-graveyard-border w-full max-w-sm rounded-lg p-5 space-y-4 text-left">
+      <div class="flex justify-between items-center border-b border-graveyard-border pb-2">
+        <h3 class="text-sm font-bold text-white">Connect EVM Wallet</h3>
+        <button onclick="closeWalletModal()" class="text-graveyard-muted hover:text-white text-lg">&times;</button>
+      </div>
+      <p class="text-xs text-graveyard-muted">Select your web3 wallet to bind your address for verification:</p>
+      
+      <div class="space-y-2 text-xs">
+        <button onclick="connectSelectedWallet('metamask')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
+          <span class="font-bold text-white">MetaMask</span>
+          <span class="text-graveyard-muted">Extension / App</span>
+        </button>
+        <button onclick="connectSelectedWallet('coinbase')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
+          <span class="font-bold text-white">Coinbase Wallet</span>
+          <span class="text-graveyard-muted">Retail & Mobile</span>
+        </button>
+        <button onclick="connectSelectedWallet('phantom')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
+          <span class="font-bold text-white">Phantom</span>
+          <span class="text-graveyard-muted">Multichain</span>
+        </button>
+        <button onclick="connectSelectedWallet('robinhood')" class="w-full text-left p-3 rounded border border-graveyard-border hover:border-graveyard-red bg-black/40 flex items-center justify-between transition">
+          <span class="font-bold text-white">Robinhood Wallet</span>
+          <span class="text-graveyard-muted">Direct Link</span>
+        </button>
+      </div>
+      <p id="walletStatus" class="text-[10px] text-graveyard-red"></p>
+    </div>
+  </div>
 
-<div id="bio-modal" class="modal-backdrop hidden" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10000; padding: 1rem;">
+  <footer class="w-full border-t border-graveyard-border py-4 px-4 text-center text-[10px] text-graveyard-muted">
+    GitHub Graveyard • Built for Degens & Dead Code 🪦
+  </footer>
 
-<div class="modal-content glass-card" style="background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 1.5rem; max-width: 480px; width: 100%; color: #c9d1d9;">
-
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-
-<h3 style="margin: 0; font-size: 1.2rem; color: #f0f6fc;">Ownership Verification Required</h3>
-
-<button class="modal-close" style="background: none; border: none; color: #8b949e; font-size: 1.5rem; cursor: pointer;">&times;</button>
-
-</div>
-
-<p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 1rem; line-height: 1.4;">
-
-To bury this repo and claim $GRAVEYARD tokens, add your unique wallet-bound code to your public GitHub profile bio:
-
-</p>
-
-<div style="margin-bottom: 1.25rem;">
-
-<label style="display: block; font-size: 0.8rem; color: #8b949e; margin-bottom: 0.4rem;">GitHub Username</label>
-
-<input type="text" id="github-username-input" placeholder="e.g. octocat" style="width: 100%; padding: 0.65rem; background: #010409; border: 1px solid #30363d; border-radius: 6px; color: #f0f6fc; box-sizing: border-box; font-size: 0.9rem;">
-
-</div>
-
-<div style="background: #161b22; border: 1px solid #30363d; padding: 0.75rem 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-
-<code id="bio-code-text" style="color: #50fa7b; font-family: monospace; font-size: 0.95rem; font-weight: bold;">GRAVEYARD-USERNAME-XXXX</code>
-
-<button id="copy-bio-code-btn" class="btn" style="padding: 0.35rem 0.65rem; background: #21262d; color: #c9d1d9; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Copy</button>
-
-</div>
-
-<button id="verify-bio-modal-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">
-
-Verify Bio & Unlock Claims
-
-</button>
-
-</div>
-
-</div>
-
-<!-- CERTIFICATE MODAL CONTAINER -->
-<div id="certificate-modal" class="hidden"></div>
-    <!-- Your JavaScript Files -->
-    <script src="github.js"></script>
-    <script src="wallet.js"></script>
-        <script src="contract.js"></script>
-    <script src="app.js"></script>
-
-
+  <!-- LINK SEPARATE APP SCRIPT -->
+  <script src="/app.js"></script>
 </body>
 </html>

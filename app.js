@@ -1,496 +1,146 @@
-/**
- * GITHUB GRAVEYARD — MAIN APPLICATION CONTROLLER
- * Full feature suite: Scan routing, Exhumation execution, Bio-verification, 
- * Multi-wallet connection, Download card PNG, Copy link, and Toast UI.
- */
+const AUTOPSY_CAUSES = [
+  "Died of acute dependency hell: node_modules directory became too heavy to sustain life.",
+  "Abandoned instantly when the developer discovered a shiny new Next.js framework template.",
+  "Killed by an unresolvable git merge conflict on a Friday night at 3 AM.",
+  "Committed suicide after the developer forgot their environment variables and panicked.",
+  "Died of loneliness. README.md contained only the words 'WIP - will finish tomorrow' for 14 months.",
+  "Suffered complete organ failure when API keys were accidentally pushed to public GitHub.",
+  "Killed by scope creep: started as a simple todo app, ended as an enterprise Kubernetes cluster.",
+  "Died of zero user adoption after 3 months of obsessive local-host testing."
+];
 
-// Application State
-let state = {
-  activeRepoData: null,
-  isScanning: false,
-  isExhuming: false
-};
+let connectedWalletAddress = null;
+let userRepos = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-  initApp();
+// Check if user just logged in and fetch profile/repos on load
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/user');
+    const data = await res.json();
+
+    if (data.authenticated) {
+      document.getElementById('heroSection').classList.add('hidden');
+      const dashboard = document.getElementById('dashboardSection');
+      dashboard.classList.remove('hidden');
+      dashboard.classList.add('flex');
+      document.getElementById('authContainer').innerHTML = `<span class="text-xs text-graveyard-red font-bold">● CONNECTED</span>`;
+
+      document.getElementById('userAvatar').src = data.user.avatar_url;
+      document.getElementById('userName').innerText = data.user.name || data.user.login;
+      document.getElementById('userHandle').innerText = "@" + data.user.login;
+
+      userRepos = data.repos;
+      renderGraveyard(userRepos);
+    }
+  } catch (err) {
+    console.error("Not authenticated or fetch failed:", err);
+  }
 });
 
-/**
- * Initialize Event Listeners & Core Handlers
- */
-function initApp() {
-  // 1. Scan Form & Button Handling
-  const scanForm = document.getElementById('scan-form');
-  const scanBtn = document.getElementById('scan-btn');
-  const repoInput = document.getElementById('repo-input');
-
-  if (scanForm) {
-    scanForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      handleScan();
-    });
-  } else if (scanBtn) {
-    scanBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      handleScan();
-    });
-  }
-
-  if (repoInput) {
-    repoInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleScan();
-      }
-    });
-  }
-
-  // 2. Global Wallet Connect Button Listener
-  const walletConnectBtn = document.getElementById('connect-wallet-btn');
-  if (walletConnectBtn) {
-    walletConnectBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openWalletModal();
-    });
-  }
-
-  // 3. Modal Close Triggers
-  document.querySelectorAll('.modal-close, .close-modal-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      closeAllModals();
-    });
-  });
-
-  // 4. Wallet Provider Selection in Modal
-  document.querySelectorAll('.wallet-select-btn, .wallet-option-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const walletType = btn.dataset.wallet;
-      if (walletType) {
-        await connectWalletProvider(walletType);
-      }
-    });
-  });
-
-  // 5. Global Event Delegation
-  document.addEventListener('click', handleGlobalClickEvents);
-
-  // 6. Auto-reopen verification modal if returning from editing GitHub bio on mobile
-  const pending = localStorage.getItem('pending_verification');
-  if (pending) {
-    try {
-      const data = JSON.parse(pending);
-      if (data.walletAddress) {
-        openBioModal(data.walletAddress);
-      }
-    } catch (e) {
-      localStorage.removeItem('pending_verification');
-    }
-  }
+function getDecayTier(days) {
+  if (days >= 120) return { name: "Curse of the Ancients", color: "text-graveyard-red bg-red-950/40 border-red-900" };
+  if (days >= 90) return { name: "Skeletonized", color: "text-orange-500 bg-orange-950/40 border-orange-900" };
+  if (days >= 60) return { name: "Decomposing", color: "text-yellow-500 bg-yellow-950/40 border-yellow-900" };
+  return { name: "Comatose", color: "text-blue-400 bg-blue-950/40 border-blue-900" };
 }
 
-/**
- * Handles Repository Scanning
- */
-async function handleScan() {
-  if (state.isScanning) return;
+function renderGraveyard(repos) {
+  const deadRepos = repos.filter(r => r.daysInactive >= 30);
+  document.getElementById('deadRepoCount').innerText = deadRepos.length;
+  document.getElementById('statTotalRepos').innerText = repos.length;
+  
+  const mortality = repos.length > 0 ? Math.round((deadRepos.length / repos.length) * 100) : 0;
+  document.getElementById('statMortalityRate').innerText = mortality + "%";
 
-  const input = document.getElementById('repo-input')?.value;
-  const container = document.getElementById('results-container');
+  const listContainer = document.getElementById('repoGraveyardList');
+  listContainer.innerHTML = "";
 
-  const parsed = window.GraveyardScanner.parseRepoInput(input);
-  if (!parsed) {
-    showToast("Please enter a valid GitHub repository URL or owner/repo format.", "error");
-    return;
-  }
-
-  state.isScanning = true;
-  if (container) {
-    container.innerHTML = `
-      <div class="loader-container" style="text-align: center; padding: 3rem 1rem;">
-        <p style="color: #8b949e; font-size: 1rem;">Scanning graveyard records for <strong>${parsed.owner}/${parsed.repo}</strong>...</p>
+  repos.forEach((repo, idx) => {
+    const tier = getDecayTier(repo.daysInactive);
+    const cardHTML = `
+      <div class="border border-graveyard-border bg-graveyard-surface p-3 rounded flex items-center justify-between">
+        <div class="space-y-1">
+          <span class="text-[10px] px-1.5 py-0.5 rounded border ${tier.color} font-bold">${tier.name}</span>
+          <h5 class="text-xs font-bold text-white pt-1">${repo.name}</h5>
+          <p class="text-[10px] text-graveyard-muted">Inactive for ${repo.daysInactive} days</p>
+        </div>
+        <button onclick="openAutopsy(${idx})" class="bg-graveyard-border hover:bg-graveyard-red text-xs text-white px-2.5 py-1.5 rounded transition">
+          Autopsy ☠️
+        </button>
       </div>
     `;
-  }
-
-  try {
-    const repoData = await window.GraveyardScanner.scanRepository(parsed.owner, parsed.repo);
-    state.activeRepoData = repoData;
-
-    renderCardFromData(repoData);
-    showToast(`Successfully scanned ${repoData.full_name}`, "success");
-
-    // Trigger Bio Verification immediately after scanning
-    openBioModal(state.activeRepoData.owner?.login);
-  } catch (err) {
-    if (container) {
-      container.innerHTML = `
-        <div class="error-card glass-card" style="padding: 2rem; text-align: center; border: 1px solid #ff5555; background: rgba(255,85,85,0.05); border-radius: 12px; margin-top: 1.5rem;">
-          <h3 style="color: #ff5555; margin-top: 0;">Scan Failed</h3>
-          <p style="color: #c9d1d9;">${err.message}</p>
-        </div>
-      `;
-    }
-    showToast(err.message, "error");
-  } finally {
-    state.isScanning = false;
-  }
+    listContainer.innerHTML += cardHTML;
+  });
 }
 
-/**
- * Computes Metrics & Calls Scanner Card Render
- */
-function renderCardFromData(repoData) {
-  const daysInactive = window.GraveyardScanner.calculateDaysInactive(repoData.pushed_at);
-  const tier = window.GraveyardScanner.getMortalityTier(daysInactive);
-  const mortalityScore = window.GraveyardScanner.calculateMortalityScore(daysInactive);
-  const reward = window.GraveyardScanner.calculateTokenReward(daysInactive, tier.canBury);
+function openAutopsy(index) {
+  const repo = userRepos[index];
+  const tier = getDecayTier(repo.daysInactive);
+  const randomCause = AUTOPSY_CAUSES[Math.floor(Math.random() * AUTOPSY_CAUSES.length)];
 
-  const metrics = { daysInactive, tier, mortalityScore, reward };
-  window.GraveyardScanner.renderRepoCard(repoData, metrics);
+  document.getElementById('modalRepoName').innerText = repo.name;
+  document.getElementById('modalCauseOfDeath').innerText = randomCause;
+  document.getElementById('modalStage').innerText = tier.name;
+  document.getElementById('modalDays').innerText = repo.daysInactive + " days";
+
+  document.getElementById('autopsyModal').classList.remove('hidden');
 }
 
-/**
- * Handles Global Clicks (Delegation for Exhumation, Burial, Downloads, Shares, Copy Links)
- */
-async function handleGlobalClickEvents(e) {
-  // A. EXHUME BUTTON CLICK
-  const exhumeBtn = e.target.closest('#exhume-repo-btn');
-  if (exhumeBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    await executeExhumation(exhumeBtn);
-    return;
-  }
-
-  // B. BURY BUTTON CLICK
-  const buryBtn = e.target.closest('#bury-repo-btn');
-  if (buryBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    await handleBuryClick();
-    return;
-  }
-
-  // C. COPY SHARE LINK BUTTON
-  const copyLinkBtn = e.target.closest('#copy-share-link-btn');
-  if (copyLinkBtn) {
-    e.preventDefault();
-    navigator.clipboard.writeText(window.location.href);
-    showToast("Direct link copied to clipboard!", "success");
-    return;
-  }
-
-  // D. DOWNLOAD CARD IMAGE BUTTON
-  const downloadCardBtn = e.target.closest('#download-card-btn');
-  if (downloadCardBtn) {
-    e.preventDefault();
-    if (window.html2canvas) {
-      const cardElem = document.getElementById('graveyard-card');
-      if (cardElem) {
-        showToast("Generating card screenshot...", "info");
-        window.html2canvas(cardElem, { backgroundColor: '#0d1117' }).then(canvas => {
-          const link = document.createElement('a');
-          link.download = `${state.activeRepoData?.name || 'graveyard'}-certificate.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          showToast("Download started!", "success");
-        });
-      }
-    } else {
-      window.print();
-    }
-    return;
-  }
-
-  // E. COPY VERIFICATION BIO CODE
-  const copyBioBtn = e.target.closest('#copy-bio-code-btn');
-  if (copyBioBtn) {
-    e.preventDefault();
-    const codeText = document.getElementById('bio-code-text')?.innerText;
-    if (codeText) {
-      navigator.clipboard.writeText(codeText);
-      showToast("Verification code copied to clipboard!", "success");
-    }
-    return;
-  }
-
-  // F. VERIFY BIO & CONFIRM BURIAL
-  const verifyBioBtn = e.target.closest('#verify-bio-btn, #verify-bio-modal-btn');
-  if (verifyBioBtn) {
-    e.preventDefault();
-    await executeBioVerification();
-    return;
-  }
+function closeAutopsyModal() {
+  document.getElementById('autopsyModal').classList.add('hidden');
 }
 
-/**
- * Execute Exhumation Logic Safely
- */
-async function executeExhumation(exhumeBtn) {
-  if (state.isExhuming) return;
-
-  let owner = state.activeRepoData?.owner?.login;
-  let repo = state.activeRepoData?.name;
-
-  if (!owner || !repo) {
-    const input = document.getElementById('repo-input')?.value;
-    const parsed = window.GraveyardScanner.parseRepoInput(input);
-    if (parsed) {
-      owner = parsed.owner;
-      repo = parsed.repo;
-    }
-  }
-
-  if (!owner || !repo) {
-    showToast("No active repository loaded to exhume.", "error");
-    return;
-  }
-
-  state.isExhuming = true;
-  const originalContent = exhumeBtn.innerHTML;
-  exhumeBtn.innerHTML = `⚡ Verifying GitHub...`;
-  exhumeBtn.style.pointerEvents = "none";
-  exhumeBtn.style.opacity = "0.7";
-
-  try {
-    const result = await window.GraveyardScanner.exhumeRepo(owner, repo);
-
-    if (result.success) {
-      showToast(result.message, 'success');
-      state.activeRepoData = result.repoData;
-      renderCardFromData(result.repoData);
-
-      // Prompt Wallet Connection after repo is exhumed
-      openWalletModal();
-    } else {
-      showToast(result.message, "info");
-      exhumeBtn.innerHTML = originalContent;
-      exhumeBtn.style.pointerEvents = "auto";
-      exhumeBtn.style.opacity = "1";
-    }
-  } catch (err) {
-    showToast(err.message, "error");
-    exhumeBtn.innerHTML = originalContent;
-    exhumeBtn.style.pointerEvents = "auto";
-    exhumeBtn.style.opacity = "1";
-  } finally {
-    state.isExhuming = false;
-  }
-}
-
-/**
- * Handle Burial Step & Prompt Wallet / Verification Modals
- */
-async function handleBuryClick() {
-  if (!state.activeRepoData) {
-    showToast("Please scan a repository first.", "error");
-    return;
-  }
-
-  // Check module state first
-  let walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-  let activeAddress = walletState?.address;
-
-  // Fallback: If wallet state isn't synced yet, check if window.ethereum has connected accounts
-  if (!activeAddress && window.ethereum && window.ethereum.selectedAddress) {
-    activeAddress = window.ethereum.selectedAddress;
-  }
-
-  // If still no address, pop the wallet modal so the user can select their wallet
-  if (!activeAddress) {
-    showToast("Please select and connect your Web3 wallet.", "info");
-    openWalletModal();
-    return;
-  }
-
-  // Address is verified -> Proceed to bio verification modal
-  openBioModal(activeAddress);
-}
-
-/**
- * Verifies Bio Code on GitHub Profile
- */
-async function executeBioVerification() {
-  const walletState = window.GraveyardWallet ? window.GraveyardWallet.getState() : null;
-  const githubUsernameInput = document.getElementById('github-username-input')?.value;
-
-  if (!githubUsernameInput) {
-    showToast('Please enter your GitHub username.', 'error');
-    return;
-  }
-
-  const verifyBtn = document.getElementById('verify-bio-btn');
-  if (verifyBtn) {
-    verifyBtn.innerText = 'Verifying Profile...';
-    verifyBtn.disabled = true;
-  }
-
-  try {
-    // Uses dummy/fallback address if wallet isn't connected yet during Step 2
-    const addressToCheck = walletState?.address || '0x0000000000000000000000000000000000000000';
-    const res = await window.GraveyardScanner.verifyRepoOwnership(
-      githubUsernameInput.trim(),
-      addressToCheck
-    );
-
-    if (res.verified) {
-      showToast('GitHub Ownership Verified!', 'success');
-      closeAllModals();
-
-      // Proceed directly to Exhumation step
-      const exhumeBtn = document.getElementById('exhume-repo-btn') || document.createElement('button');
-      await executeExhumation(exhumeBtn);
-    } else {
-      showToast(`Verification code '${res.expectedCode}' not found in GitHub bio.`, 'error');
-    }
-  } catch (err) {
-    showToast(err.message, 'error');
-  } finally {
-    if (verifyBtn) {
-      verifyBtn.innerText = 'Verify Bio & Complete Burial';
-      verifyBtn.disabled = false;
-    }
-  }
-}
-
-/**
- * Modal Helpers
- */
-function openBioModal(walletAddress) {
-  const modal = document.getElementById('bio-modal');
-  const codeDisplay = document.getElementById('bio-code-text');
-  const usernameInput = document.getElementById('github-username-input');
-
-  // Extract repo owner as default username if available
-  if (usernameInput && !usernameInput.value && state.activeRepoData) {
-    usernameInput.value = state.activeRepoData.owner?.login || '';
-  }
-
-  const updateCodeDisplay = () => {
-    if (!walletAddress) return;
-    const username = (usernameInput?.value.trim() || 'USERNAME').toUpperCase();
-    const walletEnd = walletAddress.slice(-4).toUpperCase();
-    const code = `GRAVEYARD-${username}-${walletEnd}`;
-    if (codeDisplay) codeDisplay.innerText = code;
-  };
-
-  updateCodeDisplay();
-
-  if (usernameInput && !usernameInput.dataset.hasBioListener) {
-    usernameInput.addEventListener('input', updateCodeDisplay);
-    usernameInput.dataset.hasBioListener = 'true';
-  }
-
-  if (walletAddress) {
-    localStorage.setItem('pending_verification', JSON.stringify({
-      walletAddress,
-      repo: state.activeRepoData?.full_name || ''
-    }));
-  }
-
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-  }
+function generateTweetCard() {
+  const repoName = document.getElementById('modalRepoName').innerText;
+  const tweetText = encodeURIComponent(`My GitHub mortality rate is looking tragic 💀 Just autopsied my dead repo '${repoName}' and found it died of unresolvable dependency rot.\n\nCheck your dead code at GitHub Graveyard & drop your cards below! 🪦👇`);
+  window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
 }
 
 function openWalletModal() {
-  const walletModal = document.getElementById('wallet-modal');
-  if (walletModal) {
-    walletModal.classList.remove('hidden');
-    walletModal.style.display = 'flex';
-  } else {
-    console.error("wallet-modal element not found in HTML.");
-  }
+  document.getElementById('walletModal').classList.remove('hidden');
 }
 
-function closeAllModals() {
-  localStorage.removeItem('pending_verification');
-  document.querySelectorAll('.modal-overlay, .modal, .modal-backdrop, #wallet-modal, #bio-modal').forEach(modal => {
-    modal.style.display = 'none';
-    modal.classList.add('hidden');
-  });
+function closeWalletModal() {
+  document.getElementById('walletModal').classList.add('hidden');
 }
 
-/**
- * Custom Toast Notifications
- */
-function showToast(message, type = "info") {
-  let toastContainer = document.getElementById('toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'toast-container';
-    toastContainer.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    `;
-    document.body.appendChild(toastContainer);
-  }
-
-  const toast = document.createElement('div');
-  const bgColor = type === 'error' ? '#ff5555' : type === 'success' ? '#50fa7b' : '#8be9fd';
-
-  toast.style.cssText = `
-    background: ${bgColor};
-    color: #0d1117;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-    opacity: 0;
-    transform: translateY(10px);
-  `;
-  toast.innerText = message;
-
-  toastContainer.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-  }, 10);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
-}
-
-/**
- * Handles wallet provider selection & connection logic
- */
-async function connectWalletProvider(walletType) {
+window.connectSelectedWallet = async function(walletType) {
+  let provider = null;
   try {
-    const connectedAddress = await window.GraveyardWallet.connect(walletType);
+    if (walletType === 'phantom') {
+      provider = window.phantom?.ethereum;
+    } else if (walletType === 'metamask' || walletType === 'coinbase' || walletType === 'robinhood') {
+      provider = window.ethereum;
+    }
 
-    if (connectedAddress) {
-      const formatted = window.GraveyardWallet.formatAddress
-        ? window.GraveyardWallet.formatAddress(connectedAddress)
-        : `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`;
-
-      showToast(`Connected: ${formatted}`, 'success');
-      closeAllModals();
-
-      // Final step: Sign burial / claim message if available
-      const repoName = state.activeRepoData?.full_name || 'repo';
-      const msg = `Confirm Burial of ${repoName} for Wallet:${connectedAddress}`;
-
-      if (window.GraveyardWallet && window.GraveyardWallet.signMessage) {
-        await window.GraveyardWallet.signMessage(msg);
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (!provider && isMobile) {
+      const currentUrl = encodeURIComponent(window.location.href);
+      if (walletType === 'metamask') {
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+        return;
+      } else if (walletType === 'phantom') {
+        window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
+        return;
+      } else if (walletType === 'robinhood') {
+        window.location.href = `https://robinhood.com/wallet?action=browse&url=${currentUrl}`;
+        return;
       }
-    } else {
-      showToast("Wallet connection succeeded but no address returned.", "error");
+    }
+
+    if (!provider) {
+      document.getElementById('walletStatus').innerText = `Please install or open ${walletType.toUpperCase()} app.`;
+      return;
+    }
+
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    if (accounts && accounts.length > 0) {
+      connectedWalletAddress = accounts[0];
+      document.getElementById('walletStatus').innerText = `Connected: ${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
+      setTimeout(() => closeWalletModal(), 1200);
     }
   } catch (err) {
-    showToast(`Connection failed: ${err.message}`, "error");
+    console.error('Wallet error:', err);
+    document.getElementById('walletStatus').innerText = 'Connection failed: ' + err.message;
   }
-}
+};
