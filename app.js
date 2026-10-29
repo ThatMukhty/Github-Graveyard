@@ -435,44 +435,59 @@ function closeWalletModal() {
   document.getElementById('walletModal').classList.add('hidden');
 }
 window.connectSelectedWallet = async function(walletType) {
-  let provider = null;
-  try {
-    if (walletType === 'phantom') {
-      provider = window.phantom?.ethereum || window.ethereum;
-    } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
-      provider = window.ethereum;
-    }
-
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (!provider && isMobile) {
-      const currentUrl = encodeURIComponent(window.location.href);
-      if (walletType === 'metamask') {
-        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-        return;
-      }
-    }
-
-    if (!provider) {
-      document.getElementById('walletStatus').innerText = `Please install ${walletType.toUpperCase()} extension.`;
-      return;
-    }
-
-    const accounts = await provider.request({ method: 'eth_requestAccounts' });
-    if (accounts && accounts.length > 0) {
-      connectedWalletAddress = accounts[0];
-      const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
-      document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
-      
-      setTimeout(() => {
-        closeWalletModal();
-        renderGraveyard(userRepos); // Refreshes UI to show masked address on cards
-        if (activeMintRepo) {
-          alert(`Wallet connected (${maskedAddr})! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
+    let provider = null;
+    try {
+        if (walletType === 'phantom') {
+            provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
+        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
+            provider = window.ethereum;
         }
-      }, 800);
+
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+        // Mobile Deep Linking / Universal Links for all 5 wallets
+        if (!provider && isMobile) {
+            const currentUrl = window.location.href;
+            if (walletType === 'metamask') {
+                window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+                return;
+            } else if (walletType === 'coinbase') {
+                window.location.href = `https://go.cb-w.com/dapp?url=${encodeURIComponent(currentUrl)}`;
+                return;
+            } else if (walletType === 'phantom') {
+                window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(currentUrl)}?ref=${encodeURIComponent(window.location.host)}`;
+                return;
+            } else if (walletType === 'rabby') {
+                window.location.href = `https://rabby.io/deeplink/dapp?url=${encodeURIComponent(currentUrl)}`;
+                return;
+            } else if (walletType === 'walletconnect') {
+                // WalletConnect opens the native WC modal if library is initialized, otherwise fall back to prompt
+                alert("Please open WalletConnect via your mobile wallet app browser.");
+                return;
+            }
+        }
+
+        if (!provider) {
+            document.getElementById('walletStatus').innerText = `Please open inside ${walletType.toUpperCase()} app or install extension.`;
+            return;
+        }
+
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+            connectedWalletAddress = accounts[0];
+            const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
+            document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
+            setTimeout(() => {
+                closeWalletModal();
+                renderGraveyard(userRepos); // Refreshes UI to show connected address on cards
+                if (activeMintRepo) {
+                    alert(`Wallet connected (${maskedAddr})! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
+                }
+            }, 800);
+        }
+
+    } catch (err) {
+        console.error('Wallet error:', err);
+        document.getElementById('walletStatus').innerText = 'Connection failed or rejected.';
     }
-  } catch (err) {
-    console.error('Wallet error:', err);
-    document.getElementById('walletStatus').innerText = 'Connection failed or rejected.';
-  }
 };
