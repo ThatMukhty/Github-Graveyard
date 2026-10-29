@@ -491,7 +491,7 @@ window.connectSelectedWallet = async function(walletType) {
         if (WC) {
             if (statusEl) statusEl.innerText = "Opening WalletConnect...";
             const wcProvider = await WC.init({
-                projectId: '75f3a0134a6ef5771d754e6bby49dcb3',
+                projectId: '75e95356326c4feff8f0e14be4d62050',
                 chains: [1],
                 showQrModal: true
             });
