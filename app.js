@@ -139,9 +139,15 @@ function loginWithGitHub() {
 window.addEventListener('DOMContentLoaded', async () => {
     const authContainer = document.getElementById('authContainer');
 
-    // 1. Check for deep-link session first
+   // 1. Check for deep-link session and active repo first
     const urlParams = new URLSearchParams(window.location.search);
     const sessionParam = urlParams.get('session');
+    const repoParam = urlParams.get('repo');
+
+    if (repoParam) {
+        activeMintRepo = repoParam;
+        localStorage.setItem('graveyard_active_mint_repo', repoParam);
+    }
 
     if (sessionParam) {
         try {
@@ -579,29 +585,39 @@ window.connectSelectedWallet = async function(walletType) {
 }
             }
         }
-// Mobile deep-linking with session preservation
+// Mobile deep-linking with session & repo preservation for all wallets
         if (isMobile) {
             const cachedUser = localStorage.getItem('graveyard_cached_user');
             const cachedRepos = localStorage.getItem('graveyard_cached_repos');
+            const repoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo') || '';
             
             const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
-            const host = window.location.host + window.location.pathname;
-            const currentUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}?session=${sessionPayload}`);
+            const host = `${window.location.host}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
+            const currentUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`);
 
             if (walletType === 'phantom') {
                 window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
                 return;
             }
             if (walletType === 'metamask') {
-                window.location.href = `https://metamask.app.link/dapp/${host}?session=${sessionPayload}`;
+                window.location.href = `https://metamask.app.link/dapp/${host}`;
                 return;
             }
             if (walletType === 'coinbase') {
-                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}&session=${sessionPayload}`;
+                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}`;
+                return;
+            }
+            if (walletType === 'rabby') {
+                // Rabby mobile fallback to standard dapp browser scheme
+                window.location.href = `https://rabby.io/dl/dapp?url=${currentUrl}`;
+                return;
+            }
+            if (walletType === 'walletconnect') {
+                // WalletConnect deep-link handler or universal fallback
+                window.location.href = `https://walletconnect.com/wallet?url=${currentUrl}`;
                 return;
             }
         }
-
         alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser app.`);
 
     } catch (err) {
