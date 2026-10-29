@@ -454,121 +454,80 @@ window.connectedWalletAddress = null;
  * 1. Unified Wallet Connection Handler
  * Handles desktop extensions instantly and mobile deep links without losing session.
  */
+// Global variable to hold the connected address
+window.connectedWalletAddress = null;
+
+/**
+ * Simple, in-page wallet connection (No redirects, no landing page hops)
+ */
 window.connectSelectedWallet = async function(walletType) {
-    let provider = null;
     const statusEl = document.getElementById('walletStatus');
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
     try {
-        // Detect Injected Providers (Desktop Extensions & In-App Webviews)
+        let provider = null;
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase'].includes(walletType)) {
+        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
             provider = window.ethereum;
         }
 
-        // If an extension or in-app browser provider is available, connect right here in-page
-        if (provider) {
-            if (statusEl) statusEl.innerText = "Requesting connection...";
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+        if (!provider) {
+            alert(`Please open this app inside your ${walletType.toUpperCase()} browser extension or wallet browser.`);
+            if (statusEl) statusEl.innerText = `No provider found for ${walletType}.`;
+            return;
+        }
+
+        if (statusEl) statusEl.innerText = "Connecting wallet...";
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+
+        if (accounts && accounts.length > 0) {
+            window.connectedWalletAddress = accounts[0];
+            const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
             
-            if (accounts && accounts.length > 0) {
-                window.connectedWalletAddress = accounts[0];
-                const maskedAddr = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
-                
-                if (statusEl) statusEl.innerText = `Connected: ${maskedAddr}`;
-                
-                if (typeof closeWalletModal === 'function') closeWalletModal();
-                if (typeof renderGraveyard === 'function') renderGraveyard(window.userRepos);
-                return;
-            }
-        }
-
-        // Mobile Deep-Link Handling (Standard mobile browsers like Chrome/Safari)
-        if (isMobile) {
-            const currentUrl = encodeURIComponent(window.location.href);
-
-            if (walletType === 'phantom') {
-                const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
-                window.location.href = phantomDeepLink;
-                return;
-            } 
+            if (statusEl) statusEl.innerText = `Connected: ${masked}`;
+            if (typeof closeWalletModal === 'function') closeWalletModal();
             
-            if (walletType === 'metamask') {
-                const metamaskDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                window.location.href = metamaskDeepLink;
-                return;
-            }
-
-            if (walletType === 'walletconnect') {
-                if (statusEl) statusEl.innerText = "Please open inside a Web3 wallet browser for the best experience.";
-                alert("Please open gitgraveyard.xyz directly inside your wallet app's browser.");
-                return;
-            }
+            alert(`Wallet Connected: ${masked}`);
         }
-
-        // Fallback error message if no provider or deep-link matches
-        if (statusEl) {
-            statusEl.innerText = `Please install the ${walletType.toUpperCase()} extension or open inside a compatible wallet browser.`;
-        }
-
     } catch (err) {
-        console.error('Wallet connection error:', err);
-        if (statusEl) {
-            statusEl.innerText = 'Connection failed or was rejected.';
-        }
+        console.error("Wallet connection error:", err);
+        if (statusEl) statusEl.innerText = "Connection failed.";
     }
 };
 
 /**
- * 2. Option 1 Virtual Burial / Minting Handler
- * Records the burial locally with a professional simulated transaction hash.
+ * Bury Repository: Stamps the connected wallet address onto the card/burial record
  */
 window.buryRepositoryOnChain = async function(repoName, repoData) {
-    const statusEl = document.getElementById('walletStatus') || document.getElementById('mintStatus');
-    
-    // Ensure wallet is connected first
     if (!window.connectedWalletAddress) {
-        alert("Please connect your wallet first!");
+        alert("Please connect your wallet first to stamp your address on the tombstone!");
         if (typeof openWalletModal === 'function') openWalletModal();
         return;
     }
 
     try {
-        if (statusEl) statusEl.innerText = `Generating tombstone and recording burial for '${repoName}'... 🪦`;
-
-        // Generate a mock, professional transaction hash for the MVP feedback loop
-        const simulatedTxHash = "0x" + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-
-        // Save the burial record to localStorage
-        const burialRecord = {
+        // Add the connected wallet address directly into your repo/card data
+        const stampedRepoData = {
+            ...repoData,
             repoName: repoName,
-            owner: window.connectedWalletAddress,
-            timestamp: new Date().toISOString(),
-            txHash: simulatedTxHash,
-            score: repoData?.score || 'N/A',
-            daysSincePush: repoData?.daysSincePush || 'N/A'
+            buriedBy: window.connectedWalletAddress,
+            buriedAt: new Date().toISOString()
         };
 
-        let existingBurials = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
-        existingBurials.push(burialRecord);
-        localStorage.setItem('git_graveyard_records', JSON.stringify(existingBurials));
+        // Save to local storage for your graveyard dashboard
+        let burials = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
+        burials.push(stampedRepoData);
+        localStorage.setItem('git_graveyard_records', JSON.stringify(burials));
 
-        // Success UI Feedback
-        if (statusEl) {
-            statusEl.innerHTML = `Successfully buried! (Virtual On-Chain Record Saved)`;
-        }
+        alert(`Success! Repository '${repoName}' buried by ${window.connectedWalletAddress.substring(0,6)}... 🪦`);
         
-        alert(`Repository '${repoName}' successfully buried in the Git Graveyard! 🪦⛓️\nConnected Wallet: ${window.connectedWalletAddress.substring(0,6)}...`);
-        
-        // Refresh your graveyard view to show the newly buried repo
-        if (typeof renderGraveyard === 'function' && typeof userRepos !== 'undefined') {
+        // Refresh your UI or trigger your card download generator here, passing stampedRepoData
+        if (typeof renderGraveyard === 'function') {
             renderGraveyard(userRepos);
         }
 
     } catch (err) {
         console.error("Burial error:", err);
-        if (statusEl) statusEl.innerText = 'Burial process failed.';
-        alert("The burial process encountered an error.");
+        alert("Error completing the burial.");
     }
 };
