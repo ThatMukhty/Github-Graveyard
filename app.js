@@ -142,7 +142,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     // CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
     const savedRepos = localStorage.getItem('graveyard_cached_repos');
     const savedUser = localStorage.getItem('graveyard_cached_user');
+// Catch session passed from deep link URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
 
+    if (sessionParam) {
+        try {
+            const parsedSession = JSON.parse(decodeURIComponent(sessionParam));
+            if (parsedSession.user && parsedSession.repos) {
+                localStorage.setItem('graveyard_cached_user', parsedSession.user);
+                localStorage.setItem('graveyard_cached_repos', parsedSession.repos);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        } catch (e) {
+            console.error("Failed to restore deep-link session", e);
+        }
+    }
     if (savedRepos && savedUser) {
         userRepos = JSON.parse(savedRepos);
         const userData = JSON.parse(savedUser);
@@ -494,22 +509,25 @@ window.connectSelectedWallet = async function(walletType) {
                 return window.connectedWalletAddress;
             }
         }
-
-        // Mobile deep-linking to open directly inside the wallet app's browser
+// Mobile deep-linking with session preservation
         if (isMobile) {
-            const currentUrl = encodeURIComponent(window.location.href);
+            const cachedUser = localStorage.getItem('graveyard_cached_user');
+            const cachedRepos = localStorage.getItem('graveyard_cached_repos');
+            
+            const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
             const host = window.location.host + window.location.pathname;
+            const currentUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}?session=${sessionPayload}`);
 
             if (walletType === 'phantom') {
                 window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
                 return;
             }
             if (walletType === 'metamask') {
-                window.location.href = `https://metamask.app.link/dapp/${host}`;
+                window.location.href = `https://metamask.app.link/dapp/${host}?session=${sessionPayload}`;
                 return;
             }
             if (walletType === 'coinbase') {
-                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}`;
+                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}&session=${sessionPayload}`;
                 return;
             }
         }
