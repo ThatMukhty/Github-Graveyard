@@ -449,9 +449,6 @@ function closeWalletModal() {
 }
 window.connectedWalletAddress = null;
 
-/**
- * Unified Wallet Connection (Instant Desktop Extensions + Safe In-Page WalletConnect for Mobile)
- */
 window.connectSelectedWallet = async function(walletType) {
     const statusEl = document.getElementById('walletStatus');
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -459,22 +456,18 @@ window.connectSelectedWallet = async function(walletType) {
     try {
         let provider = null;
 
-        // 1. Check for Desktop Extensions first (MetaMask, Rabby, Phantom in-page)
+        // 1. Check for Desktop/In-App Extensions
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
         } else if (['metamask', 'rabby', 'coinbase'].includes(walletType)) {
             provider = window.ethereum;
         }
 
-        // If a desktop extension is right there, connect instantly in-page
         if (provider && !isMobile) {
-            if (statusEl) statusEl.innerText = "Requesting address...";
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            
             if (accounts && accounts.length > 0) {
                 window.connectedWalletAddress = accounts[0];
                 const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
-                
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
                 if (typeof closeWalletModal === 'function') closeWalletModal();
                 alert(`Wallet Connected: ${masked}`);
@@ -482,29 +475,36 @@ window.connectSelectedWallet = async function(walletType) {
             }
         }
 
-        // 2. For Mobile (or if WalletConnect is explicitly clicked): Use WalletConnect Modal
-        // This stays 100% on the page, opens your wallet via secure bridge, and keeps your GitHub session safe!
-        if (typeof EthereumProvider !== 'undefined') {
+        // 2. Dynamic Loader for WalletConnect (Loads it on-demand so it never fails on startup)
+        if (!window.EthereumProvider && !window.WalletConnectEthereumProvider) {
+            if (statusEl) statusEl.innerText = "Loading WalletConnect...";
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = "https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js";
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        const WC = window.EthereumProvider || window.WalletConnectEthereumProvider;
+        if (WC) {
             if (statusEl) statusEl.innerText = "Opening WalletConnect...";
-            
-            const wcProvider = await EthereumProvider.init({
-                projectId: '75e95356326c4feff8f0e14be4d62050', // Your actual project ID from your dashboard
-                chains: [1], // EVM Chain ID
+            const wcProvider = await WC.init({
+                projectId: '75f3a0134a6ef5771d754e6bby49dcb3',
+                chains: [1],
                 showQrModal: true
             });
-
             await wcProvider.enable();
             window.connectedWalletAddress = wcProvider.accounts[0];
-            
             const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
             if (statusEl) statusEl.innerText = `Connected: ${masked}`;
             if (typeof closeWalletModal === 'function') closeWalletModal();
-            
-            alert(`Wallet Connected Successfully: ${masked} 🪦`);
+            alert(`Wallet Connected: ${masked} 🪦`);
             return window.connectedWalletAddress;
-        } else {
-            alert("WalletConnect is loading. Please check your script tags.");
         }
+
+        alert("Could not initialize connection. Please check your internet connection.");
 
     } catch (err) {
         console.error("Connection error:", err);
