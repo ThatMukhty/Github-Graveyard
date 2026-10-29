@@ -284,15 +284,22 @@ function getDecayTier(days) {
   }
   return { name: "Comatose", color: "text-blue-400 bg-blue-950/40 border-blue-900", isDead: true };
 }
-
 function renderGraveyard(repos) {
-  const deadRepos = repos.filter(r => r.daysInactive >= 30);
-  document.getElementById('deadRepoCount').innerText = deadRepos.length;
-  document.getElementById('statTotalRepos').innerText = repos.length;
+    const deadRepos = repos.filter(r => r.daysInactive >= 30);
+    document.getElementById('deadRepoCount').innerText = deadRepos.length;
+    document.getElementById('statTotalRepos').innerText = repos.length;
 
-  const mortality = repos.length > 0 ? Math.round((deadRepos.length / repos.length) * 100) : 0;
-  document.getElementById('statMortalityRate').innerText = mortality + "%";
+    // Strict weighted calculation for the giveaway
+    let totalDecayScore = 0;
+    repos.forEach(repo => {
+        if (repo.daysInactive >= 365) totalDecayScore += 100;     // 1+ year dead
+        else if (repo.daysInactive >= 180) totalDecayScore += 80;  // 6+ months dead
+        else if (repo.daysInactive >= 90) totalDecayScore += 50;   // 3+ months dead
+        else if (repo.daysInactive >= 30) totalDecayScore += 10;   // Just crossed 30 days (10%)
+    });
 
+    const mortality = repos.length > 0 ? Math.round(totalDecayScore / repos.length) : 0;
+    document.getElementById('statMortalityRate').innerText = mortality + "%";
   const listContainer = document.getElementById('repoGraveyardList');
   listContainer.innerHTML = "";
 
