@@ -447,87 +447,134 @@ function openWalletModal() {
 function closeWalletModal() {
   document.getElementById('walletModal').classList.add('hidden');
 }
-// Global variables to track state
 window.connectedWalletAddress = null;
 
 /**
- * 1. Unified Wallet Connection Handler
- * Handles desktop extensions instantly and mobile deep links without losing session.
- */
-// Global variable to hold the connected address
-window.connectedWalletAddress = null;
-
-/**
- * Simple, in-page wallet connection (No redirects, no landing page hops)
+ * 1. Unified Wallet Connection (Extensions, Deep Links, & WalletConnect)
  */
 window.connectSelectedWallet = async function(walletType) {
     const statusEl = document.getElementById('walletStatus');
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
     try {
         let provider = null;
+
+        // A. Handle WalletConnect separately if triggered
+        if (walletType === 'walletconnect') {
+            if (typeof EthereumProvider !== 'undefined') {
+                if (statusEl) statusEl.innerText = "Initializing WalletConnect...";
+                
+                // Initialize WalletConnect Provider (Make sure your HTML includes the WalletConnect CDN script)
+                const wcProvider = await EthereumProvider.init({
+                    projectId: '75e95356326c4feff8f0e14be4d62050', // Replace with your free WalletConnect Cloud project ID
+                    chains: [1], // Mainnet / EVM chain ID (or Base chain ID: 8453)
+                    showQrModal: true
+                });
+
+                await wcProvider.enable();
+                window.connectedWalletAddress = wcProvider.accounts[0];
+                
+                const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
+                if (statusEl) statusEl.innerText = `Connected (WC): ${masked}`;
+                if (typeof closeWalletModal === 'function') closeWalletModal();
+                alert(`WalletConnect Connected: ${masked}`);
+                return window.connectedWalletAddress;
+            } else {
+                alert("WalletConnect library is loading or missing. Please use extension or deep link.");
+                return;
+            }
+        }
+
+        // B. Target injected providers for desktop or wallet in-app browsers
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
+        } else if (['metamask', 'rabby', 'coinbase'].includes(walletType)) {
             provider = window.ethereum;
         }
 
-        if (!provider) {
-            alert(`Please open this app inside your ${walletType.toUpperCase()} browser extension or wallet browser.`);
-            if (statusEl) statusEl.innerText = `No provider found for ${walletType}.`;
-            return;
+        // If provider exists in current context, connect instantly in-page
+        if (provider) {
+            if (statusEl) statusEl.innerText = "Requesting address...";
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            
+            if (accounts && accounts.length > 0) {
+                window.connectedWalletAddress = accounts[0];
+                const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
+                
+                if (statusEl) statusEl.innerText = `Connected: ${masked}`;
+                if (typeof closeWalletModal === 'function') closeWalletModal();
+                alert(`Wallet Connected: ${masked}`);
+                return window.connectedWalletAddress;
+            }
         }
 
-        if (statusEl) statusEl.innerText = "Connecting wallet...";
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+        // C. Mobile Deep-Link Handling (Stays in mobile browser flow, opens wallet app, returns safely)
+        if (isMobile) {
+            const currentUrl = encodeURIComponent(window.location.href);
+            const host = window.location.host + window.location.pathname;
 
-        if (accounts && accounts.length > 0) {
-            window.connectedWalletAddress = accounts[0];
-            const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
-            
-            if (statusEl) statusEl.innerText = `Connected: ${masked}`;
-            if (typeof closeWalletModal === 'function') closeWalletModal();
-            
-            alert(`Wallet Connected: ${masked}`);
+            if (walletType === 'phantom') {
+                window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+                return;
+            }
+            if (walletType === 'metamask') {
+                window.location.href = `https://metamask.app.link/dapp/${host}`;
+                return;
+            }
+            if (walletType === 'coinbase') {
+                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}`;
+                return;
+            }
         }
+
+        // Fallback message
+        if (statusEl) statusEl.innerText = `Please open inside your ${walletType.toUpperCase()} app or extension.`;
+        alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser or wallet app.`);
+
     } catch (err) {
-        console.error("Wallet connection error:", err);
-        if (statusEl) statusEl.innerText = "Connection failed.";
+        console.error("Connection error:", err);
+        if (statusEl) statusEl.innerText = "Connection failed or rejected.";
     }
 };
 
 /**
- * Bury Repository: Stamps the connected wallet address onto the card/burial record
+ * 2. Minting / Burying Action
+ * Fetches the connected address and stamps it directly onto the tombstone card download.
  */
 window.buryRepositoryOnChain = async function(repoName, repoData) {
     if (!window.connectedWalletAddress) {
-        alert("Please connect your wallet first to stamp your address on the tombstone!");
-        if (typeof openWalletModal === 'function') openWalletModal();
+        if (typeof openWalletModal === 'function') {
+            openWalletModal();
+        } else {
+            alert("Please connect your wallet first!");
+        }
         return;
     }
 
     try {
-        // Add the connected wallet address directly into your repo/card data
-        const stampedRepoData = {
+        // Stamp the fetched Ethereum address directly onto the card/repo metadata
+        const stampedData = {
             ...repoData,
             repoName: repoName,
-            buriedBy: window.connectedWalletAddress,
-            buriedAt: new Date().toISOString()
+            mintedBy: window.connectedWalletAddress,
+            mintedAt: new Date().toISOString()
         };
 
-        // Save to local storage for your graveyard dashboard
-        let burials = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
-        burials.push(stampedRepoData);
-        localStorage.setItem('git_graveyard_records', JSON.stringify(burials));
+        // Save locally for your graveyard dashboard view
+        let records = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
+        records.push(stampedData);
+        localStorage.setItem('git_graveyard_records', JSON.stringify(records));
 
-        alert(`Success! Repository '${repoName}' buried by ${window.connectedWalletAddress.substring(0,6)}... 🪦`);
-        
-        // Refresh your UI or trigger your card download generator here, passing stampedRepoData
-        if (typeof renderGraveyard === 'function') {
-            renderGraveyard(userRepos);
+        // Success feedback showing the stamped address on the card
+        alert(`Tombstone minted successfully!\nStamped with Address: ${window.connectedWalletAddress.substring(0,6)}...${window.connectedWalletAddress.substring(38)} 🪦`);
+
+        // Trigger your card generator/download function passing the stamped data
+        if (typeof generateAndDownloadCard === 'function') {
+            generateAndDownloadCard(stampedData);
         }
 
     } catch (err) {
-        console.error("Burial error:", err);
-        alert("Error completing the burial.");
+        console.error("Minting error:", err);
+        alert("Could not complete the minting action.");
     }
 };
