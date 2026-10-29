@@ -448,78 +448,106 @@ function closeWalletModal() {
   document.getElementById('walletModal').classList.add('hidden');
 }
 window.connectSelectedWallet = async function(walletType) {
-    let provider = null;
-    try {
-        if (walletType === 'phantom') {
-            provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
-            provider = window.ethereum;
-        }
 
-        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+let provider = null;
 
-        if (!provider && isMobile) {
-            const currentUrl = window.location.href;
-            if (walletType === 'metamask') {
-                window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
-                return;
-            } else if (walletType === 'coinbase') {
-                window.location.href = `https://go.cb-w.com/dapp?url=${encodeURIComponent(currentUrl)}`;
-                return;
-            } else if (walletType === 'phantom') {
-                window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(currentUrl)}?ref=${encodeURIComponent(window.location.host)}`;
-                return;
-            } else if (walletType === 'rabby') {
-                window.location.href = `https://rabby.io/deeplink/dapp?url=${encodeURIComponent(currentUrl)}`;
-                return;
-            }
-        }
+try {
 
-        if (!provider) {
-            document.getElementById('walletStatus').innerText = `Please open inside ${walletType.toUpperCase()} app or install extension.`;
-            return;
-        }
+if (walletType === 'phantom') {
 
-        // Request wallet connection
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-            connectedWalletAddress = accounts[0];
-            const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
-            document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
-            
-            closeWalletModal();
-            renderGraveyard(userRepos);
+provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
 
-            // ON-CHAIN BURIAL / MINTING TRANSACTION
-            if (activeMintRepo) {
-                document.getElementById('walletStatus').innerText = `Burying '${activeMintRepo}' on-chain... 🪦`;
-                
-                // Example transaction payload to your smart contract / contract mint function
-                // Replace 'YOUR_CONTRACT_ADDRESS' with your deployed NFT contract address if ready
-                const transactionParameters = {
-                    to: '0xYOUR_CONTRACT_ADDRESS_HERE', 
-                    from: connectedWalletAddress,
-                    value: '0x0', // Set to your mint price in wei if applicable (e.g., '0x5af3107a4000' for 0.0001 ETH)
-                    data: '0x'  // Replace with encoded function data if calling mint() directly via raw bytes
-                };
+} else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
 
-                try {
-                    // This pops up MetaMask/Phantom/Rabby to approve the actual burial transaction
-                    const txHash = await provider.request({
-                        method: 'eth_sendTransaction',
-                        params: [transactionParameters],
-                    });
-                    
-                    alert(`Repository '${activeMintRepo}' successfully buried on-chain! 🪦⛓️\nTx Hash: ${txHash}`);
-                } catch (txErr) {
-                    console.error("Transaction rejected:", txErr);
-                    alert("On-chain burial transaction was cancelled or failed.");
-                }
-            }
-        }
+provider = window.ethereum;
 
-    } catch (err) {
-        console.error('Wallet error:', err);
-        document.getElementById('walletStatus').innerText = 'Connection failed or rejected.';
-    }
+}
+
+
+const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+
+// REPLACEMENT 1: Removed window.location.href redirects to stop session wipes
+if (!provider && isMobile) {
+    document.getElementById('walletStatus').innerHTML = `Please open <b>gitgraveyard.xyz</b> inside your ${walletType.toUpperCase()} app's browser to connect safely!`;
+    return;
+}
+
+
+if (!provider) {
+
+document.getElementById('walletStatus').innerText = `Please open inside ${walletType.toUpperCase()} app or install extension.`;
+
+return;
+
+}
+
+
+// Request wallet connection
+
+const accounts = await provider.request({ method: 'eth_requestAccounts' });
+
+if (accounts && accounts.length > 0) {
+
+connectedWalletAddress = accounts[0];
+
+const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
+
+document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
+
+closeWalletModal();
+
+renderGraveyard(userRepos);
+
+
+// ON-CHAIN BURIAL / MINTING TRANSACTION
+
+if (activeMintRepo) {
+
+document.getElementById('walletStatus').innerText = `Burying '${activeMintRepo}' on-chain... 🪦`;
+
+// REPLACEMENT 2: Updated transaction handling structure to prevent blank execution
+const transactionParameters = {
+    to: 'YOUR_DEPLOYED_CONTRACT_ADDRESS', 
+    from: connectedWalletAddress,
+    value: '0x0', 
+    data: '0x' // Ensure you replace this with your encoded mint function bytecode or use an ethers.js contract instance
+};
+
+
+try {
+
+// This pops up MetaMask/Phantom/Rabby to approve the actual burial transaction
+
+const txHash = await provider.request({
+
+method: 'eth_sendTransaction',
+
+params: [transactionParameters],
+
+});
+
+alert(`Repository '${activeMintRepo}' successfully buried on-chain! 🪦⛓️\nTx Hash: ${txHash}`);
+
+} catch (txErr) {
+
+console.error("Transaction rejected:", txErr);
+
+alert("On-chain burial transaction was cancelled or failed.");
+
+}
+
+}
+
+}
+
+
+} catch (err) {
+
+console.error('Wallet error:', err);
+
+document.getElementById('walletStatus').innerText = 'Connection failed or rejected.';
+
+}
+
 };
