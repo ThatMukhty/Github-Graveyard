@@ -449,6 +449,9 @@ function closeWalletModal() {
 }
 window.connectedWalletAddress = null;
 
+/**
+ * 1. Connect and fetch the Ethereum address
+ */
 window.connectSelectedWallet = async function(walletType) {
     const statusEl = document.getElementById('walletStatus');
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -456,13 +459,14 @@ window.connectSelectedWallet = async function(walletType) {
     try {
         let provider = null;
 
-        // 1. Target injected providers (MetaMask, Phantom, Rabby, Coinbase extensions or in-app browsers)
+        // Check for injected provider (Desktop extension or mobile wallet's built-in browser)
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
         } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
             provider = window.ethereum;
         }
 
+        // If provider is active in the current context, fetch the address instantly
         if (provider) {
             if (statusEl) statusEl.innerText = "Requesting address...";
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
@@ -473,12 +477,12 @@ window.connectSelectedWallet = async function(walletType) {
                 
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
                 if (typeof closeWalletModal === 'function') closeWalletModal();
-                alert(`Wallet Connected: ${masked} 🪦`);
+                alert(`Wallet Connected & Address Fetched: ${masked} 🪦`);
                 return window.connectedWalletAddress;
             }
         }
 
-        // 2. Mobile deep link fallback if no extension is injected
+        // Mobile deep-linking to open directly inside the wallet app's browser
         if (isMobile) {
             const currentUrl = encodeURIComponent(window.location.href);
             const host = window.location.host + window.location.pathname;
@@ -497,11 +501,50 @@ window.connectSelectedWallet = async function(walletType) {
             }
         }
 
-        alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser or ensure your wallet extension is unlocked.`);
+        alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser app.`);
 
     } catch (err) {
         console.error("Connection error:", err);
         if (statusEl) statusEl.innerText = "Connection failed or rejected.";
-        alert("Connection was rejected or failed. Please try again.");
+    }
+};
+
+/**
+ * 2. Virtual "NFT Minting": Stamps the fetched Ethereum address onto the card and downloads it
+ */
+window.buryRepositoryOnChain = async function(repoName, repoData) {
+    if (!window.connectedWalletAddress) {
+        if (typeof openWalletModal === 'function') {
+            openWalletModal();
+        } else {
+            alert("Please connect your wallet first to fetch your address!");
+        }
+        return;
+    }
+
+    try {
+        // Stamp the fetched Ethereum address onto the tombstone card object
+        const stampedData = {
+            ...repoData,
+            repoName: repoName,
+            mintedBy: window.connectedWalletAddress, // Your fetched Eth wallet address
+            mintedAt: new Date().toISOString()
+        };
+
+        // Save locally for your graveyard history
+        let records = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
+        records.push(stampedData);
+        localStorage.setItem('git_graveyard_records', JSON.stringify(records));
+
+        alert(`Minted successfully! Stamped with address: ${window.connectedWalletAddress.substring(0,6)}...${window.connectedWalletAddress.substring(38)} 🪦`);
+
+        // Trigger your card generator/download function (Downloads card + Eth address screenshot)
+        if (typeof generateAndDownloadCard === 'function') {
+            generateAndDownloadCard(stampedData);
+        }
+
+    } catch (err) {
+        console.error("Minting error:", err);
+        alert("Could not complete the minting action.");
     }
 };
