@@ -445,7 +445,6 @@ window.connectSelectedWallet = async function(walletType) {
 
         const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
-        // Mobile Deep Linking / Universal Links for all 5 wallets
         if (!provider && isMobile) {
             const currentUrl = window.location.href;
             if (walletType === 'metamask') {
@@ -460,10 +459,6 @@ window.connectSelectedWallet = async function(walletType) {
             } else if (walletType === 'rabby') {
                 window.location.href = `https://rabby.io/deeplink/dapp?url=${encodeURIComponent(currentUrl)}`;
                 return;
-            } else if (walletType === 'walletconnect') {
-                // WalletConnect opens the native WC modal if library is initialized, otherwise fall back to prompt
-                alert("Please open WalletConnect via your mobile wallet app browser.");
-                return;
             }
         }
 
@@ -472,18 +467,42 @@ window.connectSelectedWallet = async function(walletType) {
             return;
         }
 
+        // Request wallet connection
         const accounts = await provider.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
             connectedWalletAddress = accounts[0];
             const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
             document.getElementById('walletStatus').innerText = `Connected: ${maskedAddr}`;
-            setTimeout(() => {
-                closeWalletModal();
-                renderGraveyard(userRepos); // Refreshes UI to show connected address on cards
-                if (activeMintRepo) {
-                    alert(`Wallet connected (${maskedAddr})! Ready to mint tombstone NFT on-chain for '${activeMintRepo}' ⚡`);
+            
+            closeWalletModal();
+            renderGraveyard(userRepos);
+
+            // ON-CHAIN BURIAL / MINTING TRANSACTION
+            if (activeMintRepo) {
+                document.getElementById('walletStatus').innerText = `Burying '${activeMintRepo}' on-chain... 🪦`;
+                
+                // Example transaction payload to your smart contract / contract mint function
+                // Replace 'YOUR_CONTRACT_ADDRESS' with your deployed NFT contract address if ready
+                const transactionParameters = {
+                    to: '0xYOUR_CONTRACT_ADDRESS_HERE', 
+                    from: connectedWalletAddress,
+                    value: '0x0', // Set to your mint price in wei if applicable (e.g., '0x5af3107a4000' for 0.0001 ETH)
+                    data: '0x'  // Replace with encoded function data if calling mint() directly via raw bytes
+                };
+
+                try {
+                    // This pops up MetaMask/Phantom/Rabby to approve the actual burial transaction
+                    const txHash = await provider.request({
+                        method: 'eth_sendTransaction',
+                        params: [transactionParameters],
+                    });
+                    
+                    alert(`Repository '${activeMintRepo}' successfully buried on-chain! 🪦⛓️\nTx Hash: ${txHash}`);
+                } catch (txErr) {
+                    console.error("Transaction rejected:", txErr);
+                    alert("On-chain burial transaction was cancelled or failed.");
                 }
-            }, 800);
+            }
         }
 
     } catch (err) {
