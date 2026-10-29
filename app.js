@@ -671,7 +671,7 @@ window.connectSelectedWallet = async function(walletType) {
         console.error("Connection error:", err);
         if (statusEl) statusEl.innerText = "Connection failed or rejected.";
     }
-};
+
 
 /**
  * 2. Virtual "NFT Minting": Stamps the fetched Ethereum address onto the card and downloads it
