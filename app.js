@@ -402,57 +402,67 @@ function renderGraveyard(repos) {
   });
 }
 function downloadTombstoneCard(repoName, days, tier) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1200;
-  canvas.height = 630;
-  const ctx = canvas.getContext('2d');
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = '#08080a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#08080a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = '#991b1b';
-  ctx.lineWidth = 8;
-  ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
 
-  ctx.fillStyle = '#991b1b';
-  ctx.fillRect(80, 80, 260, 45);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 20px monospace';
-  ctx.fillText('🪦 RIP CODEBASE', 105, 110);
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(80, 80, 260, 45);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText('🪦 RIP CODEBASE', 105, 110);
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 50px sans-serif';
-  ctx.fillText(repoName, 80, 190);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 50px sans-serif';
+    ctx.fillText(repoName, 80, 190);
 
-  ctx.fillStyle = '#888899';
-  ctx.font = '22px sans-serif';
-  ctx.fillText(`Rotting in silence for ${days} days — Status: ${tier}`, 80, 235);
+    ctx.fillStyle = '#888899';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(`Rotting in silence for ${days} days — Status: ${tier}`, 80, 235);
 
-  ctx.fillStyle = '#111116';
-  ctx.fillRect(80, 280, canvas.width - 160, 160);
-  ctx.strokeStyle = '#22222e';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(80, 280, canvas.width - 160, 160);
+    ctx.fillStyle = '#111116';
+    ctx.fillRect(80, 280, canvas.width - 160, 160);
+    ctx.strokeStyle = '#22222e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(80, 280, canvas.width - 160, 160);
 
-  ctx.fillStyle = '#dc2626';
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText('OFFICIAL CAUSE OF DEATH:', 120, 330);
+    ctx.fillStyle = '#dc2626';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('OFFICIAL CAUSE OF DEATH:', 120, 330);
 
-  const repoObj = userRepos.find(r => r.name === repoName);
-  const causeText = repoObj ? repoObj.causeOfDeath : "Died of unresolvable dependency rot.";
-  
-  ctx.fillStyle = '#d1d5db';
-  ctx.font = 'italic 24px sans-serif';
-  ctx.fillText(`"${causeText}"`, 120, 385, canvas.width - 240);
+    const repoObj = userRepos.find(r => r.name === repoName);
+    const causeText = repoObj ? repoObj.causeOfDeath : "Died of unresolvable dependency rot.";
+    ctx.fillStyle = '#d1d5db';
+    ctx.font = 'italic 24px sans-serif';
+    ctx.fillText(`"${causeText}"`, 120, 385, canvas.width - 240);
 
-  ctx.fillStyle = '#888899';
-  ctx.font = 'bold 18px monospace';
-  ctx.fillText('gitgraveyard.xyz •  ALL CODE DIES EVENTUALLY', 80, 520);
+    // --- STAMP CONNECTED EVM ADDRESS ON CANVAS ---
+    ctx.fillStyle = '#888899';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('gitgraveyard.xyz • ALL CODE DIES EVENTUALLY', 80, 500);
 
-  const link = document.createElement('a');
-  link.download = `${repoName}-tombstone.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+    if (window.connectedWalletAddress) {
+        ctx.fillStyle = '#3b82f6'; // Blue accent for Web3 stamp
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(`🔗 STAMPED TO EVM: ${window.connectedWalletAddress}`, 80, 540);
+    } else {
+        ctx.fillStyle = '#555566';
+        ctx.font = '16px monospace';
+        ctx.fillText('Unclaimed Tombstone', 80, 540);
+    }
+
+    const link = document.createElement('a');
+    link.download = `${repoName}-tombstone.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
 
 function tweetRepoCause(repoName) {
@@ -504,9 +514,69 @@ window.connectSelectedWallet = async function(walletType) {
                 const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
                 
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
-                if (typeof closeWalletModal === 'function') closeWalletModal();
-                alert(`Wallet Connected & Address Fetched: ${masked} 🪦`);
-                return window.connectedWalletAddress;
+             function downloadTombstoneCard(repoName, days, tier) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#08080a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(80, 80, 260, 45);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px monospace';
+    ctx.fillText('🪦 RIP CODEBASE', 105, 110);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 50px sans-serif';
+    ctx.fillText(repoName, 80, 190);
+
+    ctx.fillStyle = '#888899';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(`Rotting in silence for ${days} days — Status: ${tier}`, 80, 235);
+
+    ctx.fillStyle = '#111116';
+    ctx.fillRect(80, 280, canvas.width - 160, 160);
+    ctx.strokeStyle = '#22222e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(80, 280, canvas.width - 160, 160);
+
+    ctx.fillStyle = '#dc2626';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('OFFICIAL CAUSE OF DEATH:', 120, 330);
+
+    const repoObj = userRepos.find(r => r.name === repoName);
+    const causeText = repoObj ? repoObj.causeOfDeath : "Died of unresolvable dependency rot.";
+    ctx.fillStyle = '#d1d5db';
+    ctx.font = 'italic 24px sans-serif';
+    ctx.fillText(`"${causeText}"`, 120, 385, canvas.width - 240);
+
+    // --- STAMP CONNECTED EVM ADDRESS ON CANVAS ---
+    ctx.fillStyle = '#888899';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('gitgraveyard.xyz • ALL CODE DIES EVENTUALLY', 80, 500);
+
+    if (window.connectedWalletAddress) {
+        ctx.fillStyle = '#3b82f6'; // Blue accent for Web3 stamp
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(`🔗 STAMPED TO EVM: ${window.connectedWalletAddress}`, 80, 540);
+    } else {
+        ctx.fillStyle = '#555566';
+        ctx.font = '16px monospace';
+        ctx.fillText('Unclaimed Tombstone', 80, 540);
+    }
+
+    const link = document.createElement('a');
+    link.download = `${repoName}-tombstone.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
             }
         }
 // Mobile deep-linking with session preservation
