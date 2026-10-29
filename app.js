@@ -585,36 +585,34 @@ window.connectSelectedWallet = async function(walletType) {
 }
             }
         }
-// Mobile deep-linking with session & repo preservation for all wallets
+// Mobile deep-linking with session & repo preservation for all 5 wallets
         if (isMobile) {
             const cachedUser = localStorage.getItem('graveyard_cached_user');
             const cachedRepos = localStorage.getItem('graveyard_cached_repos');
             const repoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo') || '';
             
             const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
-            const host = `${window.location.host}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
-            const currentUrl = encodeURIComponent(`${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`);
+            const targetUrl = `${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
+            const encodedTargetUrl = encodeURIComponent(targetUrl);
 
             if (walletType === 'phantom') {
-                window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+                window.location.href = `phantom://browse?url=${encodedTargetUrl}`;
                 return;
             }
             if (walletType === 'metamask') {
-                window.location.href = `https://metamask.app.link/dapp/${host}`;
+                window.location.href = `https://metamask.app.link/dapp/${targetUrl.replace(/^https?:\/\//, '')}`;
                 return;
             }
             if (walletType === 'coinbase') {
-                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}`;
+                window.location.href = `https://go.cb-w.com/dapp?url=${encodedTargetUrl}`;
                 return;
             }
             if (walletType === 'rabby') {
-                // Rabby mobile fallback to standard dapp browser scheme
-                window.location.href = `https://rabby.io/dl/dapp?url=${currentUrl}`;
+                window.location.href = `rabby://dapp?url=${encodedTargetUrl}`;
                 return;
             }
             if (walletType === 'walletconnect') {
-                // WalletConnect deep-link handler or universal fallback
-                window.location.href = `https://walletconnect.com/wallet?url=${currentUrl}`;
+                window.location.href = `https://walletconnect.com/wallet?url=${encodedTargetUrl}`;
                 return;
             }
         }
