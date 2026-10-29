@@ -456,58 +456,52 @@ window.connectSelectedWallet = async function(walletType) {
     try {
         let provider = null;
 
-        // 1. Check for Desktop/In-App Extensions
+        // 1. Target injected providers (MetaMask, Phantom, Rabby, Coinbase extensions or in-app browsers)
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase'].includes(walletType)) {
+        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
             provider = window.ethereum;
         }
 
-        if (provider && !isMobile) {
+        if (provider) {
+            if (statusEl) statusEl.innerText = "Requesting address...";
             const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            
             if (accounts && accounts.length > 0) {
                 window.connectedWalletAddress = accounts[0];
                 const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
+                
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
                 if (typeof closeWalletModal === 'function') closeWalletModal();
-                alert(`Wallet Connected: ${masked}`);
+                alert(`Wallet Connected: ${masked} 🪦`);
                 return window.connectedWalletAddress;
             }
         }
 
-        // 2. Dynamic Loader for WalletConnect (Loads it on-demand so it never fails on startup)
-        if (!window.EthereumProvider && !window.WalletConnectEthereumProvider) {
-            if (statusEl) statusEl.innerText = "Loading WalletConnect...";
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = "https://unpkg.com/@walletconnect/ethereum-provider@2.11.1/dist/umd/index.min.js";
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
+        // 2. Mobile deep link fallback if no extension is injected
+        if (isMobile) {
+            const currentUrl = encodeURIComponent(window.location.href);
+            const host = window.location.host + window.location.pathname;
+
+            if (walletType === 'phantom') {
+                window.location.href = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+                return;
+            }
+            if (walletType === 'metamask') {
+                window.location.href = `https://metamask.app.link/dapp/${host}`;
+                return;
+            }
+            if (walletType === 'coinbase') {
+                window.location.href = `https://go.cb-w.com/dapp?url=${currentUrl}`;
+                return;
+            }
         }
 
-        const WC = window.EthereumProvider || window.WalletConnectEthereumProvider;
-        if (WC) {
-            if (statusEl) statusEl.innerText = "Opening WalletConnect...";
-            const wcProvider = await WC.init({
-                projectId: '75e95356326c4feff8f0e14be4d62050',
-                chains: [1],
-                showQrModal: true
-            });
-            await wcProvider.enable();
-            window.connectedWalletAddress = wcProvider.accounts[0];
-            const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
-            if (statusEl) statusEl.innerText = `Connected: ${masked}`;
-            if (typeof closeWalletModal === 'function') closeWalletModal();
-            alert(`Wallet Connected: ${masked} 🪦`);
-            return window.connectedWalletAddress;
-        }
-
-        alert("Could not initialize connection. Please check your internet connection.");
+        alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser or ensure your wallet extension is unlocked.`);
 
     } catch (err) {
         console.error("Connection error:", err);
         if (statusEl) statusEl.innerText = "Connection failed or rejected.";
+        alert("Connection was rejected or failed. Please try again.");
     }
 };
