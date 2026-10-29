@@ -654,8 +654,8 @@ window.connectSelectedWallet = async function(walletType) {
     link.href = canvas.toDataURL('image/png');
     link.click();
 }
-            }
-        }
+            
+        
 // Mobile deep-linking with session & repo preservation for all 5 wallets
         if (isMobile) {
             const cachedUser = localStorage.getItem('graveyard_cached_user');
