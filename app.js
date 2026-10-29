@@ -447,99 +447,114 @@ function openWalletModal() {
 function closeWalletModal() {
   document.getElementById('walletModal').classList.add('hidden');
 }
+// Global variables to track state
+window.connectedWalletAddress = null;
+
+/**
+ * 1. Unified Wallet Connection Handler
+ * Handles desktop extensions instantly and mobile deep links without losing session.
+ */
 window.connectSelectedWallet = async function(walletType) {
     let provider = null;
     const statusEl = document.getElementById('walletStatus');
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
 
     try {
-        // 1. Target the correct injected provider based on user selection
+        // Detect Injected Providers (Desktop Extensions & In-App Webviews)
         if (walletType === 'phantom') {
             provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
+        } else if (['metamask', 'rabby', 'coinbase'].includes(walletType)) {
             provider = window.ethereum;
         }
 
-        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-
-        // 2. Mobile guard: If no provider exists in this browser tab, 
-        // DO NOT use window.location.href (which kills your GitHub session).
-        // Instead, show a clear UI notice instructing them to use the wallet's in-app browser.
-        if (!provider && isMobile) {
-            if (statusEl) {
-                statusEl.innerHTML = `
-                    <span class="text-orange-400 block text-xs mt-1">
-                        Please open <b>gitgraveyard.xyz</b> inside your ${walletType.toUpperCase()} app browser to connect safely without losing your session!
-                    </span>
-                `;
-            }
-            return;
-        }
-
-        if (!provider) {
-            if (statusEl) {
-                statusEl.innerText = `No ${walletType.toUpperCase()} extension found. Please install it.`;
-            }
-            return;
-        }
-
-        if (statusEl) statusEl.innerText = "Requesting connection...";
-
-        // 3. Request account access securely
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        
-        if (accounts && accounts.length > 0) {
-            connectedWalletAddress = accounts[0];
-            const maskedAddr = `${connectedWalletAddress.substring(0, 6)}...${connectedWalletAddress.substring(38)}`;
+        // If an extension or in-app browser provider is available, connect right here in-page
+        if (provider) {
+            if (statusEl) statusEl.innerText = "Requesting connection...";
+            const accounts = await provider.request({ method: 'eth_requestAccounts' });
             
-            if (statusEl) statusEl.innerText = `Connected: ${maskedAddr}`;
+            if (accounts && accounts.length > 0) {
+                window.connectedWalletAddress = accounts[0];
+                const maskedAddr = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
+                
+                if (statusEl) statusEl.innerText = `Connected: ${maskedAddr}`;
+                
+                if (typeof closeWalletModal === 'function') closeWalletModal();
+                if (typeof renderGraveyard === 'function') renderGraveyard(window.userRepos);
+                return;
+            }
+        }
 
-            // Close modal and refresh your UI view
-            closeWalletModal();
-            renderGraveyard(userRepos);
+        // Mobile Deep-Link Handling (Standard mobile browsers like Chrome/Safari)
+        if (isMobile) {
+            const currentUrl = encodeURIComponent(window.location.href);
+
+            if (walletType === 'phantom') {
+                const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+                window.location.href = phantomDeepLink;
+                return;
+            } 
+            
+            if (walletType === 'metamask') {
+                const metamaskDeepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+                window.location.href = metamaskDeepLink;
+                return;
+            }
+
+            if (walletType === 'walletconnect') {
+                if (statusEl) statusEl.innerText = "Please open inside a Web3 wallet browser for the best experience.";
+                alert("Please open gitgraveyard.xyz directly inside your wallet app's browser.");
+                return;
+            }
+        }
+
+        // Fallback error message if no provider or deep-link matches
+        if (statusEl) {
+            statusEl.innerText = `Please install the ${walletType.toUpperCase()} extension or open inside a compatible wallet browser.`;
         }
 
     } catch (err) {
-        console.error('Wallet error:', err);
+        console.error('Wallet connection error:', err);
         if (statusEl) {
-            statusEl.innerText = 'Connection rejected or failed.';
+            statusEl.innerText = 'Connection failed or was rejected.';
         }
     }
 };
+
+/**
+ * 2. Option 1 Virtual Burial / Minting Handler
+ * Records the burial locally with a professional simulated transaction hash.
+ */
 window.buryRepositoryOnChain = async function(repoName, repoData) {
     const statusEl = document.getElementById('walletStatus') || document.getElementById('mintStatus');
     
-    // 1. Ensure wallet is connected first
+    // Ensure wallet is connected first
     if (!window.connectedWalletAddress) {
         alert("Please connect your wallet first!");
-        openWalletModal();
+        if (typeof openWalletModal === 'function') openWalletModal();
         return;
     }
 
     try {
         if (statusEl) statusEl.innerText = `Generating tombstone and recording burial for '${repoName}'... 🪦`;
 
-        // 2. Generate your cool visual card (if you have your canvas/image generator function ready)
-        // const cardDataUrl = await generateTombstoneCard(repoData);
-
-        // 3. Simulate a secure on-chain transaction receipt for the MVP
-        // This generates a mock, professional transaction hash so the user gets that real Web3 feedback loop
+        // Generate a mock, professional transaction hash for the MVP feedback loop
         const simulatedTxHash = "0x" + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
 
-        // 4. Save the burial record to localStorage or your backend database
+        // Save the burial record to localStorage
         const burialRecord = {
             repoName: repoName,
             owner: window.connectedWalletAddress,
             timestamp: new Date().toISOString(),
             txHash: simulatedTxHash,
-            score: repoData.score || 'N/A'
+            score: repoData?.score || 'N/A',
+            daysSincePush: repoData?.daysSincePush || 'N/A'
         };
 
-        // Save locally for your graveyard dashboard view
         let existingBurials = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
         existingBurials.push(burialRecord);
         localStorage.setItem('git_graveyard_records', JSON.stringify(existingBurials));
 
-        // 5. Success UI Feedback
+        // Success UI Feedback
         if (statusEl) {
             statusEl.innerHTML = `Successfully buried! (Virtual On-Chain Record Saved)`;
         }
@@ -547,7 +562,7 @@ window.buryRepositoryOnChain = async function(repoName, repoData) {
         alert(`Repository '${repoName}' successfully buried in the Git Graveyard! 🪦⛓️\nConnected Wallet: ${window.connectedWalletAddress.substring(0,6)}...`);
         
         // Refresh your graveyard view to show the newly buried repo
-        if (typeof renderGraveyard === 'function') {
+        if (typeof renderGraveyard === 'function' && typeof userRepos !== 'undefined') {
             renderGraveyard(userRepos);
         }
 
