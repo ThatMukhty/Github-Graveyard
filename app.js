@@ -1,4 +1,4 @@
-const  CauseOfDeath = [
+const causesOfDeath = [
  
   "Died of acute dependency hell: node_modules directory became heavier than a black hole.",
   "Abandoned instantly when the developer discovered a shiny new framework template.",
