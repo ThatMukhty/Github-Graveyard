@@ -139,10 +139,7 @@ function loginWithGitHub() {
 window.addEventListener('DOMContentLoaded', async () => {
     const authContainer = document.getElementById('authContainer');
 
-    // CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
-    const savedRepos = localStorage.getItem('graveyard_cached_repos');
-    const savedUser = localStorage.getItem('graveyard_cached_user');
-// Catch session passed from deep link URL
+    // 1. Check for deep-link session first
     const urlParams = new URLSearchParams(window.location.search);
     const sessionParam = urlParams.get('session');
 
@@ -158,11 +155,15 @@ window.addEventListener('DOMContentLoaded', async () => {
             console.error("Failed to restore deep-link session", e);
         }
     }
+
+    // 2. CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
+    const savedRepos = localStorage.getItem('graveyard_cached_repos');
+    const savedUser = localStorage.getItem('graveyard_cached_user');
+
     if (savedRepos && savedUser) {
         userRepos = JSON.parse(savedRepos);
         const userData = JSON.parse(savedUser);
 
-        // Hide hero, show dashboard instantly without needing GitHub code again!
         document.getElementById('heroSection').classList.add('hidden');
         document.getElementById('dashboardSection').classList.remove('hidden');
 
@@ -188,9 +189,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
+    // 3. Check for standard GitHub OAuth code callback
     const code = urlParams.get('code');
-
     if (code) {
         window.history.replaceState({}, document.title, window.location.pathname);
         await authenticateAndFetchData(code);
