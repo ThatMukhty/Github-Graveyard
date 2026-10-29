@@ -498,28 +498,99 @@ window.connectedWalletAddress = null;
  */
 window.connectSelectedWallet = async function(walletType) {
     const statusEl = document.getElementById('walletStatus');
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    const repoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo') || '';
+    if (repoToMint) {
+        localStorage.setItem('graveyard_active_mint_repo', repoToMint);
+    }
 
     try {
-        let provider = null;
+        const isPhantomBrowser = !!(window.solana && window.solana.isPhantom);
+        const isMetaMaskBrowser = !!(window.ethereum && window.ethereum.isMetaMask);
+        const isInAppBrowser = isPhantomBrowser || isMetaMaskBrowser || !!window.ethereum;
 
-        // Check for injected provider (Desktop extension or mobile wallet's built-in browser)
-        if (walletType === 'phantom') {
-            provider = window.phantom?.ethereum || (window.ethereum?.isPhantom ? window.ethereum : null);
-        } else if (['metamask', 'rabby', 'coinbase', 'walletconnect'].includes(walletType)) {
+        if (isMobile && !isInAppBrowser) {
+            const cachedUser = localStorage.getItem('graveyard_cached_user');
+            const cachedRepos = localStorage.getItem('graveyard_cached_repos');
+            
+            const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
+            const rawTargetUrl = `${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
+            const encodedTargetUrl = encodeURIComponent(rawTargetUrl);
+
+            if (walletType === 'phantom') {
+                window.location.href = `https://phantom.com/ul/browse/${encodedTargetUrl}`;
+                return;
+            }
+            if (walletType === 'metamask') {
+                window.location.href = `https://metamask.app.link/dapp/${rawTargetUrl.replace(/^https?:\/\//, '')}`;
+                return;
+            }
+            if (walletType === 'coinbase') {
+                window.location.href = `https://go.cb-w.com/dapp?url=${encodedTargetUrl}`;
+                return;
+            }
+            if (walletType === 'rabby') {
+                window.location.href = `https://rabby.io/dl/dapp?url=${encodedTargetUrl}`;
+                return;
+            }
+            if (walletType === 'walletconnect') {
+                window.location.href = `https://walletconnect.com/wallet?url=${encodedTargetUrl}`;
+                return;
+            }
+        }
+
+        let provider = null;
+        if (walletType === 'phantom' && window.solana) {
+            provider = window.solana;
+        } else if (window.ethereum) {
             provider = window.ethereum;
         }
 
-        // If provider is active in the current context, fetch the address instantly
         if (provider) {
-            if (statusEl) statusEl.innerText = "Requesting address...";
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
+            if (statusEl) statusEl.innerText = "Connecting wallet...";
             
-            if (accounts && accounts.length > 0) {
-                window.connectedWalletAddress = accounts[0];
-                const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
-                
+            let address = null;
+            if (walletType === 'phantom' && provider.isPhantom && provider.connect) {
+                const resp = await provider.connect();
+                address = resp.publicKey.toString();
+            } else if (provider.request) {
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                if (accounts && accounts.length > 0) {
+                    address = accounts[0];
+                }
+            }
+
+            if (address) {
+                window.connectedWalletAddress = address;
+                const masked = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
+                if (typeof closeWalletModal === 'function') closeWalletModal();
+
+                const targetRepoName = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
+                if (targetRepoName && typeof userRepos !== 'undefined' && userRepos.length > 0) {
+                    const targetRepo = userRepos.find(r => r.name === targetRepoName);
+                    if (targetRepo && typeof downloadTombstoneCard === 'function') {
+                        const tier = getDecayTier(targetRepo.daysInactive);
+                        downloadTombstoneCard(targetRepo.name, targetRepo.daysInactive, tier.name);
+                        localStorage.removeItem('graveyard_active_mint_repo');
+                        activeMintRepo = null;
+                    }
+                } else {
+                    alert(`Wallet Connected: ${masked} 🪦`);
+                }
+                return address;
+            }
+        } else {
+            alert("Please open this page inside your wallet app's built-in browser.");
+        }
+    } catch (err) {
+        console.error("Wallet connection error:", err);
+        if (statusEl) statusEl.innerText = "Connection failed";
+    }
+};
+
+
              function downloadTombstoneCard(repoName, days, tier) {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
