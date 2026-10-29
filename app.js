@@ -1,3 +1,16 @@
+// Session restoration check (prevents dropping back to landing page)
+document.addEventListener("DOMContentLoaded", () => {
+    const savedGitHubUser = localStorage.getItem('github_user') || localStorage.getItem('gh_token');
+    
+    if (savedGitHubUser) {
+        const landingEl = document.getElementById('landingPage') || document.getElementById('loginSection');
+        const dashboardEl = document.getElementById('dashboard') || document.getElementById('graveyardSection');
+        
+        if (landingEl) landingEl.style.display = 'none';
+        if (dashboardEl) dashboardEl.style.display = 'block';
+    }
+});
+
 const causesOfDeath = [
  
   "Died of acute dependency hell: node_modules directory became heavier than a black hole.",
