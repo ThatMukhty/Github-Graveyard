@@ -124,37 +124,49 @@ function loginWithGitHub() {
   window.location.href = githubAuthUrl;
 }
 window.addEventListener('DOMContentLoaded', async () => {
+    const authContainer = document.getElementById('authContainer');
 
-const authContainer = document.getElementById('authContainer');
+    // CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
+    const savedRepos = localStorage.getItem('graveyard_cached_repos');
+    const savedUser = localStorage.getItem('graveyard_cached_user');
 
-if (authContainer) {
+    if (savedRepos && savedUser) {
+        userRepos = JSON.parse(savedRepos);
+        const userData = JSON.parse(savedUser);
 
-authContainer.innerHTML = `
+        // Hide hero, show dashboard instantly without needing GitHub code again!
+        document.getElementById('heroSection').classList.add('hidden');
+        document.getElementById('dashboardSection').classList.remove('hidden');
 
-<button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
+        if (authContainer) {
+            authContainer.innerHTML = `
+                <div class="flex items-center gap-2 bg-red-950/40 border border-red-800 px-3 py-1 rounded">
+                    <span class="w-2 h-2 rounded-full bg-graveyard-red animate-pulse"></span>
+                    <span class="text-xs text-white font-bold uppercase">@${userData.login}</span>
+                </div>
+            `;
+        }
 
-CONNECT GITHUB
+        document.getElementById('userAvatar').src = userData.avatar_url;
+        document.getElementById('userName').innerText = userData.name || userData.login;
+        document.getElementById('userHandle').innerText = "@" + userData.login;
 
-</button>
+        renderGraveyard(userRepos);
+    } else if (authContainer) {
+        authContainer.innerHTML = `
+            <button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
+                CONNECT GITHUB
+            </button>
+        `;
+    }
 
-`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
 
-}
-
-
-const urlParams = new URLSearchParams(window.location.search);
-
-const code = urlParams.get('code');
-
-
-if (code) {
-
-window.history.replaceState({}, document.title, window.location.pathname);
-
-await authenticateAndFetchData(code);
-
-}
-
+    if (code) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        await authenticateAndFetchData(code);
+    }
 });
 
 async function authenticateAndFetchData(code) {
@@ -254,7 +266,8 @@ causeOfDeath: cause
 };
 
 }).filter(repo => !repo.fork);
-
+localStorage.setItem('graveyard_cached_repos', JSON.stringify(userRepos));
+localStorage.setItem('graveyard_cached_user', JSON.stringify(userData));
 
 renderGraveyard(userRepos);
 
