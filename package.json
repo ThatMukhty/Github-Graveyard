@@ -1,11 +1,17 @@
 {
-  "name": "git-graveyard",
+  "name": "github-graveyard",
   "version": "1.0.0",
-  "description": "Code mortality tracker and graveyard for abandoned GitHub repositories",
   "private": true,
-  "type": "module",
+  "description": "GitHub Graveyard — repository autopsies and on-chain memorials",
   "scripts": {
-    "dev": "vercel dev"
+    "compile": "hardhat compile",
+    "test": "hardhat test"
   },
-  "dependencies": {}
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "hardhat": "^2.26.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0"
+  }
 }
