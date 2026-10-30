@@ -150,6 +150,27 @@ window.addEventListener('DOMContentLoaded', async () => {
             console.error("Failed to restore deep-link session", e);
         }
     }
+    // --- AUTO-TRIGGER WALLET CONNECTION ON DEEP-LINK RETURN ---
+    const targetRepoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
+    if (targetRepoToMint) {
+        let attempts = 0;
+        const checkWalletInterval = setInterval(() => {
+            attempts++;
+            const isPhantomBrowser = !!(window.solana && window.solana.isPhantom);
+            const isMetaMaskBrowser = !!(window.ethereum && window.ethereum.isMetaMask);
+            const isInAppBrowser = isPhantomBrowser || isMetaMaskBrowser || !!window.ethereum;
+
+            if (isInAppBrowser || attempts > 10) {
+                clearInterval(checkWalletInterval);
+                if (isInAppBrowser) {
+                    const walletType = isPhantomBrowser ? 'phantom' : 'metamask';
+                    if (typeof connectSelectedWallet === 'function') {
+                        connectSelectedWallet(walletType);
+                    }
+                }
+            }
+        }, 400);
+    }
 
     const savedRepos = localStorage.getItem('graveyard_cached_repos');
     const savedUser = localStorage.getItem('graveyard_cached_user');
