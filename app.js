@@ -137,70 +137,142 @@ function loginWithGitHub() {
   window.location.href = githubAuthUrl;
 }
 window.addEventListener('DOMContentLoaded', async () => {
-    const authContainer = document.getElementById('authContainer');
 
-   // 1. Check for deep-link session and active repo first
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionParam = urlParams.get('session');
-    const repoParam = urlParams.get('repo');
+const authContainer = document.getElementById('authContainer');
 
-    if (repoParam) {
-        activeMintRepo = repoParam;
-        localStorage.setItem('graveyard_active_mint_repo', repoParam);
-    }
 
-    if (sessionParam) {
-        try {
-            const parsedSession = JSON.parse(decodeURIComponent(sessionParam));
-            if (parsedSession.user && parsedSession.repos) {
-                localStorage.setItem('graveyard_cached_user', parsedSession.user);
-                localStorage.setItem('graveyard_cached_repos', parsedSession.repos);
-                window.history.replaceState({}, document.title, window.location.pathname);
+// 1. Check for deep-link session and active repo first
+
+const urlParams = new URLSearchParams(window.location.search);
+
+const sessionParam = urlParams.get('session');
+
+const repoParam = urlParams.get('repo');
+
+
+if (repoParam) {
+
+activeMintRepo = repoParam;
+
+localStorage.setItem('graveyard_active_mint_repo', repoParam);
+
+}
+
+
+if (sessionParam) {
+
+try {
+
+const parsedSession = JSON.parse(decodeURIComponent(sessionParam));
+
+if (parsedSession.user && parsedSession.repos) {
+
+localStorage.setItem('graveyard_cached_user', parsedSession.user);
+
+localStorage.setItem('graveyard_cached_repos', parsedSession.repos);
+
+window.history.replaceState({}, document.title, window.location.pathname);
+
+}
+
+} catch (e) {
+
+console.error("Failed to restore deep-link session", e);
+
+}
+
+}
+
+
+// 2. CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
+
+const savedRepos = localStorage.getItem('graveyard_cached_repos');
+
+const savedUser = localStorage.getItem('graveyard_cached_user');
+
+
+if (savedRepos && savedUser) {
+
+userRepos = JSON.parse(savedRepos);
+
+const userData = JSON.parse(savedUser);
+
+
+document.getElementById('heroSection').classList.add('hidden');
+
+document.getElementById('dashboardSection').classList.remove('hidden');
+
+
+if (authContainer) {
+
+authContainer.innerHTML = `
+
+<div class="flex items-center gap-2 bg-red-950/40 border border-red-800 px-3 py-1 rounded">
+
+<span class="w-2 h-2 rounded-full bg-graveyard-red animate-pulse"></span>
+
+<span class="text-xs text-white font-bold uppercase">@${userData.login}</span>
+
+</div>
+
+`;
+
+}
+
+
+document.getElementById('userAvatar').src = userData.avatar_url;
+
+document.getElementById('userName').innerText = userData.name || userData.login;
+
+document.getElementById('userHandle').innerText = "@" + userData.login;
+
+
+renderGraveyard(userRepos);
+
+} else if (authContainer) {
+
+authContainer.innerHTML = `
+
+<button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
+
+CONNECT GITHUB
+
+</button>
+
+`;
+
+}
+
+
+// 3. Check for standard GitHub OAuth code callback
+
+const code = urlParams.get('code');
+
+if (code) {
+
+window.history.replaceState({}, document.title, window.location.pathname);
+
+await authenticateAndFetchData(code);
+
+}
+
+// 4. --- AUTO-TRIGGER WALLET CONNECTION ON DEEP-LINK RETURN ---
+const activeRepoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
+if (activeRepoToMint) {
+    const isPhantomBrowser = !!(window.solana && window.solana.isPhantom);
+    const isMetaMaskBrowser = !!(window.ethereum && window.ethereum.isMetaMask);
+    const isInAppBrowser = isPhantomBrowser || isMetaMaskBrowser || !!window.ethereum;
+
+    if (isInAppBrowser) {
+        setTimeout(() => {
+            const walletType = isPhantomBrowser ? 'phantom' : 'metamask';
+            if (typeof connectSelectedWallet === 'function') {
+                connectSelectedWallet(walletType);
             }
-        } catch (e) {
-            console.error("Failed to restore deep-link session", e);
-        }
+        }, 1000);
     }
+}
 
-    // 2. CHECK IF WE ALREADY HAVE A SAVED SESSION IN BROWSER STORAGE
-    const savedRepos = localStorage.getItem('graveyard_cached_repos');
-    const savedUser = localStorage.getItem('graveyard_cached_user');
-
-    if (savedRepos && savedUser) {
-        userRepos = JSON.parse(savedRepos);
-        const userData = JSON.parse(savedUser);
-
-        document.getElementById('heroSection').classList.add('hidden');
-        document.getElementById('dashboardSection').classList.remove('hidden');
-
-        if (authContainer) {
-            authContainer.innerHTML = `
-                <div class="flex items-center gap-2 bg-red-950/40 border border-red-800 px-3 py-1 rounded">
-                    <span class="w-2 h-2 rounded-full bg-graveyard-red animate-pulse"></span>
-                    <span class="text-xs text-white font-bold uppercase">@${userData.login}</span>
-                </div>
-            `;
-        }
-
-        document.getElementById('userAvatar').src = userData.avatar_url;
-        document.getElementById('userName').innerText = userData.name || userData.login;
-        document.getElementById('userHandle').innerText = "@" + userData.login;
-
-        renderGraveyard(userRepos);
-    } else if (authContainer) {
-        authContainer.innerHTML = `
-            <button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
-                CONNECT GITHUB
-            </button>
-        `;
-    }
-
-    // 3. Check for standard GitHub OAuth code callback
-    const code = urlParams.get('code');
-    if (code) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        await authenticateAndFetchData(code);
-    }
 });
 
 async function authenticateAndFetchData(code) {
