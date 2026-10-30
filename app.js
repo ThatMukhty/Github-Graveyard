@@ -150,27 +150,31 @@ window.addEventListener('DOMContentLoaded', async () => {
             console.error("Failed to restore deep-link session", e);
         }
     }
-    // --- AUTO-TRIGGER WALLET CONNECTION ON DEEP-LINK RETURN ---
-    const targetRepoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
-    if (targetRepoToMint) {
-        let attempts = 0;
-        const checkWalletInterval = setInterval(() => {
-            attempts++;
-            const isPhantomBrowser = !!(window.solana && window.solana.isPhantom);
-            const isMetaMaskBrowser = !!(window.ethereum && window.ethereum.isMetaMask);
-            const isInAppBrowser = isPhantomBrowser || isMetaMaskBrowser || !!window.ethereum;
+   // --- DEEP-LINK RETURN HANDLER (USER-INTERACTION UNLOCK) ---
+        const returnRepoName = urlParams.get('repo') || localStorage.getItem('graveyard_active_mint_repo');
+        if (returnRepoName) {
+            const heroSection = document.getElementById('heroSection');
+            const dashboardSection = document.getElementById('dashboardSection');
+            
+            if (heroSection) heroSection.classList.add('hidden');
+            if (dashboardSection) dashboardSection.classList.remove('hidden');
 
-            if (isInAppBrowser || attempts > 10) {
-                clearInterval(checkWalletInterval);
-                if (isInAppBrowser) {
-                    const walletType = isPhantomBrowser ? 'phantom' : 'metamask';
-                    if (typeof connectSelectedWallet === 'function') {
-                        connectSelectedWallet(walletType);
-                    }
-                }
-            }
-        }, 400);
-    }
+            // Inject a forced prompt banner over the screen so the user's tap satisfies the mobile security requirement
+            const banner = document.createElement('div');
+            banner.id = 'deepLinkReturnBanner';
+            banner.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
+            banner.innerHTML = `
+                <div class="bg-graveyard-surface border-2 border-red-900 p-6 rounded-xl max-w-sm w-full text-center space-y-4 shadow-2xl animate-pulse">
+                    <span class="text-3xl">👻</span>
+                    <h3 class="text-base font-black text-white uppercase tracking-wider">Complete Your Connection</h3>
+                    <p class="text-xs text-graveyard-muted">You returned from your wallet app. Tap below to finish fetching your EVM address for <span class="text-white font-bold">${returnRepoName}</span>.</p>
+                    <button onclick="triggerWalletAuthAfterReturn('${returnRepoName}')" class="w-full bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-black py-3 px-4 rounded uppercase tracking-widest border border-red-500 shadow-lg">
+                        FINISH & STAMP TOMBSTONE ⚡
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(banner);
+        }
 
     const savedRepos = localStorage.getItem('graveyard_cached_repos');
     const savedUser = localStorage.getItem('graveyard_cached_user');
@@ -393,9 +397,8 @@ window.connectSelectedWallet = async function(walletType) {
             const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
             const targetUrl = `${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
             const encodedTargetUrl = encodeURIComponent(targetUrl);
-
-            if (walletType === 'phantom') {
-                window.location.href = `phantom://browse?url=${encodedTargetUrl}`;
+if (walletType === 'phantom') {
+                window.location.href = `https://phantom.app/ul/browse/${encodedTargetUrl}?ref=${encodeURIComponent(window.location.origin)}`;
                 return;
             }
             if (walletType === 'metamask') {
@@ -523,3 +526,15 @@ function tweetRepoCause(repoName) {
     const tweetText = encodeURIComponent(`My codebase '${repoName}' just died on GitHub Graveyard 💀 Cause of death: "${cause}"\n\nCheck your repo mortality rate at https://gitgraveyard.xyz & drop your tombstones below! 🪦👇`);
     window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
 }
+window.triggerWalletAuthAfterReturn = async function(repoName) {
+    const banner = document.getElementById('deepLinkReturnBanner');
+    if (banner) banner.remove();
+    
+    activeMintRepo = repoName;
+    
+    // Auto-detect which wallet provider is injected in this in-app browser
+    const isPhantom = !!(window.solana && window.solana.isPhantom) || !!window.ethereum?.isPhantom;
+    const walletType = isPhantom ? 'phantom' : 'metamask';
+    
+    await connectSelectedWallet(walletType);
+};
