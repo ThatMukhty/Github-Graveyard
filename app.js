@@ -141,11 +141,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 const authContainer = document.getElementById('authContainer');
 
 // --- IMMEDIATE DEEP-LINK RETURN CATCHER ---
-// Runs instantly when the script parses, before DOM is even fully loaded
 const immediateUrlParams = new URLSearchParams(window.location.search);
 const immediateRepo = immediateUrlParams.get('repo');
 if (immediateRepo) {
-    activeMintRepo = immediateRepo;
+    window.activeMintRepo = immediateRepo;
     localStorage.setItem('graveyard_active_mint_repo', immediateRepo);
 }
 
@@ -157,7 +156,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const repoParam = urlParams.get('repo');
 
     if (repoParam) {
-        activeMintRepo = repoParam;
+        window.activeMintRepo = repoParam;
         localStorage.setItem('graveyard_active_mint_repo', repoParam);
     }
 
@@ -178,7 +177,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const savedUser = localStorage.getItem('graveyard_cached_user');
 
     if (savedRepos && savedUser) {
-        userRepos = JSON.parse(savedRepos);
+        window.userRepos = JSON.parse(savedRepos);
         const userData = JSON.parse(savedUser);
 
         document.getElementById('heroSection').classList.add('hidden');
@@ -197,7 +196,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('userName').innerText = userData.name || userData.login;
         document.getElementById('userHandle').innerText = "@" + userData.login;
 
-        renderGraveyard(userRepos);
+        renderGraveyard(window.userRepos);
     } else if (authContainer) {
         authContainer.innerHTML = `
             <button onclick="loginWithGitHub()" class="bg-graveyard-red hover:bg-graveyard-darkred text-white text-xs font-bold px-3 py-1.5 rounded transition border border-red-600 shadow uppercase tracking-wider">
@@ -212,8 +211,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         await authenticateAndFetchData(code);
     }
 
-    // --- AGGRESSIVE WALLET AUTO-CONNECT ON RETURN ---
-    const targetRepoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
+    // --- AUTO-TRIGGER WALLET CONNECTION ON RETURN ---
+    const targetRepoToMint = window.activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
     if (targetRepoToMint) {
         let attempts = 0;
         const checkWalletInterval = setInterval(() => {
@@ -231,7 +230,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             }
-        }, 400); // Checks every 400ms until the wallet provider injection is fully detected
+        }, 400);
     }
 });
 async function authenticateAndFetchData(code) {
