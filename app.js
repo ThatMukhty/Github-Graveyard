@@ -549,7 +549,7 @@ window.connectSelectedWallet = async function(walletType) {
                 window.connectedWalletAddress = accounts[0];
                 const masked = `${window.connectedWalletAddress.substring(0, 6)}...${window.connectedWalletAddress.substring(38)}`;
                 if (statusEl) statusEl.innerText = `Connected: ${masked}`;
-                
+
                 const targetRepoName = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo');
                 if (targetRepoName && typeof userRepos !== 'undefined' && userRepos.length > 0) {
                     const targetRepo = userRepos.find(r => r.name === targetRepoName);
@@ -561,15 +561,16 @@ window.connectSelectedWallet = async function(walletType) {
                     }
                 }
             }
+        } else {
+            alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser app.`);
         }
     } catch (err) {
         console.error("Connection error:", err);
-        if (statusEl) statusEl.innerText = "Connection failed";
+        if (statusEl) statusEl.innerText = "Connection failed or rejected.";
     }
 };
 
-
-             function downloadTombstoneCard(repoName, days, tier) {
+function downloadTombstoneCard(repoName, days, tier) {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
     canvas.height = 630;
@@ -606,19 +607,18 @@ window.connectSelectedWallet = async function(walletType) {
     ctx.font = 'bold 18px monospace';
     ctx.fillText('OFFICIAL CAUSE OF DEATH:', 120, 330);
 
-    const repoObj = userRepos.find(r => r.name === repoName);
+    const repoObj = typeof userRepos !== 'undefined' ? userRepos.find(r => r.name === repoName) : null;
     const causeText = repoObj ? repoObj.causeOfDeath : "Died of unresolvable dependency rot.";
     ctx.fillStyle = '#d1d5db';
     ctx.font = 'italic 24px sans-serif';
     ctx.fillText(`"${causeText}"`, 120, 385, canvas.width - 240);
 
-    // --- STAMP CONNECTED EVM ADDRESS ON CANVAS ---
     ctx.fillStyle = '#888899';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('gitgraveyard.xyz • ALL CODE DIES EVENTUALLY', 80, 500);
 
     if (window.connectedWalletAddress) {
-        ctx.fillStyle = '#3b82f6'; // Blue accent for Web3 stamp
+        ctx.fillStyle = '#3b82f6';
         ctx.font = 'bold 18px monospace';
         ctx.fillText(`🔗 STAMPED TO EVM: ${window.connectedWalletAddress}`, 80, 540);
     } else {
@@ -632,50 +632,7 @@ window.connectSelectedWallet = async function(walletType) {
     link.href = canvas.toDataURL('image/png');
     link.click();
 }
-            
-        
-// Mobile deep-linking with session & repo preservation for all 5 wallets
-        if (isMobile) {
-            const cachedUser = localStorage.getItem('graveyard_cached_user');
-            const cachedRepos = localStorage.getItem('graveyard_cached_repos');
-            const repoToMint = activeMintRepo || localStorage.getItem('graveyard_active_mint_repo') || '';
-            
-            const sessionPayload = encodeURIComponent(JSON.stringify({ user: cachedUser, repos: cachedRepos }));
-            const targetUrl = `${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
-            const encodedTargetUrl = encodeURIComponent(targetUrl);
 
-            if (walletType === 'phantom') {
-                window.location.href = `phantom://browse?url=${encodedTargetUrl}`;
-                return;
-            }
-            if (walletType === 'metamask') {
-                window.location.href = `https://metamask.app.link/dapp/${targetUrl.replace(/^https?:\/\//, '')}`;
-                return;
-            }
-            if (walletType === 'coinbase') {
-                window.location.href = `https://go.cb-w.com/dapp?url=${encodedTargetUrl}`;
-                return;
-            }
-            if (walletType === 'rabby') {
-                window.location.href = `rabby://dapp?url=${encodedTargetUrl}`;
-                return;
-            }
-            if (walletType === 'walletconnect') {
-                window.location.href = `https://walletconnect.com/wallet?url=${encodedTargetUrl}`;
-                return;
-            }
-        }
-        alert(`Please open gitgraveyard.xyz inside your ${walletType.toUpperCase()} browser app.`);
-
-    } catch (err) {
-        console.error("Connection error:", err);
-        if (statusEl) statusEl.innerText = "Connection failed or rejected.";
-    }
-
-
-/**
- * 2. Virtual "NFT Minting": Stamps the fetched Ethereum address onto the card and downloads it
- */
 window.buryRepositoryOnChain = async function(repoName, repoData) {
     if (!window.connectedWalletAddress) {
         if (typeof openWalletModal === 'function') {
@@ -687,26 +644,22 @@ window.buryRepositoryOnChain = async function(repoName, repoData) {
     }
 
     try {
-        // Stamp the fetched Ethereum address onto the tombstone card object
         const stampedData = {
             ...repoData,
             repoName: repoName,
-            mintedBy: window.connectedWalletAddress, // Your fetched Eth wallet address
+            mintedBy: window.connectedWalletAddress,
             mintedAt: new Date().toISOString()
         };
 
-        // Save locally for your graveyard history
         let records = JSON.parse(localStorage.getItem('git_graveyard_records') || '[]');
         records.push(stampedData);
         localStorage.setItem('git_graveyard_records', JSON.stringify(records));
 
         alert(`Minted successfully! Stamped with address: ${window.connectedWalletAddress.substring(0,6)}...${window.connectedWalletAddress.substring(38)} 🪦`);
 
-        // Trigger your card generator/download function (Downloads card + Eth address screenshot)
         if (typeof generateAndDownloadCard === 'function') {
             generateAndDownloadCard(stampedData);
         }
-
     } catch (err) {
         console.error("Minting error:", err);
         alert("Could not complete the minting action.");
