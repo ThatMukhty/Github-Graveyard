@@ -398,7 +398,7 @@ window.connectSelectedWallet = async function(walletType) {
             const targetUrl = `${window.location.origin}${window.location.pathname}?session=${sessionPayload}&repo=${encodeURIComponent(repoToMint)}`;
             const encodedTargetUrl = encodeURIComponent(targetUrl);
 if (walletType === 'phantom') {
-                window.location.href = `https://phantom.app/ul/browse/${encodedTargetUrl}?ref=${encodeURIComponent(window.location.origin)}`;
+              window.location.href = `https://phantom.app/ul/browse?url=${encodedTargetUrl}`;
                 return;
             }
             if (walletType === 'metamask') {
