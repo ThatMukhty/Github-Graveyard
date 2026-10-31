@@ -1,168 +1,213 @@
+<CodeBlock language="html" editable>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080808">
-  <meta name="description" content="GitHub Graveyard — Discover which of your repositories are alive, abandoned, or dead. Give your forgotten code a proper burial.">
-  <title>GitHub Graveyard — Where Abandoned Code Rots</title>
+  <meta name="theme-color" content="#090909">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>GitHub Graveyard</title>
 
-  <link rel="stylesheet" href="/main.css">
+<meta
+    name="description"
+    content="Discover abandoned GitHub repositories and give forgotten projects a digital memorial."
+  >
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+>
+
+
+<link rel="stylesheet" href="/main.css">
 </head>
 
 <body>
-  <div class="ambient ambient-one"></div>
-  <div class="ambient ambient-two"></div>
-  <div class="scanlines"></div>
-  <div class="fog fog-one"></div>
-  <div class="fog fog-two"></div>
 
-  <header class="topbar">
-    <a href="/" class="brand" aria-label="GitHub Graveyard home">
-      <span class="brand-icon">✝</span>
-      <span>GITHUB<span class="brand-red">GRAVEYARD</span></span>
+<div class="ambient-background"></div>
+  <div class="scanlines"></div>
+  <div class="fog"></div>
+
+<header class="topbar">
+    <a href="/" class="brand">
+      <span class="brand-icon">☠</span>
+      <span>GITHUB GRAVEYARD</span>
     </a>
 
-    <button class="connect-button" id="connectGitHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.54v-2.1c-3.1.67-3.75-1.31-3.75-1.31-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.93.1-.72.39-1.21.71-1.49-2.47-.28-5.06-1.24-5.06-5.52 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.11-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.29-2.6 5.23-5.08 5.51.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/>
-      </svg>
-      <span>Connect GitHub</span>
+<button id="connectGitHub" class="primary-button">
+      Connect GitHub
     </button>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-eyebrow">
-        <span class="status-dot"></span>
-        THE FINAL RESTING PLACE FOR YOUR REPOSITORIES
-      </div>
 
-      <h1>
-        WHERE ABANDONED<br>
-        CODE <span class="headline-red">ROTS IN PEACE.</span>
-      </h1>
+<section class="hero">
+      <div class="hero-content">
 
-      <p class="hero-description">
-        Every developer has unfinished business.
-        Connect your GitHub and discover what is still alive,
-        what has been forgotten, and what deserves a proper burial.
-      </p>
+<span class="eyebrow">
+          THE FINAL RESTING PLACE FOR ABANDONED CODE
+        </span>
 
-      <button class="hero-button" id="heroConnect">
-        <span>INSPECT MY GRAVEYARD</span>
-        <span class="button-arrow">↗</span>
-      </button>
+<h1>
+          Every repository<br>
+          has a <span>story.</span>
+        </h1>
 
-      <p class="hero-note">NO CODE SHAMING. JUST THE TRUTH.</p>
-    </section>
-
-    <section class="graveyard-section" id="graveyard">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker">THE AUTOPSY REPORT</p>
-          <h2>Your Graveyard</h2>
-        </div>
-        <span class="report-tag">AWAITING SUBJECT</span>
-      </div>
-
-      <div class="stats-grid">
-        <article class="stat-card">
-          <span class="stat-label">TOTAL REPOSITORIES</span>
-          <strong id="totalRepos">—</strong>
-          <span class="stat-caption">All discovered projects</span>
-        </article>
-
-        <article class="stat-card stat-dead">
-          <span class="stat-label">DEAD REPOSITORIES</span>
-          <strong id="deadRepos">—</strong>
-          <span class="stat-caption">Left to decay</span>
-        </article>
-
-        <article class="stat-card stat-alive">
-          <span class="stat-label">STILL ALIVE</span>
-          <strong id="aliveRepos">—</strong>
-          <span class="stat-caption">Recently active</span>
-        </article>
-      </div>
-
-      <div class="mortality-panel">
-        <div class="mortality-top">
-          <div>
-            <p class="section-kicker">DEVELOPER STATUS</p>
-            <h3>Dev Mortality Score</h3>
-          </div>
-          <span class="mortality-icon">☠</span>
-        </div>
-
-        <div class="score-display">
-          <strong id="mortalityScore">—</strong>
-          <span>/ 100</span>
-        </div>
-
-        <div class="score-track">
-          <div class="score-fill" id="scoreFill"></div>
-        </div>
-
-        <p class="score-description" id="scoreDescription">
-          Your final judgement awaits. Connect GitHub to begin.
+<p>
+          Some projects survive. Others slowly disappear.
+          Connect your GitHub account and discover what
+          happened to your repositories.
         </p>
-      </div>
+
+<button id="heroConnect" class="primary-button">
+          <span>☠</span>
+          EXAMINE MY REPOSITORIES
+        </button>
+
+<p class="hero-note">
+          Read-only access. We don't modify your repositories.
+        </p>
+
+</div>
     </section>
 
-    <section class="repositories-section" id="repositories">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker">THE FORGOTTEN</p>
-          <h2>Repository Autopsies</h2>
+    <section class="statistics-section">
+
+<div class="section-heading">
+        <span class="eyebrow">THE GRAVEYARD REPORT</span>
+        <h2>Your repository statistics</h2>
+      </div>
+
+      <div class="statistics-grid">
+
+<article class="stat-card">
+          <span class="stat-label">TOTAL REPOSITORIES</span>
+          <strong id="totalRepos">0</strong>
+        </article>
+
+<article class="stat-card">
+          <span class="stat-label">DEAD REPOSITORIES</span>
+          <strong id="deadRepos">0</strong>
+        </article>
+
+<article class="stat-card">
+          <span class="stat-label">STILL ALIVE</span>
+          <strong id="aliveRepos">0</strong>
+        </article>
+
+      </div>
+
+    </section>
+
+    <section class="mortality-section">
+
+<div class="section-heading">
+        <span class="eyebrow">DEVELOPER REPORT</span>
+        <h2>Repository mortality</h2>
+      </div>
+
+      <div class="mortality-card">
+
+<div class="mortality-header">
+          <span>YOUR MORTALITY SCORE</span>
+          <strong id="mortalityScore">0%</strong>
         </div>
-        <span class="report-tag">0 RECORDS</span>
+
+<div class="progress-track">
+          <div id="scoreFill" class="progress-fill"></div>
+        </div>
+
+<p id="scoreDescription">
+          Connect GitHub to examine your repositories.
+        </p>
+
+      </div>
+
+    </section>
+
+    <section class="repositories-section">
+
+<div class="section-heading">
+        <span class="eyebrow">THE FINAL RECORDS</span>
+        <h2>Your repositories</h2>
+        <p>
+          Every repository gets its own record.
+          Download its memorial card or share its story.
+        </p>
       </div>
 
       <div class="filter-bar">
-        <button class="filter-button active" data-filter="all">ALL</button>
-        <button class="filter-button" data-filter="dead">DEAD</button>
-        <button class="filter-button" data-filter="alive">ALIVE</button>
-      </div>
 
-      <div class="repository-list" id="repositoryList">
-        <div class="empty-state">
-          <div class="empty-skull">☠</div>
-          <h3>THE GRAVEYARD IS EMPTY</h3>
-          <p>Connect your GitHub account to begin the autopsy.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="wallet-section" id="wallet">
-      <div class="wallet-content">
-        <p class="section-kicker">PRESERVE THE LEGACY</p>
-        <h2>Some deaths deserve<br><span class="headline-red">IMMORTALITY.</span></h2>
-        <p>
-          Turn your repository's tombstone into a permanent
-          digital collectible on Ethereum.
-        </p>
-        <button class="secondary-button" id="connectWallet">
-          CONNECT ETHEREUM WALLET
+<button
+          class="filter-button active"
+          data-filter="all"
+          type="button"
+        >
+          All
         </button>
-        <span class="wallet-note">OPTIONAL · NO TRANSACTION REQUIRED TO CONNECT</span>
+
+<button
+          class="filter-button"
+          data-filter="dead"
+          type="button"
+        >
+          Dead
+        </button>
+
+<button
+          class="filter-button"
+          data-filter="alive"
+          type="button"
+        >
+          Alive
+        </button>
+
       </div>
+
+      <div id="repositoryList" class="repository-list">
+
+<div class="empty-state">
+          <span>☠</span>
+          <h3>The graveyard is waiting.</h3>
+          <p>Connect your GitHub account to begin the examination.</p>
+        </div>
+
+      </div>
+
     </section>
+
+    <section class="wallet-section">
+
+<div class="section-heading">
+        <span class="eyebrow">WEB3 INTEGRATION</span>
+        <h2>Your digital identity</h2>
+        <p>
+          Wallet integration is not active yet.
+        </p>
+      </div>
+
+<button id="connectWallet" class="secondary-button" type="button">
+        CONNECT WALLET
+      </button>
+
+    </section>
+
   </main>
 
-  <footer class="footer">
-    <a href="/" class="footer-brand">✝ GITHUB GRAVEYARD</a>
-    <p>ALL CODE EVENTUALLY RETURNS TO THE VOID.</p>
-    <span>© 2026 GITHUB GRAVEYARD</span>
+<footer class="footer">
+    <p>GITHUB GRAVEYARD</p>
+    <span>Some code deserves to be remembered.</span>
   </footer>
 
-  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+  <div id="toastContainer" class="toast-container"></div>
 
-  <script src="/causes.js"></script>
+<script src="/causes.js"></script>
   <script src="/app.js"></script>
+
 </body>
 </html>
+</CodeBlock>

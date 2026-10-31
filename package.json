@@ -1,17 +1,14 @@
 {
-  "name": "github-graveyard",
+  "name": "gitgraveyard",
   "version": "1.0.0",
-  "private": true,
-  "description": "GitHub Graveyard — repository autopsies and on-chain memorials",
+  "description": "Eternal rest for dead code, strict mortality scores, NFT minting, and memorial cards on gitgraveyard.xyz",
+  "main": "server.js",
   "scripts": {
-    "compile": "hardhat compile",
-    "test": "hardhat test"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "hardhat": "^2.26.3"
+    "start": "node server.js"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0"
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
   }
 }

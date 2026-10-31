@@ -1,6 +1,7 @@
+
 /* =========================================
-   GITHUB GRAVEYARD — MAIN STYLESHEET
-   Mobile-first horror interface
+   GITHUB GRAVEYARD
+   Main stylesheet — mobile first
 ========================================= */
 
 :root {
@@ -12,7 +13,7 @@
   --red-dark: #70000d;
   --white: #f4f0f0;
   --muted: #898080;
-  --border: rgba(255, 255, 255, 0.09);
+  --border: rgba(255,255,255,.09);
   --font: "Plus Jakarta Sans", sans-serif;
 }
 
@@ -36,8 +37,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button,
-a {
+button, a {
   font: inherit;
 }
 
@@ -63,27 +63,15 @@ a {
 
 /* ATMOSPHERE */
 
-.ambient {
+.ambient-background {
   position: fixed;
+  inset: 0;
   z-index: -3;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  filter: blur(130px);
   pointer-events: none;
-  opacity: 0.12;
-}
-
-.ambient-one {
-  top: -180px;
-  left: -180px;
-  background: #a50013;
-}
-
-.ambient-two {
-  right: -200px;
-  top: 48%;
-  background: #8a0010;
+  background:
+    radial-gradient(ellipse at 15% 5%, rgba(165,0,19,.17), transparent 38%),
+    radial-gradient(ellipse at 90% 55%, rgba(100,0,15,.12), transparent 38%),
+    #080808;
 }
 
 .scanlines {
@@ -91,12 +79,12 @@ a {
   inset: 0;
   z-index: 10;
   pointer-events: none;
-  opacity: 0.055;
+  opacity: .035;
   background: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 3px,
-    rgba(255, 255, 255, 0.2) 4px
+    rgba(255,255,255,.2) 4px
   );
 }
 
@@ -107,24 +95,13 @@ a {
   height: 240px;
   pointer-events: none;
   filter: blur(75px);
-  opacity: 0.08;
+  opacity: .08;
   background: radial-gradient(
     ellipse,
     #d9d9d9 0%,
     transparent 70%
   );
   animation: fog-drift 18s ease-in-out infinite alternate;
-}
-
-.fog-one {
-  top: 20%;
-  left: -20%;
-}
-
-.fog-two {
-  top: 65%;
-  right: -20%;
-  animation-delay: -8s;
 }
 
 @keyframes fog-drift {
@@ -149,7 +126,7 @@ a {
   align-items: center;
   gap: 20px;
   border-bottom: 1px solid var(--border);
-  background: rgba(8, 8, 8, 0.86);
+  background: rgba(8,8,8,.88);
   backdrop-filter: blur(16px);
 }
 
@@ -166,40 +143,31 @@ a {
 .brand-icon {
   color: var(--red);
   font-size: 28px;
-  text-shadow: 0 0 15px rgba(229, 9, 32, 0.7);
+  text-shadow: 0 0 15px rgba(229,9,32,.7);
 }
 
-.brand-red {
-  color: var(--red);
-}
-
-.connect-button {
-  min-height: 43px;
-  padding: 0 17px;
+.primary-button {
+  min-height: 44px;
+  padding: 0 19px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: 9px;
-  border: 1px solid rgba(229, 9, 32, 0.6);
+  gap: 10px;
+  border: 1px solid var(--red);
   border-radius: 5px;
-  background: rgba(229, 9, 32, 0.09);
-  color: white;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.7px;
-  cursor: pointer;
-  transition: 0.25s ease;
-}
-
-.connect-button svg {
-  width: 17px;
-  height: 17px;
-}
-
-.connect-button:hover {
   background: var(--red);
-  border-color: var(--red);
-  box-shadow: 0 0 25px rgba(229, 9, 32, 0.28);
+  color: white;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: .25s ease;
+}
+
+.primary-button:hover {
+  background: #a90016;
+  border-color: #a90016;
+  box-shadow: 0 0 28px rgba(229,9,32,.3);
   transform: translateY(-2px);
 }
 
@@ -210,49 +178,29 @@ a {
   width: min(100% - 40px, 1100px);
   min-height: 570px;
   margin: auto;
-  padding: 125px 0 100px;
+  padding: 115px 0 95px;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
 }
 
-.hero-eyebrow,
-.section-kicker {
+.hero-content {
+  max-width: 800px;
+}
+
+.eyebrow {
+  display: inline-block;
   color: var(--red);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 2.5px;
-}
-
-.hero-eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 27px;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--red-bright);
-  box-shadow: 0 0 12px var(--red);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.35;
-    box-shadow: 0 0 3px var(--red);
-  }
+  line-height: 1.8;
 }
 
 .hero h1 {
-  max-width: 1000px;
-  font-size: clamp(38px, 7vw, 82px);
+  margin-top: 25px;
+  font-size: clamp(42px, 7vw, 82px);
   font-weight: 900;
   line-height: 1.08;
   letter-spacing: -4px;
@@ -260,9 +208,9 @@ a {
   animation: headline-enter 1s ease both;
 }
 
-.headline-red {
+.hero h1 span {
   color: var(--red);
-  text-shadow: 0 0 30px rgba(229, 9, 32, 0.23);
+  text-shadow: 0 0 30px rgba(229,9,32,.25);
 }
 
 @keyframes headline-enter {
@@ -278,65 +226,40 @@ a {
   }
 }
 
-.hero-description {
+.hero-content > p:not(.hero-note) {
   max-width: 570px;
-  margin-top: 25px;
+  margin: 25px auto 0;
   color: #a9a1a1;
   font-size: 14px;
   line-height: 1.9;
 }
 
-.hero-button {
+.hero-content > button {
   min-height: 55px;
   margin-top: 35px;
   padding: 0 24px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 25px;
-  border: 1px solid var(--red);
-  border-radius: 4px;
-  background: var(--red);
-  color: white;
-  font-size: 11px;
-  font-weight: 900;
   letter-spacing: 1.3px;
-  cursor: pointer;
-  transition: 0.25s ease;
-  box-shadow: 0 0 30px rgba(229, 9, 32, 0.15);
-}
-
-.hero-button:hover {
-  background: #a90016;
-  box-shadow: 0 0 35px rgba(229, 9, 32, 0.4);
-  transform: translateY(-3px);
-}
-
-.button-arrow {
-  font-size: 19px;
+  box-shadow: 0 0 30px rgba(229,9,32,.15);
 }
 
 .hero-note {
   margin-top: 17px;
-  color: #655e5e;
+  color: #716969;
   font-size: 9px;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
 }
 
 /* GENERAL SECTIONS */
 
-.graveyard-section,
+.statistics-section,
+.mortality-section,
 .repositories-section {
   width: min(100% - 48px, 1080px);
   margin: 0 auto;
-  padding: 45px 0 65px;
+  padding: 45px 0 55px;
 }
 
 .section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 15px;
   margin-bottom: 25px;
 }
 
@@ -347,22 +270,19 @@ a {
   letter-spacing: -1px;
 }
 
-.report-tag {
-  padding: 7px 10px;
-  border: 1px solid rgba(229, 9, 32, 0.35);
-  border-radius: 3px;
-  color: var(--red);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  white-space: nowrap;
+.section-heading > p {
+  margin-top: 10px;
+  max-width: 600px;
+  color: #918888;
+  font-size: 12px;
+  line-height: 1.8;
 }
 
 /* STATISTICS */
 
-.stats-grid {
+.statistics-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0,1fr));
   gap: 15px;
 }
 
@@ -373,25 +293,31 @@ a {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 9px;
+  gap: 12px;
   border: 1px solid var(--border);
-  border-top: 2px solid #5c5c5c;
+  border-top: 2px solid #666;
   border-radius: 5px;
-  background: linear-gradient(145deg, #171717, #0e0e0e);
-  transition: 0.25s ease;
+  background: linear-gradient(145deg,#171717,#0e0e0e);
+  transition: .25s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(229, 9, 32, 0.4);
+  border-color: rgba(229,9,32,.4);
 }
 
-.stat-dead {
-  border-top-color: var(--red);
+.stat-card strong {
+  font-size: clamp(29px,4vw,43px);
+  font-weight: 900;
+  line-height: 1;
 }
 
-.stat-alive {
-  border-top-color: #777;
+#deadRepos {
+  color: var(--red);
+}
+
+#aliveRepos {
+  color: #dedede;
 }
 
 .stat-label {
@@ -401,97 +327,69 @@ a {
   letter-spacing: 1.2px;
 }
 
-.stat-card strong {
-  font-size: clamp(29px, 4vw, 43px);
-  font-weight: 900;
-  line-height: 1;
+/* MORTALITY */
+
+.mortality-section {
+  padding-top: 15px;
 }
 
-.stat-dead strong {
-  color: var(--red);
-}
-
-.stat-caption {
-  color: #716969;
-  font-size: 10px;
-}
-
-/* MORTALITY PANEL */
-
-.mortality-panel {
-  margin-top: 18px;
+.mortality-card {
   padding: 27px;
-  border: 1px solid rgba(229, 9, 32, 0.25);
+  border: 1px solid rgba(229,9,32,.25);
   border-radius: 5px;
   background:
-    radial-gradient(ellipse at top right, rgba(229, 9, 32, 0.1), transparent 55%),
+    radial-gradient(ellipse at top right,rgba(229,9,32,.1),transparent 55%),
     #111;
 }
 
-.mortality-top {
+.mortality-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 15px;
 }
 
-.mortality-top h3 {
-  margin-top: 8px;
-  font-size: 18px;
+.mortality-header span {
+  color: #aaa;
+  font-size: 10px;
   font-weight: 800;
+  letter-spacing: 1.3px;
 }
 
-.mortality-icon {
+.mortality-header strong {
   color: var(--red);
-  font-size: 35px;
-  text-shadow: 0 0 18px rgba(229, 9, 32, 0.5);
-}
-
-.score-display {
-  margin: 22px 0 16px;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.score-display strong {
-  color: var(--red);
-  font-size: 55px;
+  font-size: 32px;
   font-weight: 900;
-  line-height: 1;
 }
 
-.score-display span {
-  color: #827878;
-  font-size: 13px;
-}
-
-.score-track {
-  height: 7px;
+.progress-track {
+  height: 8px;
+  margin-top: 22px;
   overflow: hidden;
   border-radius: 20px;
   background: #292929;
 }
 
-.score-fill {
+.progress-fill {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8b0011, #ff263d);
-  box-shadow: 0 0 15px rgba(229, 9, 32, 0.5);
+  background: linear-gradient(90deg,#8b0011,#ff263d);
+  box-shadow: 0 0 15px rgba(229,9,32,.5);
   transition: width 1s ease;
 }
 
-.score-description {
-  margin-top: 13px;
+.mortality-card > p {
+  margin-top: 14px;
   color: #8e8585;
   font-size: 11px;
   line-height: 1.7;
 }
 
-/* REPOSITORY AUTOPSIES */
+/* REPOSITORIES */
 
 .repositories-section {
-  padding-top: 45px;
+  padding-top: 35px;
 }
 
 .filter-bar {
@@ -502,8 +400,8 @@ a {
 }
 
 .filter-button {
-  min-height: 35px;
-  padding: 0 15px;
+  min-height: 36px;
+  padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: transparent;
@@ -512,20 +410,20 @@ a {
   font-weight: 800;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: .2s ease;
 }
 
 .filter-button:hover,
 .filter-button.active {
   border-color: var(--red);
-  background: rgba(229, 9, 32, 0.12);
+  background: rgba(229,9,32,.12);
   color: white;
 }
 
 .repository-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 15px;
 }
 
 .empty-state {
@@ -537,16 +435,16 @@ a {
   justify-content: center;
   align-items: center;
   text-align: center;
-  border: 1px dashed rgba(229, 9, 32, 0.3);
+  border: 1px dashed rgba(229,9,32,.3);
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.015);
+  background: rgba(255,255,255,.015);
 }
 
-.empty-skull {
+.empty-state > span {
   margin-bottom: 15px;
   color: var(--red);
   font-size: 42px;
-  text-shadow: 0 0 25px rgba(229, 9, 32, 0.4);
+  text-shadow: 0 0 25px rgba(229,9,32,.4);
 }
 
 .empty-state h3 {
@@ -562,45 +460,28 @@ a {
   line-height: 1.7;
 }
 
-/* WALLET SECTION */
+/* WALLET */
 
 .wallet-section {
-  position: relative;
-  width: min(100% - 48px, 1080px);
+  width: min(100% - 48px,1080px);
   margin: 15px auto 85px;
-  padding: 65px 35px;
-  overflow: hidden;
-  border: 1px solid rgba(229, 9, 32, 0.3);
+  padding: 55px 35px;
+  border: 1px solid rgba(229,9,32,.3);
   border-radius: 5px;
   background:
-    radial-gradient(ellipse at 80% 50%, rgba(160, 0, 20, 0.16), transparent 55%),
+    radial-gradient(ellipse at 80% 50%,rgba(160,0,20,.16),transparent 55%),
     #111;
 }
 
-.wallet-content {
-  max-width: 550px;
+.wallet-section .section-heading {
+  margin-bottom: 0;
 }
 
-.wallet-content h2 {
-  margin-top: 15px;
-  font-size: clamp(30px, 5vw, 45px);
-  font-weight: 900;
-  line-height: 1.18;
-  letter-spacing: -1.5px;
-}
-
-.wallet-content > p:not(.section-kicker) {
-  margin-top: 17px;
-  color: #9b9292;
-  font-size: 12px;
-  line-height: 1.9;
-}
-
-.secondary-button {
+.wallet-section .secondary-button {
   min-height: 48px;
-  margin-top: 25px;
+  margin-top: 24px;
   padding: 0 19px;
-  border: 1px solid rgba(229, 9, 32, 0.7);
+  border: 1px solid rgba(229,9,32,.7);
   border-radius: 3px;
   background: transparent;
   color: white;
@@ -608,20 +489,12 @@ a {
   font-weight: 900;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: 0.25s ease;
+  transition: .25s ease;
 }
 
-.secondary-button:hover {
+.wallet-section .secondary-button:hover {
   background: var(--red);
   border-color: var(--red);
-}
-
-.wallet-note {
-  display: block;
-  margin-top: 12px;
-  color: #746b6b;
-  font-size: 9px;
-  letter-spacing: 1px;
 }
 
 /* FOOTER */
@@ -638,47 +511,44 @@ a {
   background: #080808;
 }
 
-.footer-brand {
+.footer p {
   color: var(--red);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 1px;
 }
 
-.footer p,
 .footer > span {
   color: #706767;
-  font-size: 9px;
-  letter-spacing: 1px;
+  font-size: 10px;
+  letter-spacing: .5px;
 }
 
-/* TOAST NOTIFICATIONS */
+/* TOASTS */
 
 .toast-container {
   position: fixed;
   z-index: 100;
   right: 22px;
   bottom: 22px;
-  width: min(360px, calc(100% - 32px));
+  width: min(360px,calc(100% - 32px));
   display: flex;
   flex-direction: column;
   gap: 10px;
   pointer-events: none;
 }
 
-/* OPTIONAL TOAST STYLING FOR APP.JS */
-
 .toast {
   padding: 15px 17px;
-  border: 1px solid rgba(229, 9, 32, 0.5);
+  border: 1px solid rgba(229,9,32,.5);
   border-left: 3px solid var(--red);
   border-radius: 4px;
   background: #171010;
   color: white;
   font-size: 12px;
   line-height: 1.6;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
-  animation: toast-in 0.3s ease both;
+  box-shadow: 0 10px 35px rgba(0,0,0,.5);
+  animation: toast-in .3s ease both;
 }
 
 @keyframes toast-in {
@@ -694,7 +564,7 @@ a {
 
 /* TABLET */
 
-@media (max-width: 760px) {
+@media (max-width:760px) {
   .topbar {
     padding: 15px 5%;
   }
@@ -708,23 +578,21 @@ a {
     letter-spacing: -2px;
   }
 
-  .graveyard-section,
-  .repositories-section {
-    width: min(100% - 36px, 650px);
+  .statistics-section,
+  .mortality-section,
+  .repositories-section,
+  .wallet-section {
+    width: min(100% - 36px,650px);
   }
 
   .stat-card {
     padding: 18px;
   }
-
-  .wallet-section {
-    width: min(100% - 36px, 650px);
-  }
 }
 
 /* MOBILE */
 
-@media (max-width: 520px) {
+@media (max-width:520px) {
   html {
     scroll-padding-top: 70px;
   }
@@ -738,24 +606,18 @@ a {
   .brand {
     gap: 7px;
     font-size: 10px;
-    letter-spacing: 0.8px;
+    letter-spacing: .8px;
   }
 
   .brand-icon {
     font-size: 23px;
   }
 
-  .connect-button {
-    min-height: 39px;
+  .topbar .primary-button {
+    min-height: 38px;
     padding: 0 10px;
-    gap: 6px;
-    font-size: 9px;
+    font-size: 8px;
     letter-spacing: 0;
-  }
-
-  .connect-button svg {
-    width: 15px;
-    height: 15px;
   }
 
   .hero {
@@ -764,33 +626,29 @@ a {
     padding: 85px 0 70px;
   }
 
-  .hero-eyebrow {
-    max-width: 100%;
-    margin-bottom: 23px;
+  .eyebrow {
     font-size: 8px;
     letter-spacing: 1.5px;
   }
 
   .hero h1 {
-    font-size: clamp(35px, 10vw, 48px);
+    font-size: clamp(35px,10vw,48px);
     line-height: 1.12;
     letter-spacing: -2px;
   }
 
-  .hero-description {
+  .hero-content > p:not(.hero-note) {
     max-width: 340px;
     margin-top: 20px;
     font-size: 12px;
-    line-height: 1.85;
   }
 
-  .hero-button {
+  .hero-content > button {
     width: 100%;
     max-width: 300px;
     min-height: 52px;
     margin-top: 27px;
     padding: 0 15px;
-    gap: 15px;
     font-size: 9px;
   }
 
@@ -798,42 +656,31 @@ a {
     font-size: 8px;
   }
 
-  .graveyard-section,
+  .statistics-section,
+  .mortality-section,
   .repositories-section {
     width: calc(100% - 32px);
     padding-top: 30px;
-    padding-bottom: 45px;
-  }
-
-  .section-heading {
-    align-items: center;
-    margin-bottom: 19px;
+    padding-bottom: 40px;
   }
 
   .section-heading h2 {
     font-size: 22px;
   }
 
-  .section-kicker {
-    font-size: 8px;
-    letter-spacing: 1.7px;
+  .section-heading > p {
+    font-size: 11px;
   }
 
-  .report-tag {
-    padding: 6px 7px;
-    font-size: 7px;
-    letter-spacing: 0.5px;
-  }
-
-  .stats-grid {
+  .statistics-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
   .stat-card {
-    min-height: 105px;
+    min-height: 100px;
     padding: 17px 19px;
-    gap: 7px;
+    gap: 9px;
   }
 
   .stat-card strong {
@@ -844,42 +691,17 @@ a {
     font-size: 8px;
   }
 
-  .stat-caption {
-    font-size: 9px;
-  }
-
-  .mortality-panel {
-    margin-top: 12px;
+  .mortality-card {
     padding: 20px 17px;
   }
 
-  .mortality-top h3 {
-    font-size: 16px;
+  .mortality-header strong {
+    font-size: 28px;
   }
 
-  .mortality-icon {
-    font-size: 29px;
-  }
-
-  .score-display {
-    margin: 20px 0 13px;
-  }
-
-  .score-display strong {
-    font-size: 47px;
-  }
-
-  .score-description {
-    font-size: 10px;
-  }
-
-  .repositories-section {
-    padding-top: 25px;
-  }
-
-  .filter-bar {
-    gap: 7px;
-    margin-bottom: 15px;
+  .repository-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .filter-button {
@@ -888,48 +710,19 @@ a {
     font-size: 8px;
   }
 
-  .repository-list {
-    grid-template-columns: 1fr;
-    gap: 11px;
-  }
-
   .empty-state {
     min-height: 205px;
     padding: 25px 16px;
   }
 
-  .empty-state h3 {
-    font-size: 12px;
-  }
-
-  .empty-state p {
-    max-width: 260px;
-    font-size: 10px;
-  }
-
   .wallet-section {
     width: calc(100% - 32px);
     margin: 5px auto 55px;
-    padding: 42px 21px;
+    padding: 40px 21px;
   }
 
-  .wallet-content h2 {
-    font-size: 32px;
-  }
-
-  .wallet-content > p:not(.section-kicker) {
-    font-size: 11px;
-  }
-
-  .secondary-button {
+  .wallet-section .secondary-button {
     width: 100%;
-    padding: 0 10px;
-    font-size: 9px;
-  }
-
-  .wallet-note {
-    font-size: 8px;
-    line-height: 1.7;
   }
 
   .footer {
@@ -940,11 +733,6 @@ a {
     gap: 11px;
   }
 
-  .footer p,
-  .footer > span {
-    font-size: 8px;
-  }
-
   .toast-container {
     right: 16px;
     bottom: 16px;
@@ -952,15 +740,15 @@ a {
   }
 }
 
-/* REDUCED MOTION ACCESSIBILITY */
+/* REDUCED MOTION */
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion:reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: .01ms !important;
   }
 }
