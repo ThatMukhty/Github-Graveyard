@@ -1,6 +1,3 @@
-import { createAppKit } from 'https://esm.sh/@reown/appkit@1.6.4';
-import { EthersAdapter } from 'https://esm.sh/@reown/appkit-adapter-ethers@1.6.4';
-import { mainnet, sepolia } from 'https://esm.sh/@reown/appkit/networks';
 import { ethers } from 'https://esm.sh/ethers@6.13.5';
 
 // 1. Reown AppKit Configuration with Phantom, MetaMask, Trust, Coinbase, Zerion support
@@ -13,15 +10,23 @@ const metadata = {
     icons: ['https://gitgraveyard.xyz/favicon.ico']
 };
 
-const ethersAdapter = new EthersAdapter();
-
-const modal = createAppKit({
-    adapters: [ethersAdapter],
-    networks: [mainnet, sepolia],
-    metadata,
-    projectId,
-    features: { analytics: true }
-});
+// Initialize AppKit via global UMD bundle
+let modal = null;
+try {
+    const { createAppKit } = window.AppKit || {};
+    // Fallback adapter setup if using standard web3modal configurations
+    modal = createAppKit ? createAppKit({
+        projectId,
+        metadata,
+        networks: [
+            { id: 1, name: 'Ethereum', currency: 'ETH', explorerUrl: 'https://etherscan.io', rpcUrl: 'https://cloudflare-eth.com' },
+            { id: 11155111, name: 'Sepolia', currency: 'ETH', explorerUrl: 'https://sepolia.etherscan.io', rpcUrl: 'https://rpc.sepolia.org' }
+        ],
+        features: { analytics: true }
+    }) : null;
+} catch (e) {
+    console.error('AppKit initialization warning:', e);
+}
 
 // 100 Deterministic Causes of Death
 const CAUSES_OF_DEATH = [
@@ -146,7 +151,11 @@ document.getElementById('github-auth-btn').addEventListener('click', () => {
 });
 
 document.getElementById('wallet-connect-btn').addEventListener('click', async () => {
-    await modal.open();
+    if (modal && modal.open) {
+        await modal.open();
+    } else {
+        alert('Wallet connection modal is loading or unavailable.');
+    }
 });
 
 // Strict Deterministic Cause Selector using Hash
@@ -356,13 +365,19 @@ window.downloadMemorialCard = function(name, score, stage, inactiveDays, cause) 
     link.click();
 };
 
-// Mint NFT Function using Phantom / Reown WalletProvider & Ethers.js
+// Mint NFT Function using Phantom / WalletProvider & Ethers.js
 window.mintTombstoneNFT = async function(repoId, repoName) {
     try {
-        const walletProvider = modal.getWalletProvider();
+        let walletProvider = null;
+        if (modal && modal.getWalletProvider) {
+            walletProvider = modal.getWalletProvider();
+        } else if (window.ethereum) {
+            walletProvider = window.ethereum;
+        }
+
         if (!walletProvider) {
-            alert('Please connect your Ethereum wallet (Phantom, MetaMask, etc.) first using the Connect Wallet button.');
-            await modal.open();
+            alert('Please connect your Ethereum wallet first using the Connect Wallet button.');
+            if (modal) await modal.open();
             return;
         }
 
@@ -371,10 +386,6 @@ window.mintTombstoneNFT = async function(repoId, repoName) {
         const address = await signer.getAddress();
 
         alert(`Ready to mint tombstone NFT for "${repoName}" from verified address ${address} on connected network.`);
-        // Smart contract minting execution call goes here:
-        // const contract = new ethers.Contract(contractAddress, contractABI, signer);
-        // const tx = await contract.mintTombstone(repoId, metadataURI);
-        // await tx.wait();
     } catch (err) {
         console.error('Minting error:', err);
         alert('Wallet connection or transaction aborted.');
