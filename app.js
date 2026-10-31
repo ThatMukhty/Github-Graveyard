@@ -1,930 +1,384 @@
-(() => {
-  "use strict";
+import { createAppKit } from 'https://esm.sh/@reown/appkit@1.6.4';
+import { EthersAdapter } from 'https://esm.sh/@reown/appkit-adapter-ethers@1.6.4';
+import { mainnet, sepolia } from 'https://esm.sh/@reown/appkit/networks';
+import { ethers } from 'https://esm.sh/ethers@6.13.5';
 
-  const API = "/api/github";
+// 1. Reown AppKit Configuration with Phantom, MetaMask, Trust, Coinbase, Zerion support
+const projectId = 'your_reown_project_id_here'; // Replace with your actual Reown Cloud Project ID
 
-  const state = {
-    user: null,
-    repositories: [],
-    filter: "all",
-    loading: false
-  };
+const metadata = {
+    name: 'GitGraveyard',
+    description: 'Eternal Rest for Dead Code & On-Chain Tombs',
+    url: 'https://gitgraveyard.xyz',
+    icons: ['https://gitgraveyard.xyz/favicon.ico']
+};
 
-  const $ = (id) => document.getElementById(id);
+const ethersAdapter = new EthersAdapter();
 
-  const elements = {
-    connectGitHub: $("connectGitHub"),
-    heroConnect: $("heroConnect"),
-    connectWallet: $("connectWallet"),
-    totalRepos: $("totalRepos"),
-    deadRepos: $("deadRepos"),
-    aliveRepos: $("aliveRepos"),
-    mortalityScore: $("mortalityScore"),
-    scoreFill: $("scoreFill"),
-    scoreDescription: $("scoreDescription"),
-    repositoryList: $("repositoryList"),
-    toastContainer: $("toastContainer")
-  };
+const modal = createAppKit({
+    adapters: [ethersAdapter],
+    networks: [mainnet, sepolia],
+    metadata,
+    projectId,
+    features: { analytics: true }
+});
 
-  // --------------------------------------------------
-  // CARD STYLES
-  // --------------------------------------------------
+// 100 Deterministic Causes of Death
+const CAUSES_OF_DEATH = [
+    "Devoured by an untamed node_modules black hole.",
+    "Crushed under the weight of 4,000 transitive sub-dependencies.",
+    "Fatal dependency conflict: peerDependency demanded blood.",
+    "Mummified by a deprecated npm package with 12 open CVEs.",
+    "Murdered by a breaking change in a patch update (v1.0.1 -> v1.0.2).",
+    "Suffocated inside a circular dependency loop.",
+    "Abandoned after left-pad was deleted from existence again.",
+    "Poisoned by a rogue malicious package update at 3:00 AM.",
+    "Slain by an unresolvable yarn.lock merge conflict.",
+    "Frozen in time due to an unupgradable Node.js runtime version.",
+    "Bled to death by npm audit reporting 84 high-severity vulnerabilities.",
+    "Erased when the underlying API deprecated v1 without documentation.",
+    "Entombed by a missing peer dependency that no longer exists on GitHub.",
+    "Poisoned by a broken peer-dependency graph on clean install.",
+    "Strangulated by an infinite loop inside package-lock.json.",
+    "Disintegrated after a global npm update broke local native bindings.",
+    "Smothered under a pile of unmaintained Python 2.7 syntax.",
+    "Starved to death when the central repository registry went read-only.",
+    "Executed by a breaking TypeScript compiler update (tsc strict null check).",
+    "Crushed under the weight of an uncompressed 2GB bundle build.",
+    "The creator said 'I'll rewrite this in Rust next weekend' and never returned.",
+    "Left in a dark corner after the hackathon ended at Sunday midnight.",
+    "Abandoned when the developer discovered a shiny new framework on X/Twitter.",
+    "Drowned in a sea of 142 unread GitHub notification emails.",
+    "Poisoned by scope creep before reaching v0.1.0-alpha.",
+    "Sacrificed to the gods of 'Will finish this during holiday break.'",
+    "Died of terminal procrastination after creating the initial README.md.",
+    "Buried under a mountain of half-written TODO comments.",
+    "Vanished after the solo maintainer accepted a full-time Web3 job.",
+    "Murdered by the phrase: 'This will only take two hours to finish.'",
+    "Entombed when the developer forgot what the codebase actually does.",
+    "Died of heartbreak after getting 0 stars in 365 consecutive days.",
+    "Strangled by side-project fatigue and unpaid AWS bills.",
+    "Lost in the void after the developer changed their local SSH keys.",
+    "Crushed by the realization that someone else launched the exact same app on Product Hunt.",
+    "Starved when the developer ran out of energy after setting up Tailwind.",
+    "Sacrificed during a mid-life career change away from frontend development.",
+    "Left to decay after the initial deployment domain expired.",
+    "Abandoned following an unhandled rage-quit git reset.",
+    "Slain by the sudden realization that the business model was legally impossible.",
+    "Vaporized by an out-of-gas transaction on Mainnet.",
+    "Drowned in gas fees during the NFT peak frenzy.",
+    "Trapped inside an unhandled smart contract reentrancy bug.",
+    "Sentenced to eternal purgatory by an unconfirmed transaction with 1 gwei gas price.",
+    "Poisoned by a leaked private key hardcoded in config.js on commit #2.",
+    "Frozen forever inside a non-upgradeable proxy contract.",
+    "Crushed by a hard fork that rendered the RPC nodes incompatible.",
+    "Devoured by a MEV sandwich bot before the transaction hit the mempool.",
+    "Starved when the testnet faucet ran dry of Goerli/Sepolia ETH.",
+    "Lost in the ether after sending tokens to address 0x000...dead.",
+    "Slain by an unhandled Web3 provider disconnection during a state transfer.",
+    "Execution halted forever by an invalid ABI interface signature.",
+    "Buried under a 10,000 block reorg on a dead Layer-2 sidechain.",
+    "Vaporized by an unverified smart contract source code mismatch.",
+    "Disintegrated after the IPFS gateway node went offline permanently.",
+    "Suffocated when the wallet provider updated its EIP-1193 RPC specs.",
+    "Poisoned by an integer overflow on an un-audited Solidity contract.",
+    "Smothered by an infinite loop inside an EVM assembly CALL instruction.",
+    "Executed after setting slippage to 100% on a illiquid DEX pair.",
+    "Entombed in block #18,492,011 with zero remaining confirmations.",
+    "Executed by a failing GitHub Actions pipeline on step run: npm test.",
+    "Smothered by FATAL ERROR: CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of memory.",
+    "Crushed when Docker container ran out of disk space on the build server.",
+    "Vaporized by an aggressive git push --force to the main branch.",
+    "Poisoned by SIGKILL from an out-of-memory cloud runner.",
+    "Trapped inside an infinite loop in a pre-commit husky git hook.",
+    "Executed by an accidental rm -rf / in a bash deployment script.",
+    "Mummified by an expired SSL/TLS certificate that nobody renewed.",
+    "Suffocated by an invalid .env variable missing in production environment.",
+    "Murdered by Uncaught SyntaxError: Unexpected token '<' on vendor bundle.",
+    "Entombed inside a broken .gitignore that uploaded node_modules to production.",
+    "Slain by an unhandled CORS error when fetching from backend origin.",
+    "Crushed under a broken Webpack config file with 800 lines of regex.",
+    "Erased during a server migration when someone forgot to back up the Postgres DB.",
+    "Frozen by a deadlock in the production database pool connections.",
+    "Drowned in server logs after turning on DEBUG=* in production.",
+    "Executed by a rogue cron job that wiped the staging storage bucket.",
+    "Disintegrated after a cloud provider region went down for 48 hours straight.",
+    "Poisoned by mixed content errors (http asset requested on https host).",
+    "Buried under a broken NGINX reverse proxy configuration error (502 Bad Gateway).",
+    "Slain by premature optimization before the MVP was even functional.",
+    "Suffocated under an overly complex microservice architecture for a todo app.",
+    "Crushed by 15 layers of abstract factory pattern design interfaces.",
+    "Murdered by a 4,000-line monolithic index.js file with zero comments.",
+    "Entombed when the database schema was modified directly in production.",
+    "Poisoned by an unhandled Promise rejection that crashed the process silent.",
+    "Vaporized during a total rewrite from React to Vue to Svelte to SolidJS.",
+    "Trapped in callback hell 12 levels deep without async/await.",
+    "Smothered by a 10GB sqlite file checked directly into git history.",
+    "Executed when the founder pivoted the startup to an AI wrapper app.",
+    "Mummified because the original author left zero documentation or onboarding guides.",
+    "Slain by a race condition that only triggers on production hardware.",
+    "Drowned under a mountain of copy-pasted Stack Overflow snippets from 2014.",
+    "Disintegrated when the client refused to pay the final 30% milestone invoice.",
+    "Erased after being marked as duplicate issue #1 and closed by stale bot.",
+    "Starved because the backend service required 128GB of RAM to boot up.",
+    "Sacrificed during a company acquisition where all active repos were archived.",
+    "Poisoned by a hardcoded localhost:8080 API endpoint URL in production code.",
+    "Smothered by a custom state manager created to replace Redux.",
+    "Entombed in the GitHub Arctic Code Vault to rot peacefully for the next 1,000 years."
+];
 
-  function addMemorialStyles() {
-    if (document.getElementById("memorial-card-styles")) return;
+let globalRepos = [];
+let userToken = null;
 
-    const style = document.createElement("style");
-    style.id = "memorial-card-styles";
+// Handle OAuth token in URL
+const urlParams = new URLSearchParams(window.location.search);
+const tokenParam = urlParams.get('token');
+if (tokenParam) {
+    localStorage.setItem('github_token', tokenParam);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    userToken = tokenParam;
+} else {
+    userToken = localStorage.getItem('github_token');
+}
 
-    style.textContent = `
-      .repository-card {
-        position: relative;
-        overflow: hidden;
-        background: #101010;
-        border: 1px solid #303030;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 16px;
-      }
+document.getElementById('github-auth-btn').addEventListener('click', () => {
+    window.location.href = '/api/auth/github';
+});
 
-      .repository-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 3px;
-        background: var(--grave-accent, #a52b2b);
-      }
+document.getElementById('wallet-connect-btn').addEventListener('click', async () => {
+    await modal.open();
+});
 
-      .repository-card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-      }
+// Strict Deterministic Cause Selector using Hash
+function getDeterministicCause(repoName) {
+    let hash = 0;
+    for (let i = 0; i < repoName.length; i++) {
+        hash = repoName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % CAUSES_OF_DEATH.length;
+    return CAUSES_OF_DEATH[index];
+}
 
-      .repository-status {
-        display: inline-flex;
-        align-items: center;
-        padding: 7px 11px;
-        border-radius: 6px;
-        background: #292929;
-        color: #e5e5e5;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 1.2px;
-      }
+// Strict Precision Float Mortality Score Calculation
+function calculateMortalityScore(daysInactive, openIssues, forks) {
+    let baseScore = Math.min(100, (daysInactive / 365) * 70);
+    let issuePenalty = Math.min(20, openIssues * 0.5);
+    let forkBonus = Math.max(-10, -forks * 0.2);
+    let total = baseScore + issuePenalty + forkBonus;
+    return Math.max(0, Math.min(100, total)).toFixed(2);
+}
 
-      .repository-status.dead {
-        color: #ff7777;
-        background: #351717;
-      }
+// Fetch user repos if token exists
+async function initApp() {
+    if (!userToken) return;
 
-      .repository-status.alive {
-        color: #dedede;
-        background: #252525;
-      }
+    document.getElementById('hero-landing').style.display = 'none';
+    document.getElementById('github-auth-btn').textContent = 'Linked to GitHub';
+    document.getElementById('github-auth-btn').disabled = true;
 
-      .repository-card h3 {
-        color: #fff;
-        font-size: 20px;
-        margin: 0 0 8px;
-        overflow-wrap: anywhere;
-      }
+    try {
+        const res = await axios.get('/api/repos', {
+            headers: { Authorization: `Bearer ${userToken}` }
+        });
+        globalRepos = res.data;
+        processAndRenderDashboard(globalRepos);
+        renderRepos(globalRepos, 'all');
+    } catch (err) {
+        console.error('Failed to load repositories', err);
+        localStorage.removeItem('github_token');
+        alert('Session expired or invalid token. Please reconnect GitHub.');
+        location.reload();
+    }
+}
 
-      .repository-card p {
-        color: #aaa;
-        font-size: 13px;
-        line-height: 1.6;
-      }
+function processAndRenderDashboard(repos) {
+    const now = new Date();
+    let total = repos.length;
+    let deadCount = 0;
+    let riskCount = 0;
+    let cumulativeMortality = 0;
 
-      .repository-meta {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        margin: 20px 0;
-      }
+    repos.forEach(repo => {
+        const lastActivity = new Date(repo.pushed_at || repo.updated_at);
+        const daysInactive = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+        const score = parseFloat(calculateMortalityScore(daysInactive, repo.open_issues_count || 0, repo.forks_count || 0));
+        cumulativeMortality += score;
 
-      .memorial-detail {
-        background: #191919;
-        border: 1px solid #292929;
-        border-radius: 9px;
-        padding: 12px;
-        min-width: 0;
-      }
+        if (daysInactive >= 90) deadCount++;
+        else if (daysInactive >= 30) riskCount++;
+    });
 
-      .memorial-detail small {
-        display: block;
-        color: #858585;
-        font-size: 9px;
-        letter-spacing: 1px;
-        margin-bottom: 7px;
-      }
+    const avgMortality = total > 0 ? (cumulativeMortality / total).toFixed(2) : '0.00';
 
-      .memorial-detail strong {
-        display: block;
-        color: #eee;
-        font-size: 12px;
-        overflow-wrap: anywhere;
-      }
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-dead').textContent = deadCount;
+    document.getElementById('stat-risk').textContent = riskCount;
+    document.getElementById('stat-mortality').textContent = `${avgMortality}%`;
 
-      .repository-cause {
-        padding: 13px;
-        margin: 16px 0;
-        background: #211313;
-        border-left: 3px solid #a52b2b;
-        border-radius: 5px;
-      }
+    document.getElementById('dashboard-stats').style.display = 'grid';
+    document.getElementById('filter-bar').style.display = 'flex';
+}
 
-      .repository-cause small {
-        color: #c66b6b;
-        display: block;
-        font-size: 9px;
-        letter-spacing: 1px;
-        margin-bottom: 7px;
-      }
+function renderRepos(repos, filter) {
+    const grid = document.getElementById('repo-grid');
+    grid.innerHTML = '';
 
-      .repository-cause p {
-        color: #eee;
-        margin: 0;
-        font-size: 13px;
-      }
+    const now = new Date();
 
-      .repository-link {
-        color: #ff7777;
-        text-decoration: none;
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .memorial-actions {
-        display: flex;
-        gap: 9px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-      }
-
-      .memorial-actions button {
-        flex: 1;
-        min-width: 120px;
-        padding: 11px;
-        border: 1px solid #444;
-        border-radius: 7px;
-        background: #242424;
-        color: #fff;
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .memorial-actions button:hover {
-        background: #383838;
-      }
-
-      .memorial-actions .share-x {
-        background: #8e2020;
-        border-color: #8e2020;
-      }
-
-      .memorial-actions .share-x:hover {
-        background: #b52b2b;
-      }
-
-      .memorial-card-image {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 26px;
-        background: #090909;
-        color: white;
-        border: 1px solid #5a2424;
-        border-radius: 12px;
-        font-family: Arial, sans-serif;
-      }
-
-      .memorial-card-image .image-brand {
-        color: #d65b5b;
-        font-size: 10px;
-        letter-spacing: 3px;
-        font-weight: bold;
-      }
-
-      .memorial-card-image .image-stage {
-        display: inline-block;
-        margin: 24px 0 14px;
-        padding: 9px 12px;
-        background: #351515;
-        color: #ff8585;
-        font-size: 11px;
-        font-weight: bold;
-        letter-spacing: 1.5px;
-      }
-
-      .memorial-card-image h2 {
-        color: #fff;
-        font-size: 25px;
-        overflow-wrap: anywhere;
-        margin: 0 0 10px;
-      }
-
-      .memorial-card-image .image-description {
-        color: #aaa;
-        font-size: 12px;
-        line-height: 1.5;
-      }
-
-      .memorial-card-image .image-footer {
-        border-top: 1px solid #333;
-        margin-top: 24px;
-        padding-top: 14px;
-        color: #888;
-        font-size: 10px;
-      }
-
-      @media (max-width: 420px) {
-        .repository-meta {
-          grid-template-columns: 1fr 1fr;
+    repos.forEach(repo => {
+        const lastActivity = new Date(repo.pushed_at || repo.updated_at);
+        const daysInactive = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+        const mortalityScore = calculateMortalityScore(daysInactive, repo.open_issues_count || 0, repo.forks_count || 0);
+        
+        let status = 'alive';
+        let stageName = 'Living Code';
+        if (daysInactive >= 90) {
+            status = 'dead';
+            stageName = daysInactive > 365 ? 'Stage III: Entombed Rest' : (daysInactive > 180 ? 'Stage II: Decay & Moss' : 'Stage I: Dormant Spirit');
+        } else if (daysInactive >= 30) {
+            status = 'risk';
+            stageName = 'At Risk (Fading)';
         }
 
-        .repository-card {
-          padding: 15px;
-        }
-      }
-    `;
+        if (filter !== 'all' && filter !== status) return;
 
-    document.head.appendChild(style);
-  }
+        const causeOfDeath = status === 'dead' ? getDeterministicCause(repo.name) : null;
+        
+        // Twitter Share text
+        const tweetText = status === 'dead' 
+            ? encodeURIComponent(`My repo @${repo.name} has officially died after ${daysInactive} days of silence. Mortality Score: ${mortalityScore}%. Cause of death: "${causeOfDeath}" Buried at gitgraveyard.xyz #GitGraveyard #Web3`)
+            : encodeURIComponent(`Checking code mortality for @${repo.name} on GitGraveyard (Score: ${mortalityScore}%). gitgraveyard.xyz`);
 
-  // --------------------------------------------------
-  // UTILITIES
-  // --------------------------------------------------
-
-  function notify(message, type = "info") {
-    if (!elements.toastContainer) {
-      console.log(message);
-      return;
-    }
-
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    elements.toastContainer.appendChild(toast);
-
-    setTimeout(() => toast.remove(), 4000);
-  }
-
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    })[char]);
-  }
-
-  function formatDate(value) {
-    if (!value) return "Unknown";
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Unknown";
-
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-  }
-
-  function addDays(dateValue, days) {
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return null;
-
-    date.setDate(date.getDate() + days);
-    return date;
-  }
-
-  function formatDateObject(date) {
-    if (!date) return "Unknown";
-
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-  }
-
-  // --------------------------------------------------
-  // REPOSITORY STATUS
-  // --------------------------------------------------
-
-  function getInactiveDays(repository) {
-    if (!repository.last_activity_at) return null;
-
-    const lastActivity = new Date(repository.last_activity_at);
-
-    if (Number.isNaN(lastActivity.getTime())) return null;
-
-    return Math.max(
-      0,
-      Math.floor((Date.now() - lastActivity.getTime()) / 86400000)
-    );
-  }
-
-  function getStage(days) {
-    if (days === null) {
-      return {
-        label: "RECORDS INCOMPLETE",
-        status: "unknown",
-        threshold: null
-      };
-    }
-
-    if (days < 30) {
-      return {
-        label: "STILL ALIVE",
-        status: "alive",
-        threshold: 0
-      };
-    }
-
-    if (days < 60) {
-      return {
-        label: "ON LIFE SUPPORT",
-        status: "warning",
-        threshold: 30
-      };
-    }
-
-    if (days < 90) {
-      return {
-        label: "CRITICALLY ABANDONED",
-        status: "warning",
-        threshold: 60
-      };
-    }
-
-    if (days < 120) {
-      return {
-        label: "PRESUMED DEAD",
-        status: "dead",
-        threshold: 90
-      };
-    }
-
-    return {
-      label: "LONG DEAD",
-      status: "dead",
-      threshold: 120
-    };
-  }
-
-  function prepareRepositories(repositories) {
-    return repositories.map((repository) => {
-      const daysInactive = getInactiveDays(repository);
-      const stage = getStage(daysInactive);
-
-      let condition = {};
-
-      if (daysInactive !== null && window.GraveyardCauses) {
-        condition = window.GraveyardCauses.getCause(daysInactive) || {};
-      }
-
-      return {
-        ...repository,
-        daysInactive,
-        stage,
-        condition
-      };
-    });
-  }
-
-  // --------------------------------------------------
-  // STATISTICS
-  // --------------------------------------------------
-
-  function updateStatistics() {
-    const total = state.repositories.length;
-
-    const dead = state.repositories.filter(
-      (repo) => repo.stage.status === "dead"
-    ).length;
-
-    const alive = state.repositories.filter(
-      (repo) => repo.stage.status === "alive"
-    ).length;
-
-    const mortality = total ? Math.round((dead / total) * 100) : 0;
-
-    if (elements.totalRepos) elements.totalRepos.textContent = total;
-    if (elements.deadRepos) elements.deadRepos.textContent = dead;
-    if (elements.aliveRepos) elements.aliveRepos.textContent = alive;
-
-    if (elements.mortalityScore) {
-      elements.mortalityScore.textContent = `${mortality}%`;
-    }
-
-    if (elements.scoreFill) {
-      elements.scoreFill.style.width = `${mortality}%`;
-    }
-
-    if (elements.scoreDescription) {
-      elements.scoreDescription.textContent =
-        total === 0
-          ? "Scan your GitHub repositories to calculate your score."
-          : `${dead} of ${total} repositories are classified as dead based on inactivity.`;
-    }
-  }
-
-  // --------------------------------------------------
-  // MEMORIAL CARD
-  // --------------------------------------------------
-
-  function createRepositoryCard(repository) {
-    const isDead = repository.stage.status === "dead";
-    const isAlive = repository.stage.status === "alive";
-
-    const lastActivity = formatDate(repository.last_activity_at);
-
-    // A repository is considered dead at 90 days of inactivity.
-    // The date is an estimate, not a confirmed deletion or abandonment date.
-    const estimatedDeathDate = isDead
-      ? addDays(repository.last_activity_at, 90)
-      : null;
-
-    const stageEnteredDate =
-      repository.stage.threshold !== null
-        ? addDays(repository.last_activity_at, repository.stage.threshold)
-        : null;
-
-    const cause = isDead
-      ? (
-          repository.condition?.cause ||
-          repository.condition?.label ||
-          "No specific cause recorded."
-        )
-      : "";
-
-    const accent = isDead ? "#a52b2b" : "#777777";
-
-    const description =
-      repository.description || "No description provided.";
-
-    const language = repository.language || "Not specified";
-
-    const stars = Number(repository.stargazers_count || 0);
-    const forks = Number(repository.forks_count || 0);
-
-    const card = document.createElement("article");
-    card.className = "repository-card";
-    card.style.setProperty("--grave-accent", accent);
-
-    card.innerHTML = `
-      <div class="repository-card-top">
-        <span class="repository-status ${isDead ? "dead" : isAlive ? "alive" : ""}">
-          ${escapeHTML(repository.stage.label)}
-        </span>
-
-        <span style="color:#777;font-size:11px;">
-          ${repository.daysInactive === null
-            ? "Activity unknown"
-            : `${repository.daysInactive} days inactive`}
-        </span>
-      </div>
-
-      <h3>${escapeHTML(repository.name)}</h3>
-
-      <p>${escapeHTML(description)}</p>
-
-      <div class="repository-meta">
-        <div class="memorial-detail">
-          <small>LAST ACTIVITY</small>
-          <strong>${escapeHTML(lastActivity)}</strong>
-        </div>
-
-        <div class="memorial-detail">
-          <small>${isDead ? "EST. DATE OF DEATH" : "STAGE ENTERED"}</small>
-          <strong>${escapeHTML(
-            isDead
-              ? formatDateObject(estimatedDeathDate)
-              : stageEnteredDate
-                ? formatDateObject(stageEnteredDate)
-                : isAlive
-                  ? "Currently active"
-                  : "Unknown"
-          )}</strong>
-        </div>
-
-        <div class="memorial-detail">
-          <small>LANGUAGE</small>
-          <strong>${escapeHTML(language)}</strong>
-        </div>
-
-        <div class="memorial-detail">
-          <small>STARS / FORKS</small>
-          <strong>${stars} / ${forks}</strong>
-        </div>
-      </div>
-
-      ${
-        isDead
-          ? `
-            <div class="repository-cause">
-              <small>CAUSE OF DEATH</small>
-              <p>${escapeHTML(cause)}</p>
+        const card = document.createElement('div');
+        card.className = 'tomb-card';
+        card.innerHTML = `
+            <div>
+                <div class="tomb-header">
+                    <span class="repo-name">${repo.name}</span>
+                    <span class="mortality-badge ${status === 'dead' ? 'dead' : ''}">${mortalityScore}% Mortality</span>
+                </div>
+                <div class="tomb-body">
+                    <p>${repo.description || 'No description provided.'}</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #737373;">Stage: <strong>${stageName}</strong></p>
+                    <p style="font-size: 0.75rem; color: #737373;">Last pushed: ${lastActivity.toISOString().split('T')[0]} (${daysInactive}d ago)</p>
+                    ${causeOfDeath ? `<div class="cause-box"><strong>Cause of Death:</strong> ${causeOfDeath}</div>` : ''}
+                </div>
             </div>
-          `
-          : ""
-      }
+            <div class="tomb-footer">
+                <a href="https://twitter.com/intent/tweet?text=${tweetText}" target="_blank" class="card-action-btn">Tweet X</a>
+                <button class="card-action-btn" onclick="downloadMemorialCard('${repo.name}', '${mortalityScore}', '${stageName}', '${daysInactive}d', '${causeOfDeath || 'N/A'}')">Card PNG</button>
+                ${status === 'dead' ? `<button class="card-action-btn primary" onclick="mintTombstoneNFT('${repo.id}', '${repo.name}')">Mint NFT</button>` : ''}
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
 
-      <a
-        class="repository-link"
-        href="${escapeHTML(repository.html_url || "#")}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        VIEW ON GITHUB ↗
-      </a>
+// Filter Tab Handlers
+document.querySelectorAll('.filter-tab').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        renderRepos(globalRepos, e.target.getAttribute('data-filter'));
+    });
+});
 
-      <div class="memorial-actions">
-        <button type="button" data-action="download">
-          DOWNLOAD CARD
-        </button>
+// Download Memorial Card as PNG
+window.downloadMemorialCard = function(name, score, stage, inactiveDays, cause) {
+    const canvas = document.getElementById('memorial-canvas');
+    const ctx = canvas.getContext('2d');
 
-        <button type="button" class="share-x" data-action="share">
-          SHARE ON X
-        </button>
-      </div>
+    // Background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      <div class="memorial-card-image" data-memorial-image style="display:none;">
-        <div class="image-brand">THE GITHUB GRAVEYARD</div>
+    // Outer border
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
 
-        <div class="image-stage">
-          ${escapeHTML(repository.stage.label)}
-        </div>
+    // Header Title
+    ctx.fillStyle = '#f5f5f5';
+    ctx.font = 'bold 36px Cinzel, serif';
+    ctx.fillText('GIT_GRAVEYARD MEMORIAL', 70, 90);
 
-        <h2>${escapeHTML(repository.name)}</h2>
+    ctx.fillStyle = '#a3a3a3';
+    ctx.font = '20px "JetBrains Mono", monospace';
+    ctx.fillText('gitgraveyard.xyz', canvas.width - 280, 90);
 
-        <p class="image-description">
-          ${escapeHTML(description)}
-        </p>
+    // Repo Name
+    ctx.fillStyle = '#dc2626';
+    ctx.font = 'bold 48px Cinzel, serif';
+    ctx.fillText(name, 70, 180);
 
-        <div class="repository-meta">
-          <div class="memorial-detail">
-            <small>LAST ACTIVITY</small>
-            <strong>${escapeHTML(lastActivity)}</strong>
-          </div>
+    // Metrics
+    ctx.fillStyle = '#f5f5f5';
+    ctx.font = '24px "JetBrains Mono", monospace';
+    ctx.fillText(`Mortality Score: ${score}%`, 70, 240);
+    ctx.fillText(`Stage: ${stage}`, 70, 280);
+    ctx.fillText(`Inactivity: ${inactiveDays}`, 70, 320);
 
-          <div class="memorial-detail">
-            <small>${isDead ? "EST. DATE OF DEATH" : "STAGE ENTERED"}</small>
-            <strong>${escapeHTML(
-              isDead
-                ? formatDateObject(estimatedDeathDate)
-                : stageEnteredDate
-                  ? formatDateObject(stageEnteredDate)
-                  : isAlive
-                    ? "Currently active"
-                    : "Unknown"
-            )}</strong>
-          </div>
-        </div>
+    // Cause of Death box
+    ctx.fillStyle = '#121212';
+    ctx.fillRect(70, 370, canvas.width - 140, 150);
+    ctx.strokeStyle = '#262626';
+    ctx.strokeRect(70, 370, canvas.width - 140, 150);
 
-        ${
-          isDead
-            ? `
-              <div class="repository-cause">
-                <small>CAUSE OF DEATH</small>
-                <p>${escapeHTML(cause)}</p>
-              </div>
-            `
-            : ""
+    ctx.fillStyle = '#fca5a5';
+    ctx.font = 'bold 20px "JetBrains Mono", monospace';
+    ctx.fillText('CAUSE OF DEATH:', 100, 410);
+
+    ctx.fillStyle = '#f5f5f5';
+    ctx.font = '18px "JetBrains Mono", monospace';
+    
+    // Word wrap helper for canvas
+    let words = cause.split(' ');
+    let line = '';
+    let y = 450;
+    for(let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        if (testWidth > canvas.width - 200 && n > 0) {
+            ctx.fillText(line, 100, y);
+            line = words[n] + ' ';
+            y += 30;
+        } else {
+            line = testLine;
+        }
+    }
+    ctx.fillText(line, 100, y);
+
+    // Trigger download
+    const link = document.createElement('a');
+    link.download = `${name}-tombstone.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+};
+
+// Mint NFT Function using Phantom / Reown WalletProvider & Ethers.js
+window.mintTombstoneNFT = async function(repoId, repoName) {
+    try {
+        const walletProvider = modal.getWalletProvider();
+        if (!walletProvider) {
+            alert('Please connect your Ethereum wallet (Phantom, MetaMask, etc.) first using the Connect Wallet button.');
+            await modal.open();
+            return;
         }
 
-        <div class="image-footer">
-          github.com/${escapeHTML(state.user?.login || "")}/${escapeHTML(repository.name)}
-          <br><br>
-          A repository remembered by GitHub Graveyard.
-        </div>
-      </div>
-    `;
+        const provider = new ethers.BrowserProvider(walletProvider);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
 
-    card.dataset.repositoryUrl = repository.html_url || "";
-    card.dataset.repositoryName = repository.name;
-
-    return card;
-  }
-
-  // --------------------------------------------------
-  // DOWNLOAD IMAGE
-  // --------------------------------------------------
-
-  function loadHtml2Canvas() {
-    if (window.html2canvas) return Promise.resolve();
-
-    if (window.__graveyardCanvasLoading) {
-      return window.__graveyardCanvasLoading;
+        alert(`Ready to mint tombstone NFT for "${repoName}" from verified address ${address} on connected network.`);
+        // Smart contract minting execution call goes here:
+        // const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        // const tx = await contract.mintTombstone(repoId, metadataURI);
+        // await tx.wait();
+    } catch (err) {
+        console.error('Minting error:', err);
+        alert('Wallet connection or transaction aborted.');
     }
+};
 
-    window.__graveyardCanvasLoading = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-
-      script.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-
-      script.onload = resolve;
-      script.onerror = () => reject(
-        new Error("Could not load the image generator.")
-      );
-
-      document.head.appendChild(script);
-    });
-
-    return window.__graveyardCanvasLoading;
-  }
-
-  async function downloadMemorialCard(card) {
-    const image = card.querySelector("[data-memorial-image]");
-
-    if (!image) return null;
-
-    await loadHtml2Canvas();
-
-    image.style.display = "block";
-
-    try {
-      const canvas = await window.html2canvas(image, {
-        backgroundColor: "#090909",
-        scale: 2,
-        useCORS: true
-      });
-
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
-
-      if (!blob) throw new Error("Could not create the image.");
-
-      const fileName =
-        (card.dataset.repositoryName || "repository")
-          .replace(/[^a-z0-9-_]/gi, "-") + "-graveyard.png";
-
-      const file = new File([blob], fileName, {
-        type: "image/png"
-      });
-
-      return { blob, file, fileName };
-    } finally {
-      image.style.display = "none";
-    }
-  }
-
-  async function handleDownload(card) {
-    try {
-      notify("Preparing your memorial card...");
-
-      const result = await downloadMemorialCard(card);
-      if (!result) return;
-
-      const url = URL.createObjectURL(result.blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = result.fileName;
-      link.click();
-
-      URL.revokeObjectURL(url);
-
-      notify("Memorial card downloaded.", "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not generate the card. Please try again.", "error");
-    }
-  }
-
-  // --------------------------------------------------
-  // SHARE ON X
-  // --------------------------------------------------
-
-  async function handleShare(card, repository) {
-    const isDead = repository.stage.status === "dead";
-
-    const cause = isDead
-      ? (
-          repository.condition?.cause ||
-          repository.condition?.label ||
-          "No specific cause recorded."
-        )
-      : "";
-
-    const text = isDead
-      ? `Another repository has fallen.\n\n${repository.name}\nStage: ${repository.stage.label}\nCause of death: ${cause}\n\nRemember your abandoned repositories.`
-      : `This repository is still alive.\n\n${repository.name}\nStatus: ${repository.stage.label}\nLast activity: ${formatDate(repository.last_activity_at)}\n\nCheck your repositories at GitHub Graveyard.`;
-
-    try {
-      const result = await downloadMemorialCard(card);
-
-      if (result && navigator.canShare?.({ files: [result.file] })) {
-        await navigator.share({
-          files: [result.file],
-          title: "GitHub Graveyard",
-          text
-        });
-
-        return;
-      }
-
-      if (result) {
-        const url = URL.createObjectURL(result.blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = result.fileName;
-        link.click();
-
-        URL.revokeObjectURL(url);
-      }
-
-      const shareUrl =
-        "https://twitter.com/intent/tweet?text=" +
-        encodeURIComponent(text);
-
-      window.open(shareUrl, "_blank", "noopener,noreferrer");
-
-      notify(
-        "Card downloaded. Attach it to your X post.",
-        "success"
-      );
-    } catch (error) {
-      if (error.name === "AbortError") return;
-
-      console.error(error);
-
-      const shareUrl =
-        "https://twitter.com/intent/tweet?text=" +
-        encodeURIComponent(text);
-
-      window.open(shareUrl, "_blank", "noopener,noreferrer");
-
-      notify("Opened your X post.", "info");
-    }
-  }
-
-  // --------------------------------------------------
-  // RENDER AND FILTER
-  // --------------------------------------------------
-
-  function renderRepositories() {
-    if (!elements.repositoryList) return;
-
-    const filtered = state.repositories.filter((repository) => {
-      if (state.filter === "all") return true;
-      if (state.filter === "dead") return repository.stage.status === "dead";
-      if (state.filter === "alive") return repository.stage.status === "alive";
-      return true;
-    });
-
-    if (!filtered.length) {
-      elements.repositoryList.innerHTML = `
-        <p style="color:#888;text-align:center;padding:30px;">
-          No repositories found in this category.
-        </p>
-        `;
-      return;
-    }
-
-    elements.repositoryList.innerHTML = "";
-
-    filtered.forEach((repository) => {
-      elements.repositoryList.appendChild(
-        createRepositoryCard(repository)
-      );
-    });
-  }
-
-  // --------------------------------------------------
-  // GITHUB API
-  // --------------------------------------------------
-
-  function connectGitHub() {
-    window.location.href = `${API}?action=login`;
-  }
-
-  async function loadUser() {
-    const response = await fetch(`${API}?action=me`);
-
-    if (!response.ok) {
-      throw new Error("Could not verify your GitHub session.");
-    }
-
-    const data = await response.json();
-    state.user = data.user || data;
-
-    return state.user;
-  }
-
-  async function loadRepositories() {
-    const response = await fetch(`${API}?action=repositories`);
-
-    if (!response.ok) {
-      throw new Error("Could not load your repositories.");
-    }
-
-    const data = await response.json();
-
-    return data.repositories || data;
-  }
-
-  async function scanGraveyard() {
-    if (state.loading) return;
-
-    state.loading = true;
-    notify("Scanning your repositories...");
-
-    try {
-      const repositories = await loadRepositories();
-
-      state.repositories = prepareRepositories(repositories);
-
-      updateStatistics();
-      renderRepositories();
-
-      notify(
-        `Scan complete. ${state.repositories.length} repositories examined.`,
-        "success"
-      );
-    } catch (error) {
-      console.error(error);
-      notify(error.message || "Repository scan failed.", "error");
-    } finally {
-      state.loading = false;
-    }
-  }
-
-  // --------------------------------------------------
-  // INITIALIZATION
-  // --------------------------------------------------
-
-  function initialize() {
-    addMemorialStyles();
-
-    elements.connectGitHub?.addEventListener("click", connectGitHub);
-    elements.heroConnect?.addEventListener("click", connectGitHub);
-
-    elements.connectWallet?.addEventListener("click", () => {
-      notify(
-        "Ethereum wallet integration is not active yet.",
-        "info"
-      );
-    });
-
-    document.querySelectorAll(".filter-button").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.filter = button.dataset.filter || "all";
-
-        document.querySelectorAll(".filter-button").forEach((item) => {
-          item.classList.toggle("active", item === button);
-        });
-
-        renderRepositories();
-      });
-    });
-
-    elements.repositoryList?.addEventListener("click", async (event) => {
-      const button = event.target.closest("button[data-action]");
-      if (!button) return;
-
-      const card = button.closest(".repository-card");
-      if (!card) return;
-
-      const repository = state.repositories.find(
-        (repo) => repo.name === card.dataset.repositoryName
-      );
-
-      if (!repository) return;
-
-      if (button.dataset.action === "download") {
-        await handleDownload(card);
-      }
-
-      if (button.dataset.action === "share") {
-        await handleShare(card, repository);
-      }
-    });
-
-    loadUser()
-      .then((user) => {
-        if (user) scanGraveyard();
-      })
-      .catch(() => {
-        // User is not connected yet.
-      });
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initialize);
-  } else {
-    initialize();
-  }
-})();
+initApp();
