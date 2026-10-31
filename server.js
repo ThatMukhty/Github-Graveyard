@@ -4,6 +4,8 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
+
+// Use the environment port provided by your hosting provider, defaulting to 3000 locally
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -11,7 +13,12 @@ app.use(express.static(path.join(__dirname)));
 
 // Step 1: Redirect to GitHub OAuth
 app.get('/api/auth/github', (req, res) => {
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=https://gitgraveyard.xyz/api/auth/callback&scope=repo`;
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const redirectUri = process.env.NODE_ENV === 'production' 
+        ? 'https://gitgraveyard.xyz/api/auth/callback' 
+        : `http://localhost:${PORT}/api/auth/callback`;
+        
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=repo`;
     res.redirect(githubAuthUrl);
 });
 
@@ -20,12 +27,16 @@ app.get('/api/auth/callback', async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).send('Authorization code missing.');
 
+    const redirectUri = process.env.NODE_ENV === 'production' 
+        ? 'https://gitgraveyard.xyz/api/auth/callback' 
+        : `http://localhost:${PORT}/api/auth/callback`;
+
     try {
         const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
             client_id: process.env.GITHUB_CLIENT_ID,
             client_secret: process.env.GITHUB_CLIENT_SECRET,
             code: code,
-            redirect_uri: 'https://gitgraveyard.xyz/api/auth/callback'
+            redirect_uri: redirectUri
         }, {
             headers: { Accept: 'application/json' }
         });
@@ -57,5 +68,5 @@ app.get('/api/repos', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`[GITGRAVEYARD] Server spinning on port ${PORT}`);
+    console.log(`[GITGRAVEYARD] Server running securely on port ${PORT}`);
 });
