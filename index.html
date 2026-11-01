@@ -1,76 +1,178 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitGraveyard — Eternal Rest for Dead Code</title>
-    <link rel="stylesheet" href="/main.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Reown AppKit UMD Bundle Loader -->
-    <script src="https://cdn.jsdelivr.net/npm/@reown/appkit@1.6.4/dist/index.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090707">
+<meta name="description" content="The final resting place for abandoned repositories.">
+<title>GitHub Graveyard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/main.css">
 </head>
 <body>
-    <div class="fog-overlay"></div>
-    <div class="scanlines"></div>
+<div class="atmosphere" aria-hidden="true">
+<div class="moon"></div>
+<div class="fog fog-one"></div>
+<div class="fog fog-two"></div>
+<div class="grain"></div>
+<div class="vignette"></div>
+</div>
 
-    <header class="site-header">
-        <div class="logo-area">
-            <h1>GIT_GRAVEYARD</h1>
-            <span class="subtitle">gitgraveyard.xyz // Web3 Necromancy</span>
-        </div>
-        <div class="auth-actions">
-            <button id="github-auth-btn" class="gothic-btn">Connect GitHub</button>
-            <button id="wallet-connect-btn" class="gothic-btn crimson">Connect Wallet</button>
-        </div>
-    </header>
+<header class="topbar">
+<a class="brand" href="/">
+<span class="brand-mark">†</span>
+<span>GITHUB<span class="brand-red">GRAVEYARD</span></span>
+</a>
+<div class="top-actions">
+<div id="userBlock" class="user-block hidden">
+<img id="userAvatar" alt="">
+<span id="userLogin"></span>
+</div>
+<button id="connectGithub" class="button button-outline">CONNECT GITHUB ↗</button>
+<button id="logoutGithub" class="button button-quiet hidden">LOG OUT</button>
+</div>
+</header>
 
-    <main class="main-container">
-        <!-- Dashboard Statistics -->
-        <section class="dashboard-grid" id="dashboard-stats" style="display: none;">
-            <div class="stat-card">
-                <h3>Total Repos</h3>
-                <p id="stat-total">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Dead Code</h3>
-                <p id="stat-dead" class="crimson-text">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>At Risk</h3>
-                <p id="stat-risk">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Mortality %</h3>
-                <p id="stat-mortality">0.00%</p>
-            </div>
-        </section>
+<main class="page-shell">
+<section class="hero">
+<div class="hero-copy">
+<p class="eyebrow"><i class="live-dot"></i> THE REPOSITORY AFTERLIFE</p>
+<h1>EVERY PROJECT<br>HAS AN <span>AFTERLIFE.</span></h1>
+<p class="hero-description">Some repositories are still breathing. Others have become digital tombstones. Connect GitHub and discover what you've left behind.</p>
+<div class="hero-actions">
+<button id="heroConnect" class="button button-red">ENTER THE GRAVEYARD ↗</button>
+<span class="micro-copy">PUBLIC, NON-FORK REPOSITORIES</span>
+</div>
+</div>
 
-        <!-- Filters -->
-        <div class="filter-bar" id="filter-bar" style="display: none;">
-            <button class="filter-tab active" data-filter="all">All Tombs</button>
-            <button class="filter-tab" data-filter="dead">Dead</button>
-            <button class="filter-tab" data-filter="risk">At Risk</button>
-            <button class="filter-tab" data-filter="alive">Living</button>
-        </div>
+<div class="graveyard-art" aria-hidden="true">
+<div class="art-moon"></div>
+<div class="tree tree-left"></div>
+<div class="tree tree-right"></div>
+<div class="grave grave-a"></div>
+<div class="grave grave-b"></div>
+<div class="grave grave-c"></div>
+<div class="ground"></div>
+<span class="art-cross">†</span>
+<div class="art-fog"></div>
+</div>
+</section>
 
-        <!-- Hero Landing if not logged in -->
-        <section id="hero-landing" class="hero-section">
-            <h2>Bury Your Abandoned Repositories</h2>
-            <p>Scan your GitHub account, calculate precise code mortality scores, inspect deterministic causes of death, download custom memorial cards, and mint on-chain NFT tombstones via Phantom, MetaMask, or WalletConnect.</p>
-            <button onclick="document.getElementById('github-auth-btn').click();" class="gothic-btn large crimson">Enter The Crypts</button>
-        </section>
+<section id="dashboard" class="dashboard hidden">
+<div class="section-heading">
+<div>
+<p class="eyebrow">YOUR DIGITAL CEMETERY</p>
+<h2>THE HEADCOUNT</h2>
+</div>
+<span id="scanStatus" class="status-label">AWAITING SCAN</span>
+</div>
 
-        <!-- Graveyard Repository Grid -->
-        <section class="graveyard-grid" id="repo-grid"></section>
-    </main>
+<div class="stats-grid">
+<article class="stat-card">
+<span>TOTAL TOMBSTONES</span>
+<strong id="statTotal">—</strong>
+<small>Repositories scanned</small>
+</article>
+<article class="stat-card">
+<span>PRESUMED DEAD</span>
+<strong id="statDead" class="red-text">—</strong>
+<small>90+ days inactive</small>
+</article>
+<article class="stat-card">
+<span>STILL BREATHING</span>
+<strong id="statAlive">—</strong>
+<small>Active in last 30 days</small>
+</article>
+<article class="stat-card">
+<span>MORTALITY RATE</span>
+<strong id="statMortality">—</strong>
+<small>Inactive for 90+ days</small>
+</article>
+</div>
 
-    <!-- Hidden Canvas for Memorial Card Generation -->
-    <canvas id="memorial-canvas" width="1200" height="630" style="display: none;"></canvas>
+<div class="wallet-panel">
+<div class="wallet-symbol">◈</div>
+<div class="wallet-copy">
+<span class="eyebrow">WEB3 IDENTITY</span>
+<strong id="walletStatusText">WALLET NOT CONNECTED</strong>
+<small id="walletMessage">Associate an Ethereum wallet with your GitHub identity.</small>
+<code id="walletAddress" class="hidden"></code>
+</div>
+<div class="wallet-actions">
+<button id="connectWallet" class="button button-outline">CONNECT WALLET</button>
+<button id="disconnectWallet" class="button button-quiet hidden">DISCONNECT</button>
+</div>
+</div>
 
-    <!-- Script imports -->
-    <script type="module" src="/app.js"></script>
+<div class="repo-heading">
+<div>
+<p class="eyebrow">THE RECORDS</p>
+<h2>YOUR REPOSITORIES</h2>
+</div>
+<button id="rescanButton" class="button button-quiet">↻ RESCAN</button>
+</div>
+
+<div class="repo-tools">
+<label class="search-box">
+<span>⌕</span>
+<input id="repoSearch" type="search" placeholder="Search repositories...">
+</label>
+<div id="filterBar" class="filter-bar">
+<button class="filter active" data-filter="all">ALL</button>
+<button class="filter" data-filter="alive">ALIVE</button>
+<button class="filter" data-filter="warning">FADING</button>
+<button class="filter" data-filter="dead">DEAD</button>
+</div>
+</div>
+
+<div id="repoGrid" class="repo-grid"></div>
+
+<div id="emptyState" class="empty-state hidden">
+<span>†</span>
+<h3>NO RECORDS FOUND</h3>
+<p>Try another search or filter.</p>
+</div>
+</section>
+
+<section id="welcomeState" class="welcome-state">
+<div class="welcome-seal">†</div>
+<p class="eyebrow">THE GATES ARE CLOSED</p>
+<h2>YOUR REPOSITORIES<br>ARE WAITING.</h2>
+<p>Connect your GitHub account to begin the scan. Only public repositories you own are included. Forks are excluded.</p>
+<button id="welcomeConnect" class="button button-red">CONNECT GITHUB ↗</button>
+</section>
+</main>
+
+<footer class="footer">
+<span>GITHUB GRAVEYARD</span>
+<span>BUILT FOR THE PROJECTS WE LEFT BEHIND</span>
+<span>†</span>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="memorialModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="memorialTitle">
+<div class="modal-backdrop" data-close="true"></div>
+<article class="memorial-card">
+<button id="closeMemorial" class="modal-close" aria-label="Close">×</button>
+<p class="eyebrow">A MEMORIAL FROM THE GRAVEYARD</p>
+<div class="memorial-cross">†</div>
+<h2 id="memorialTitle">REPOSITORY NAME</h2>
+<p id="memorialDescription" class="memorial-description"></p>
+<div class="memorial-rule"></div>
+<div class="memorial-facts">
+<span>LAST BREATH</span>
+<strong id="memorialLastActivity">—</strong>
+<span>CAUSE OF ABANDONMENT</span>
+<strong id="memorialCause">—</strong>
+</div>
+<a id="memorialRepoLink" class="button button-red" target="_blank" rel="noopener noreferrer">VISIT REPOSITORY ↗</a>
+<button id="shareMemorial" class="button button-outline">SHARE MEMORIAL ON X ↗</button>
+</article>
+</div>
+
+<script type="module" src="/app.js"></script>
 </body>
 </html>

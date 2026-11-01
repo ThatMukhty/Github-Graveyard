@@ -1,0 +1,116 @@
+GITHUB GRAVEYARD — COMPLETE PROJECT SETUP
+
+1. UPSTASH REDIS
+
+- Sign in at https://upstash.com/
+- Create a Redis database on the Free plan.
+- Open its REST API section.
+- Copy the REST URL and REST token.
+
+In Vercel → Project → Settings → Environment Variables, add:
+
+UPSTASH_REDIS_REST_URL
+UPSTASH_REDIS_REST_TOKEN
+
+Never place the REST token in frontend files or commit it to GitHub.
+
+
+2. GITHUB OAUTH ENVIRONMENT VARIABLES
+
+In Vercel → Project → Settings → Environment Variables, ensure these exist:
+
+GITHUB_CLIENT_ID
+GITHUB_CLIENT_SECRET
+GITHUB_CALLBACK_URL
+SESSION_SECRET
+APP_ORIGIN
+
+Set:
+
+GITHUB_CALLBACK_URL=https://gitgraveyard.xyz/api/github?action=callback
+
+APP_ORIGIN=https://gitgraveyard.xyz
+
+SESSION_SECRET must be a random secret at least 32 characters long.
+
+The GitHub OAuth App callback URL must exactly match GITHUB_CALLBACK_URL.
+
+Apply the environment variables to Production.
+Apply them to Preview too if you intend to test preview deployments.
+
+
+3. REOWN WALLET CONNECTION
+
+- Visit https://cloud.reown.com/
+- Open your Reown project.
+- Copy its Project ID.
+- Open wallet.js.
+- Find YOUR_REOWN_PROJECT_ID.
+- Replace it with your actual Project ID.
+
+The Project ID is intended for frontend use.
+Do not place private credentials in frontend files.
+
+
+4. VERCEL BUILD SETTINGS
+
+Framework preset: Vite
+Build command: npm run build
+Output directory: dist
+
+Keep vercel.json in the main project folder.
+
+Do not change the GitHub callback URL unless you also update it in your GitHub OAuth App.
+
+
+5. DEPLOYMENT
+
+- Replace the project files with the supplied files.
+- Preserve the api folder structure.
+- Save the files.
+- Commit and push the changes to your connected GitHub repository using your usual VS Code/GitHub workflow.
+- Wait for Vercel to deploy.
+- If environment variables were added after a deployment, trigger a new deployment from Vercel.
+
+
+6. TESTING ORDER
+
+1. Visit https://gitgraveyard.xyz.
+2. Connect GitHub.
+3. Confirm your GitHub profile appears.
+4. Confirm your public repositories appear.
+5. Confirm forks and private repositories are excluded.
+6. Check the dashboard statistics.
+7. Try repository search.
+8. Try the status filters.
+9. Open a repository memorial.
+10. Test sharing a memorial on X.
+11. Connect an Ethereum wallet.
+12. Sign the plain-text verification message.
+13. Confirm the app displays VERIFIED WALLET.
+14. Refresh the page while logged in.
+15. Confirm the wallet association is restored.
+16. Log out of GitHub.
+17. Log back into the same GitHub account.
+18. Confirm the wallet association is still saved.
+19. Disconnect the wallet.
+20. Confirm the wallet association is removed.
+
+
+IMPORTANT PRODUCT NOTES
+
+- The wallet signature is authentication only.
+- No transaction is sent.
+- No NFT is minted.
+- No gas fee is required for signing the message.
+- No smart contract is called.
+- Wallet ownership is verified server-side before the association is saved.
+- One Ethereum wallet is restricted to one GitHub account in this implementation.
+- GitHub sessions expire after seven days.
+- Wallet records are stored separately in Upstash Redis.
+- Only public repositories owned by the authenticated GitHub user are scanned.
+- Forks are excluded.
+- Repository inactivity is calculated using the last push date.
+- The generated cause-of-death descriptions are fictional flavour text, not factual explanations of why a repository stopped.
+- Free-tier quotas and provider limits can change. Check your Upstash dashboard for usage and limits.
+- This code has not been deployed against your actual accounts. Complete the testing sequence before treating the application as production-verified.
